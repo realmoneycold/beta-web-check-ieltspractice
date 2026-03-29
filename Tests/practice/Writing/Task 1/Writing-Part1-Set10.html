@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing Task 1 — Set 5 | IELTSPRACTICE</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            line-height: 1.4;
+            font-size: 16px;
+            padding-bottom: 60px;
+        }
+
+        body::after {
+            content: "IELTSPRACTICE";
+            position: fixed;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #000;
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 0;
+            white-space: nowrap;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: #ffffff;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200;
+            height: 60px;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 14px; }
+
+        .back-btn {
+            background: none;
+            border: 1.5px solid #ccc;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s, border-color 0.2s;
+            font-family: Arial, sans-serif;
+        }
+        .back-btn:hover { background: #f5f5f5; border-color: #999; }
+
+        .ielts-logo {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: #1a1a2e;
+            text-decoration: none;
+            gap: 6px;
+        }
+        .ielts-logo-badge {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .exam-mode-badge {
+            display: none;
+            background: #dc3545;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        body.exam-mode .exam-mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        body.exam-mode .exam-mode-badge::before {
+            content: '';
+            display: inline-block;
+            width: 7px; height: 7px;
+            background: #fff;
+            border-radius: 50%;
+            animation: blink 1.2s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        body.exam-mode #timer-toggle-btn,
+        body.exam-mode #timer-reset-btn { display: none !important; }
+
+        .timer-container {
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .timer-controls { display: flex; align-items: center; gap: 6px; }
+        .timer-controls button {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .timer-controls button:hover { background: #e0e0e0; }
+        .timer-controls button svg { width: 18px; height: 18px; fill: #333; }
+        .timer-display.urgent { color: #dc3545; font-weight: 700; }
+
+        /* ── PRE-TEST MODAL ── */
+        .pretest-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,15,30,0.75);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        .pretest-modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 40px 36px 32px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .pretest-modal .modal-logo {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: #1a1a2e;
+            margin-bottom: 24px;
+        }
+        .pretest-modal .modal-logo span {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .pretest-modal h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+        }
+        .pretest-modal p {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+        .pretest-modal .exam-note {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #795548;
+            margin-bottom: 28px;
+            text-align: left;
+        }
+        .pretest-modal .exam-note strong { color: #e65100; }
+        .pretest-btn-group { display: flex; gap: 12px; justify-content: center; }
+        .pretest-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 2px solid transparent;
+            font-family: Arial, sans-serif;
+            transition: all 0.2s;
+        }
+        .pretest-btn.btn-exam { background: #1a1a2e; color: #fff; }
+        .pretest-btn.btn-exam:hover { background: #2d2d4e; }
+        .pretest-btn.btn-practice { background: #fff; color: #1a1a2e; border-color: #ccc; }
+        .pretest-btn.btn-practice:hover { background: #f5f5f5; border-color: #999; }
+
+        /* ── LAYOUT ── */
+        .main-container {
+            margin-top: 60px;
+            display: flex;
+            background: #ffffff;
+            height: calc(100vh - 120px);
+            flex-direction: column;
+        }
+        .part-header {
+            background-color: #f1f2ec;
+            padding: 15px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            margin: 10px 20px;
+        }
+        .part-header p { margin: 0; }
+        .part-header p:first-child { margin-bottom: 5px; }
+
+        .panels-container { display: flex; flex: 1; overflow: hidden; }
+
+        .resizer {
+            width: 10px;
+            cursor: col-resize;
+            background-color: #f0f0f0;
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="30" viewBox="0 0 10 30"><path d="M4 11h2v2H4zM4 15h2v2H4zM4 19h2v2H4z" fill="%23888"/></svg>');
+            background-repeat: no-repeat;
+            background-position: center;
+            flex-shrink: 0;
+        }
+
+        .left-panel {
+            width: 50%;
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            min-width: 200px;
+        }
+
+        .task-prompt {
+            padding: 15px;
+            margin: 0 0 20px;
+            border: 1px solid #000;
+        }
+        .task-prompt p { margin-bottom: 10px; }
+        .task-prompt p:last-child { margin-bottom: 0; }
+
+        /* ── TABLE ── */
+        .data-table-wrapper { overflow-x: auto; margin: 20px 0; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #999;
+            padding: 9px 14px;
+            text-align: center;
+        }
+        .data-table thead th {
+            background: #1a1a2e;
+            color: #fff;
+            font-weight: 700;
+        }
+        .data-table tbody tr:nth-child(even) td { background: #f4f5f8; }
+        .data-table tbody td:first-child { text-align: left; font-weight: 600; }
+
+        /* ── RIGHT PANEL ── */
+        .right-panel {
+            width: 50%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            min-width: 200px;
+        }
+        .writing-area { flex: 1; display: flex; flex-direction: column; }
+        .writing-textarea {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 15px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            flex: 1;
+            min-height: 400px;
+            width: 100%;
+        }
+        .writing-textarea:focus { border-color: #4a90e2; border-width: 2px; }
+        .writing-textarea:disabled { background: #f9f9f9; color: #555; cursor: not-allowed; }
+
+        .word-count-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #555;
+        }
+        .word-count-bar .count-num { font-weight: 700; color: #1a1a2e; font-size: 15px; }
+        .word-count-bar .count-target { font-size: 12px; color: #999; }
+        .word-count-bar.below-min .count-num { color: #dc3545; }
+        .word-count-bar.at-min .count-num    { color: #28a745; }
+
+        /* ── CONTEXT MENU ── */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+            display: none;
+            min-width: 150px;
+        }
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
+            user-select: none;
+        }
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover { background: #f8f9fa; }
+        .highlight { background-color: #ffeb3b; border-radius: 2px; }
+
+        /* ── NOTES PANEL ── */
+        .notes-panel {
+            position: fixed;
+            top: 100px; right: 30px;
+            width: 260px;
+            background: #fffde7;
+            border: 1px solid #f9a825;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            z-index: 1500;
+            display: none;
+            flex-direction: column;
+        }
+        .notes-panel.visible { display: flex; }
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f9a825;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            user-select: none;
+        }
+        .notes-header span { font-size: 13px; font-weight: 700; color: #fff; }
+        .notes-close {
+            background: none; border: none;
+            color: #fff; font-size: 18px;
+            cursor: pointer; line-height: 1; padding: 0 2px;
+        }
+        .notes-body { padding: 10px; }
+        .notes-textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 1px solid #f9a825;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+            outline: none;
+            background: #fffff0;
+        }
+
+        /* ── SUCCESS MODAL ── */
+        .overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2500;
+        }
+        .success-message {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 36px 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 2600;
+            max-width: 420px;
+            width: 90%;
+            animation: slideUp 0.25s ease;
+        }
+        .success-message h3 { color: #28a745; margin-bottom: 12px; font-size: 22px; }
+        .success-message p { color: #666; margin-bottom: 20px; line-height: 1.6; font-size: 15px; }
+        .success-score {
+            background: #f1f2ec;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: left;
+        }
+        .success-score p { margin-bottom: 4px; color: #333; }
+        .modal-btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            padding: 10px 24px;
+            background: #1a1a2e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: Arial, sans-serif;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #2d2d4e; }
+        .btn-secondary {
+            padding: 10px 24px;
+            background: #fff;
+            color: #1a1a2e;
+            border: 2px solid #1a1a2e;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: Arial, sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: #f0f0f0; }
+
+        /* ── BOTTOM NAV ── */
+        .nav-row {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #ffffff;
+            border-top: 1px solid #e0e0e0;
+            padding: 0;
+            display: flex;
+            align-items: stretch;
+            height: 60px;
+            z-index: 100;
+            justify-content: flex-end;
+            padding-right: 20px;
+            gap: 10px;
+        }
+        .footer__deliverButton___3FM07 {
+            align-self: center;
+            background-color: #f3f4f6;
+            color: #111827;
+            border: 1px solid #d1d5db;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s, border-color 0.2s;
+            white-space: nowrap;
+            font-family: Arial, sans-serif;
+        }
+        .footer__deliverButton___3FM07:hover { background-color: #ebedf0; border-color: #c7ccd4; }
+        .footer__deliverButton___3FM07:disabled { background: #eef0f3; color: #9ca3af; cursor: not-allowed; }
+
+        .btn-pdf {
+            align-self: center;
+            background-color: #1a1a2e;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            white-space: nowrap;
+            font-family: Arial, sans-serif;
+        }
+        .btn-pdf:hover { background: #2d2d4e; }
+        .btn-pdf:disabled { background: #6c757d; cursor: not-allowed; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .panels-container { flex-direction: column; }
+            .left-panel, .right-panel { width: 100% !important; border-right: none; }
+            .left-panel { border-bottom: 1px solid #e0e0e0; }
+            .resizer { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PRE-TEST MODAL -->
+<div id="pretest-overlay" class="pretest-overlay">
+    <div class="pretest-modal">
+        <div class="modal-logo"><span>IELTS</span>PRACTICE</div>
+        <h2>Writing Task 1 — Set 5</h2>
+        <p>Would you like to take this in a <strong>Real Exam Environment</strong>?</p>
+        <div class="exam-note">
+            <strong>⚠️ Real Exam Mode:</strong> The timer starts immediately and cannot be paused. The test will automatically submit when 20 minutes are up.
+        </div>
+        <div class="pretest-btn-group">
+            <button class="pretest-btn btn-exam" id="btn-exam-mode">Yes — Real Exam Mode</button>
+            <button class="pretest-btn btn-practice" id="btn-practice-mode">No — Practice Mode</button>
+        </div>
+    </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <button class="back-btn" id="back-btn">← Back</button>
+        <div class="ielts-logo">
+            <span class="ielts-logo-badge">IELTS</span>PRACTICE
+        </div>
+        <span class="exam-mode-badge" id="exam-mode-badge">Exam Mode</span>
+    </div>
+    <div class="timer-container">
+        <span class="timer-display" id="timer-display">20:00</span>
+        <div class="timer-controls">
+            <button id="timer-toggle-btn" title="Pause / Resume">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" id="toggle-icon">
+                    <path d="M0 0h24v24H0V0z" fill="none"/>
+                    <path d="M8 5v14l11-7L8 5z"/>
+                </svg>
+            </button>
+            <button id="timer-reset-btn" title="Reset timer">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px">
+                    <path d="M0 0h24v24H0V0z" fill="none"/>
+                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="main-container" id="mainContainer">
+    <div class="part-header">
+        <p><strong>Writing Task 1</strong> &nbsp;·&nbsp; Set 5</p>
+        <p>You should spend about <strong>20 minutes</strong> on this task. Write <strong>at least 150 words</strong>.</p>
+    </div>
+
+    <div class="panels-container">
+        <!-- LEFT — prompt + table -->
+        <div class="left-panel" id="left-panel">
+            <div class="task-prompt">
+                <p><strong>The table below shows the number of motor vehicles per 1,000 inhabitants in eight countries in 1990 and 2000.</strong></p>
+                <p><strong>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.</strong></p>
+            </div>
+
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th>Motor Vehicles per 1,000 inhabitants<br>(1990)</th>
+                            <th>Motor Vehicles per 1,000 inhabitants<br>(2000)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>United States</td><td>765</td><td>812</td></tr>
+                        <tr><td>Australia</td><td>550</td><td>620</td></tr>
+                        <tr><td>Canada</td><td>541</td><td>563</td></tr>
+                        <tr><td>Germany</td><td>480</td><td>531</td></tr>
+                        <tr><td>France</td><td>455</td><td>508</td></tr>
+                        <tr><td>Japan</td><td>420</td><td>543</td></tr>
+                        <tr><td>Brazil</td><td>96</td><td>143</td></tr>
+                        <tr><td>China</td><td>10</td><td>38</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="font-size:12px; color:#888; margin-top:8px;">Source: International Road Federation</p>
+        </div>
+
+        <!-- RESIZER -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- RIGHT — writing area -->
+        <div class="right-panel" id="right-panel">
+            <div class="writing-area">
+                <textarea
+                    class="writing-textarea"
+                    id="writingTextarea"
+                    placeholder="Start writing your Task 1 response here…"
+                    spellcheck="false"
+                    oninput="updateWordCount()"
+                ></textarea>
+                <div class="word-count-bar" id="wordCountBar">
+                    <div>
+                        Words: <span class="count-num" id="wordCount">0</span>
+                        <span class="count-target"> / 150 minimum</span>
+                    </div>
+                    <div id="wordStatus" style="font-size:12px; color:#28a745; font-weight:600;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="contextMenu" class="context-menu">
+    <div class="context-menu-item" id="menu-highlight" onclick="doHighlight()">✏️ Highlight</div>
+    <div class="context-menu-item" id="menu-clear"     onclick="doClearHighlight()">🧹 Clear Highlight</div>
+    <div class="context-menu-item" id="menu-note"      onclick="doOpenNote()">📝 Notes</div>
+</div>
+
+<!-- NOTES PANEL -->
+<div class="notes-panel" id="notesPanel">
+    <div class="notes-header" id="notesHeader">
+        <span>📝 My Notes</span>
+        <button class="notes-close" id="notesClose">×</button>
+    </div>
+    <div class="notes-body">
+        <textarea class="notes-textarea" id="notesTextarea" placeholder="Type your notes here…" spellcheck="false"></textarea>
+    </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay" class="overlay" onclick="closeSuccessMessage()"></div>
+
+<!-- SUCCESS MODAL -->
+<div class="success-message" id="successMessage">
+    <h3>✓ Task Submitted</h3>
+    <p>Your response has been saved. Review your word count below.</p>
+    <div class="success-score" id="successScore"></div>
+    <div class="modal-btn-group">
+        <button class="btn-secondary" onclick="closeSuccessMessage()">Close</button>
+        <button class="btn" onclick="downloadPDF()">⬇ Download PDF</button>
+    </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav-row" id="navigation">
+    <button class="btn-pdf" id="pdf-btn" onclick="downloadPDF()" disabled title="Submit first to download PDF">
+        ⬇ Download PDF
+    </button>
+    <button id="deliver-button" class="footer__deliverButton___3FM07" onclick="handleSubmitClick()">
+        ✓ Submit Task 1
+    </button>
+</nav>
+
+<script>
+(function () {
+    'use strict';
+
+    const TASK_TIMER   = 1200;   // 20 minutes
+    const MIN_WORDS    = 150;
+    const STORAGE_KEY  = 'ielts_w_p1_set5_data';
+
+    let timeInSeconds  = TASK_TIMER;
+    let timerInterval  = null;
+    let isExamMode     = false;
+    let isRunning      = false;
+    let submitted      = false;
+
+    const timerDisplay = document.getElementById('timer-display');
+    const toggleBtn    = document.getElementById('timer-toggle-btn');
+    const resetBtn     = document.getElementById('timer-reset-btn');
+    const deliverBtn   = document.getElementById('deliver-button');
+    const pdfBtn       = document.getElementById('pdf-btn');
+    const textarea     = document.getElementById('writingTextarea');
+    const wordCountEl  = document.getElementById('wordCount');
+    const wordStatusEl = document.getElementById('wordStatus');
+    const wordCountBar = document.getElementById('wordCountBar');
+    const contextMenu  = document.getElementById('contextMenu');
+    const notesPanel   = document.getElementById('notesPanel');
+    const resizer      = document.getElementById('resizer');
+    const leftPanel    = document.getElementById('left-panel');
+
+    const PLAY_SVG  = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M8 5v14l11-7L8 5z"/></svg>`;
+    const PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+
+    // ── TIMER ──
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        isRunning = true;
+        toggleBtn.innerHTML = PAUSE_SVG;
+        timerInterval = setInterval(() => {
+            timeInSeconds--;
+            renderTimer();
+            if (timeInSeconds <= 120) timerDisplay.classList.add('urgent');
+            if (timeInSeconds <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = '00:00';
+                isRunning = false;
+                if (isExamMode) performSubmit();
+            }
+        }, 1000);
+    }
+
+    function pauseTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isRunning = false;
+        toggleBtn.innerHTML = PLAY_SVG;
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isRunning = false;
+        timeInSeconds = TASK_TIMER;
+        renderTimer();
+        timerDisplay.classList.remove('urgent');
+        toggleBtn.innerHTML = PLAY_SVG;
+    }
+
+    function renderTimer() {
+        const m = Math.floor(timeInSeconds / 60);
+        const s = timeInSeconds % 60;
+        timerDisplay.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if (isExamMode) return;
+        isRunning ? pauseTimer() : startTimer();
+    });
+    resetBtn.addEventListener('click', () => { if (!isExamMode) resetTimer(); });
+
+    // ── PRE-TEST MODAL ──
+    document.getElementById('btn-exam-mode').addEventListener('click', () => {
+        isExamMode = true;
+        document.body.classList.add('exam-mode');
+        document.getElementById('pretest-overlay').style.display = 'none';
+        startTimer();
+    });
+    document.getElementById('btn-practice-mode').addEventListener('click', () => {
+        isExamMode = false;
+        document.getElementById('pretest-overlay').style.display = 'none';
+        startTimer();
+    });
+
+    // ── BACK BUTTON ──
+    document.getElementById('back-btn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to quit? Your progress will not be saved.'))
+            history.back();
+    });
+
+    // ── WORD COUNT ──
+    window.updateWordCount = function () {
+        const text  = textarea.value.trim();
+        const count = text === '' ? 0 : text.split(/\s+/).length;
+        wordCountEl.textContent = count;
+        wordCountBar.classList.remove('below-min', 'at-min');
+        if (count >= MIN_WORDS) {
+            wordCountBar.classList.add('at-min');
+            wordStatusEl.textContent = '✓ Minimum reached';
+            wordStatusEl.style.color = '#28a745';
+        } else {
+            wordCountBar.classList.add('below-min');
+            const remaining = MIN_WORDS - count;
+            wordStatusEl.textContent = `${remaining} more word${remaining !== 1 ? 's' : ''} needed`;
+            wordStatusEl.style.color = '#dc3545';
+        }
+    };
+
+    // ── SUBMIT ──
+    window.handleSubmitClick = function () {
+        if (confirm('Submit Task 1? You will not be able to change your response.'))
+            performSubmit();
+    };
+
+    function performSubmit() {
+        submitted = true;
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isRunning = false;
+        textarea.disabled = true;
+        deliverBtn.disabled = true;
+        pdfBtn.disabled = false;
+
+        const wc = countWords(textarea.value);
+
+        // persist to sessionStorage
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+                response: textarea.value,
+                wordCount: wc,
+                submittedAt: new Date().toISOString()
+            }));
+        } catch(e) {}
+
+        document.getElementById('successScore').innerHTML =
+            `<p><strong>Task 1 Response:</strong> ${wc} words ${wc >= MIN_WORDS ? '✓' : '⚠ below 150'}</p>`;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('successMessage').style.display = 'block';
+    }
+
+    function countWords(str) {
+        const t = (str || '').trim();
+        return t === '' ? 0 : t.split(/\s+/).length;
+    }
+
+    window.closeSuccessMessage = function () {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('successMessage').style.display = 'none';
+    };
+
+    // ── PDF DOWNLOAD ──
+    window.downloadPDF = function () {
+        if (!submitted) return;
+
+        const responseText = textarea.value || '';
+        const wc           = countWords(responseText);
+        const now          = new Date();
+        const dateStr      = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
+        const escaped = responseText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
+
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #1a1a1a; }
+  .cover {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 60px 50px 40px;
+    min-height: 120px;
+  }
+  .cover h1 { font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 0 0 6px; }
+  .cover h2 { font-size: 16px; font-weight: 400; margin: 0; opacity: 0.8; letter-spacing: 0.5px; }
+  .cover .meta { margin-top: 18px; font-size: 12px; opacity: 0.65; }
+  .section {
+    padding: 36px 50px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 14px;
+  }
+  .prompt-box {
+    background: #f4f5f8;
+    border-left: 4px solid #1a1a2e;
+    padding: 14px 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 0;
+  }
+  .response-body {
+    font-size: 14px;
+    line-height: 1.85;
+    color: #222;
+  }
+  .stats-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .stat-box {
+    background: #f4f5f8;
+    border-radius: 8px;
+    padding: 14px 20px;
+    min-width: 130px;
+    text-align: center;
+  }
+  .stat-val { font-size: 28px; font-weight: 800; color: #1a1a2e; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 4px; }
+  .stat-box.ok .stat-val { color: #28a745; }
+  .stat-box.warn .stat-val { color: #dc3545; }
+  .footer { padding: 24px 50px; font-size: 11px; color: #aaa; text-align: center; }
+</style>
+</head><body>
+<div class="cover">
+  <h1>IELTS Writing Task 1 — Report</h1>
+  <h2>IELTSPRACTICE &nbsp;·&nbsp; Set 5</h2>
+  <div class="meta">Generated: ${dateStr}</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Task Prompt</div>
+  <div class="prompt-box">
+    The table below shows the number of motor vehicles per 1,000 inhabitants in eight countries in 1990 and 2000.<br><br>
+    <em>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.</em>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Candidate Response</div>
+  <div class="response-body">${escaped || '<em style="color:#aaa;">No response entered.</em>'}</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Word Count Summary</div>
+  <div class="stats-row">
+    <div class="stat-box ${wc >= 150 ? 'ok' : 'warn'}">
+      <div class="stat-val">${wc}</div>
+      <div class="stat-label">Words Written</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" style="font-size:22px; color:#1a1a2e;">150</div>
+      <div class="stat-label">Minimum Required</div>
+    </div>
+    <div class="stat-box ${wc >= 150 ? 'ok' : 'warn'}">
+      <div class="stat-val" style="font-size:20px;">${wc >= 150 ? '✓ Met' : '✗ Below'}</div>
+      <div class="stat-label">Requirement</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">IELTSPRACTICE — Writing Task 1 Report &nbsp;|&nbsp; Set 5 &nbsp;|&nbsp; ${dateStr}</div>
+</body></html>`;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const url  = URL.createObjectURL(blob);
+        const w    = window.open(url, '_blank');
+        if (w) {
+            w.onload = () => { w.print(); };
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    };
+
+    // ── RESIZER ──
+    resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const startX     = e.clientX;
+        const startWidth = leftPanel.offsetWidth;
+        const doDrag = (e) => {
+            const nw = startWidth + e.clientX - startX;
+            const total = document.querySelector('.panels-container').offsetWidth;
+            if (nw > 200 && (total - nw - resizer.offsetWidth) > 200) {
+                leftPanel.style.flex = `0 0 ${nw}px`;
+                leftPanel.style.width = `${nw}px`;
+            }
+        };
+        const stopDrag = () => {
+            window.removeEventListener('mousemove', doDrag);
+            window.removeEventListener('mouseup', stopDrag);
+        };
+        window.addEventListener('mousemove', doDrag);
+        window.addEventListener('mouseup', stopDrag);
+    });
+
+    // ── CONTEXT MENU ──
+    let lastSelection = null;
+    let contextTarget = null;
+
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        lastSelection = window.getSelection();
+        contextTarget = e.target;
+        const hasSel = lastSelection && !lastSelection.isCollapsed && lastSelection.toString().trim().length > 0;
+        const onHL   = e.target.closest('.highlight');
+        document.getElementById('menu-highlight').style.display = hasSel ? 'flex' : 'none';
+        document.getElementById('menu-clear').style.display     = onHL   ? 'flex' : 'none';
+        document.getElementById('menu-note').style.display      = 'flex';
+        const menuW = 160, menuH = 110;
+        let left = e.clientX, top = e.clientY;
+        if (left + menuW > window.innerWidth)  left = window.innerWidth  - menuW - 8;
+        if (top  + menuH > window.innerHeight) top  = window.innerHeight - menuH - 8;
+        contextMenu.style.left = `${left}px`;
+        contextMenu.style.top  = `${top}px`;
+        contextMenu.style.display = 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!contextMenu.contains(e.target)) contextMenu.style.display = 'none';
+    });
+
+    window.doHighlight = function () {
+        contextMenu.style.display = 'none';
+        const sel = lastSelection;
+        if (!sel || sel.isCollapsed) return;
+        const range = sel.getRangeAt(0);
+        if (!document.getElementById('left-panel').contains(range.commonAncestorContainer)) return;
+        try {
+            const span = document.createElement('span');
+            span.className = 'highlight';
+            range.surroundContents(span);
+        } catch (_) {
+            const frag = range.extractContents();
+            const span = document.createElement('span');
+            span.className = 'highlight';
+            span.appendChild(frag);
+            range.insertNode(span);
+        }
+        window.getSelection().removeAllRanges();
+    };
+
+    window.doClearHighlight = function () {
+        contextMenu.style.display = 'none';
+        const hl = contextTarget && contextTarget.closest('.highlight');
+        if (!hl) return;
+        const parent = hl.parentNode;
+        while (hl.firstChild) parent.insertBefore(hl.firstChild, hl);
+        parent.removeChild(hl);
+        parent.normalize();
+    };
+
+    window.doOpenNote = function () {
+        contextMenu.style.display = 'none';
+        notesPanel.classList.add('visible');
+        document.getElementById('notesTextarea').focus();
+    };
+
+    document.getElementById('notesClose').addEventListener('click', () => notesPanel.classList.remove('visible'));
+
+    (function makeDraggable(panel, handle) {
+        let ox=0, oy=0, mx=0, my=0;
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            mx = e.clientX; my = e.clientY;
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stop);
+        });
+        function drag(e) {
+            ox = mx - e.clientX; oy = my - e.clientY;
+            mx = e.clientX; my = e.clientY;
+            panel.style.top  = (panel.offsetTop  - oy) + 'px';
+            panel.style.left = (panel.offsetLeft - ox) + 'px';
+            panel.style.right = 'auto';
+        }
+        function stop() {
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stop);
+        }
+    })(notesPanel, document.getElementById('notesHeader'));
+
+    // ── INIT ──
+    updateWordCount();
+})();
+</script>
+</body>
+</html>
