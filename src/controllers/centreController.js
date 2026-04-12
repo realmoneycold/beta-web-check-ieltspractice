@@ -1,0 +1,1111 @@
+const prisma = require('../models/prisma');
+
+// ═══════════════════════════════════════════════════════════════
+// CENTRE PROFILE CRUD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/profile - Get current centre profile
+async function getCentreProfile(req, res) {
+  try {
+    const centreId = req.user.centreId;
+
+    const centre = await prisma.educationCentre.findUnique({
+      where: { id: centreId },
+      include: {
+        staff: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            role: true,
+            phone: true,
+            lastSeenAt: true
+          }
+        },
+        _count: {
+          select: {
+            mockSessions: true,
+            studyGroups: true,
+            inquiries: true
+          }
+        }
+      }
+    });
+
+    if (!centre) {
+      return res.status(404).json({
+        success: false,
+        error: 'Centre profile not found',
+        code: 'CENTRE_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: centre
+    });
+  } catch (error) {
+    console.error('Get centre profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch centre profile',
+      code: 'CENTRE_PROFILE_ERROR'
+    });
+  }
+}
+
+// PUT /api/centre/profile - Update centre profile
+async function updateCentreProfile(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const {
+      address, contactEmail, contactPhone, websiteUrl
+    } = req.body;
+
+    const updateData = {};
+    if (address !== undefined) updateData.address = address;
+    if (contactEmail !== undefined) updateData.contactEmail = contactEmail;
+    if (contactPhone !== undefined) updateData.contactPhone = contactPhone;
+    if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl;
+
+    const centre = await prisma.educationCentre.update({
+      where: { id: centreId },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: 'Centre profile updated successfully',
+      data: centre
+    });
+  } catch (error) {
+    console.error('Update centre profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update centre profile',
+      code: 'CENTRE_PROFILE_UPDATE_ERROR'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK SESSIONS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/mock-sessions - List all mock sessions for centre
+async function getMockSessions(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const { page = 1, limit = 10, type, upcoming = '' } = req.query;
+
+    const where = { centreId };
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (upcoming === 'true') {
+      where.dateTime = { gte: new Date() };
+    }
+
+    const [sessions, total] = await Promise.all([
+      prisma.mockSession.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              results: true
+            }
+          }
+        },
+        orderBy: { dateTime: 'desc' },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      }),
+      prisma.mockSession.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        sessions,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get mock sessions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch mock sessions',
+      code: 'MOCK_SESSIONS_ERROR'
+    });
+  }
+}
+
+// GET /api/centre/mock-sessions/:id - Get single mock session
+async function getMockSessionById(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const sessionId = parseInt(req.params.id);
+
+    const session = await prisma.mockSession.findFirst({
+      where: { id: sessionId, centreId },
+      include: {
+        results: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mock session not found',
+        code: 'SESSION_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: session
+    });
+  } catch (error) {
+    console.error('Get mock session by ID error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch mock session',
+      code: 'MOCK_SESSION_FETCH_ERROR'
+    });
+  }
+}
+
+// POST /api/centre/mock-sessions - Create new mock session
+async function createMockSession(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const { dateTime, type, format, location, capacity, price, notes } = req.body;
+
+    // Validation
+    if (!dateTime || !type || !format) {
+      return res.status(400).json({
+        success: false,
+        error: 'dateTime, type, and format are required',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const session = await prisma.mockSession.create({
+      data: {
+        centreId,
+        dateTime: new Date(dateTime),
+        type,
+        format,
+        location: location || 'TBD',
+        capacity: capacity ? parseInt(capacity) : 30,
+        price: price ? parseFloat(price) : 0,
+        notes: notes || null
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Mock session created successfully',
+      data: session
+    });
+  } catch (error) {
+    console.error('Create mock session error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create mock session',
+      code: 'MOCK_SESSION_CREATE_ERROR'
+    });
+  }
+}
+
+// PUT /api/centre/mock-sessions/:id - Update mock session
+async function updateMockSession(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const sessionId = parseInt(req.params.id);
+    const { dateTime, type, format, location, capacity, price, notes } = req.body;
+
+    // Check if session belongs to centre
+    const existing = await prisma.mockSession.findFirst({
+      where: { id: sessionId, centreId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mock session not found',
+        code: 'SESSION_NOT_FOUND'
+      });
+    }
+
+    const updateData = {};
+    if (dateTime !== undefined) updateData.dateTime = new Date(dateTime);
+    if (type !== undefined) updateData.type = type;
+    if (format !== undefined) updateData.format = format;
+    if (location !== undefined) updateData.location = location;
+    if (capacity !== undefined) updateData.capacity = capacity ? parseInt(capacity) : null;
+    if (price !== undefined) updateData.price = price ? parseFloat(price) : null;
+    if (notes !== undefined) updateData.notes = notes;
+
+    const session = await prisma.mockSession.update({
+      where: { id: sessionId },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: 'Mock session updated successfully',
+      data: session
+    });
+  } catch (error) {
+    console.error('Update mock session error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update mock session',
+      code: 'MOCK_SESSION_UPDATE_ERROR'
+    });
+  }
+}
+
+// DELETE /api/centre/mock-sessions/:id - Delete mock session
+async function deleteMockSession(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const sessionId = parseInt(req.params.id);
+
+    // Check if session belongs to centre
+    const existing = await prisma.mockSession.findFirst({
+      where: { id: sessionId, centreId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mock session not found',
+        code: 'SESSION_NOT_FOUND'
+      });
+    }
+
+    await prisma.mockSession.delete({
+      where: { id: sessionId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Mock session deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete mock session error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete mock session',
+      code: 'MOCK_SESSION_DELETE_ERROR'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK RESULTS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/mock-results - List all mock results for centre sessions
+async function getMockResults(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const { page = 1, limit = 20, sessionId } = req.query;
+
+    const where = {};
+
+    // Get all session IDs for this centre
+    const centreSessions = await prisma.mockSession.findMany({
+      where: { centreId },
+      select: { id: true }
+    });
+
+    const sessionIds = centreSessions.map(s => s.id);
+
+    if (sessionId) {
+      where.sessionId = parseInt(sessionId);
+    } else {
+      where.sessionId = { in: sessionIds };
+    }
+
+    const [results, total] = await Promise.all([
+      prisma.mockResult.findMany({
+        where,
+        include: {
+          student: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true
+            }
+          },
+          session: {
+            select: {
+              id: true,
+              dateTime: true,
+              type: true,
+              format: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      }),
+      prisma.mockResult.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        results,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get mock results error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch mock results',
+      code: 'MOCK_RESULTS_ERROR'
+    });
+  }
+}
+
+// PUT /api/centre/mock-results/:id - Update mock result
+async function updateMockResult(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const resultId = parseInt(req.params.id);
+    const { listening, reading, writing, speaking, overall } = req.body;
+
+    // Get the result and verify it belongs to a centre session
+    const result = await prisma.mockResult.findUnique({
+      where: { id: resultId },
+      include: {
+        session: true
+      }
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mock result not found',
+        code: 'RESULT_NOT_FOUND'
+      });
+    }
+
+    if (result.session && result.session.centreId !== centreId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to update this result',
+        code: 'FORBIDDEN'
+      });
+    }
+
+    const updateData = {};
+    if (listening !== undefined) updateData.listening = parseFloat(listening);
+    if (reading !== undefined) updateData.reading = parseFloat(reading);
+    if (writing !== undefined) updateData.writing = parseFloat(writing);
+    if (speaking !== undefined) updateData.speaking = parseFloat(speaking);
+    if (overall !== undefined) updateData.overall = parseFloat(overall);
+
+    const updatedResult = await prisma.mockResult.update({
+      where: { id: resultId },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: 'Mock result updated successfully',
+      data: updatedResult
+    });
+  } catch (error) {
+    console.error('Update mock result error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update mock result',
+      code: 'MOCK_RESULT_UPDATE_ERROR'
+    });
+  }
+}
+
+// DELETE /api/centre/mock-results/:id - Delete mock result
+async function deleteMockResult(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const resultId = parseInt(req.params.id);
+
+    const result = await prisma.mockResult.findUnique({
+      where: { id: resultId },
+      include: {
+        session: true
+      }
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mock result not found',
+        code: 'RESULT_NOT_FOUND'
+      });
+    }
+
+    if (result.session && result.session.centreId !== centreId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to delete this result',
+        code: 'FORBIDDEN'
+      });
+    }
+
+    await prisma.mockResult.delete({
+      where: { id: resultId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Mock result deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete mock result error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete mock result',
+      code: 'MOCK_RESULT_DELETE_ERROR'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STUDY GROUPS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/groups - List all study groups for centre
+async function getStudyGroups(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const { page = 1, limit = 10, status, level } = req.query;
+
+    const where = { centreId };
+
+    if (status) {
+      where.status = status.toUpperCase();
+    }
+
+    if (level) {
+      where.level = level;
+    }
+
+    const [groups, total] = await Promise.all([
+      prisma.studyGroup.findMany({
+        where,
+        include: {
+          teacher: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true
+            }
+          },
+          _count: {
+            select: {
+              applications: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      }),
+      prisma.studyGroup.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        groups,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get study groups error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch study groups',
+      code: 'GROUPS_ERROR'
+    });
+  }
+}
+
+// GET /api/centre/groups/:id - Get single study group
+async function getStudyGroupById(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const groupId = parseInt(req.params.id);
+
+    const group = await prisma.studyGroup.findFirst({
+      where: { id: groupId, centreId },
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true
+          }
+        },
+        applications: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+                current_band: true,
+                target_band: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        error: 'Study group not found',
+        code: 'GROUP_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: group
+    });
+  } catch (error) {
+    console.error('Get study group by ID error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch study group',
+      code: 'GROUP_FETCH_ERROR'
+    });
+  }
+}
+
+// POST /api/centre/groups - Create new study group
+async function createStudyGroup(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const { name, level, schedule, startDate, endDate, capacity, description, teacherId } = req.body;
+
+    // Validation
+    if (!name || !level || !schedule) {
+      return res.status(400).json({
+        success: false,
+        error: 'name, level, and schedule are required',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const group = await prisma.studyGroup.create({
+      data: {
+        centreId,
+        name,
+        level,
+        schedule,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        capacity: capacity ? parseInt(capacity) : 15,
+        status: 'OPEN',
+        description: description || null,
+        teacherId: teacherId ? parseInt(teacherId) : null
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Study group created successfully',
+      data: group
+    });
+  } catch (error) {
+    console.error('Create study group error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create study group',
+      code: 'GROUP_CREATE_ERROR'
+    });
+  }
+}
+
+// PUT /api/centre/groups/:id - Update study group
+async function updateStudyGroup(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const groupId = parseInt(req.params.id);
+    const { name, level, schedule, startDate, endDate, capacity, status, description, teacherId } = req.body;
+
+    // Check if group belongs to centre
+    const existing = await prisma.studyGroup.findFirst({
+      where: { id: groupId, centreId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Study group not found',
+        code: 'GROUP_NOT_FOUND'
+      });
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (level !== undefined) updateData.level = level;
+    if (schedule !== undefined) updateData.schedule = schedule;
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+    if (capacity !== undefined) updateData.capacity = capacity ? parseInt(capacity) : null;
+    if (status !== undefined) updateData.status = status.toUpperCase();
+    if (description !== undefined) updateData.description = description;
+    if (teacherId !== undefined) updateData.teacherId = teacherId ? parseInt(teacherId) : null;
+
+    const group = await prisma.studyGroup.update({
+      where: { id: groupId },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: 'Study group updated successfully',
+      data: group
+    });
+  } catch (error) {
+    console.error('Update study group error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update study group',
+      code: 'GROUP_UPDATE_ERROR'
+    });
+  }
+}
+
+// DELETE /api/centre/groups/:id - Delete study group
+async function deleteStudyGroup(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const groupId = parseInt(req.params.id);
+
+    // Check if group belongs to centre
+    const existing = await prisma.studyGroup.findFirst({
+      where: { id: groupId, centreId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Study group not found',
+        code: 'GROUP_NOT_FOUND'
+      });
+    }
+
+    await prisma.studyGroup.delete({
+      where: { id: groupId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Study group deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete study group error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete study group',
+      code: 'GROUP_DELETE_ERROR'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GROUP APPLICATIONS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/groups/:id/applications - Get applications for a group
+async function getGroupApplications(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const groupId = parseInt(req.params.id);
+
+    // Verify group belongs to centre
+    const group = await prisma.studyGroup.findFirst({
+      where: { id: groupId, centreId }
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        error: 'Study group not found',
+        code: 'GROUP_NOT_FOUND'
+      });
+    }
+
+    const applications = await prisma.groupApplication.findMany({
+      where: { groupId },
+      include: {
+        student: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            current_band: true,
+            target_band: true,
+            phone: true,
+            country: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      data: applications
+    });
+  } catch (error) {
+    console.error('Get group applications error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch applications',
+      code: 'APPLICATIONS_ERROR'
+    });
+  }
+}
+
+// POST /api/centre/applications/:id/respond - Accept or decline application
+async function respondToApplication(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const applicationId = parseInt(req.params.id);
+    const { action } = req.body; // 'accept' or 'decline'
+
+    if (!action || !['accept', 'decline'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Action must be "accept" or "decline"',
+        code: 'INVALID_ACTION'
+      });
+    }
+
+    const application = await prisma.groupApplication.findUnique({
+      where: { id: applicationId },
+      include: {
+        group: true
+      }
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        error: 'Application not found',
+        code: 'APPLICATION_NOT_FOUND'
+      });
+    }
+
+    if (application.group.centreId !== centreId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to respond to this application',
+        code: 'FORBIDDEN'
+      });
+    }
+
+    const status = action === 'accept' ? 'ACCEPTED' : 'DECLINED';
+
+    const updatedApplication = await prisma.groupApplication.update({
+      where: { id: applicationId },
+      data: { status }
+    });
+
+    res.json({
+      success: true,
+      message: `Application ${action}ed successfully`,
+      data: updatedApplication
+    });
+  } catch (error) {
+    console.error('Respond to application error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to respond to application',
+      code: 'APPLICATION_RESPOND_ERROR'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INQUIRIES CRUD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/inquiries - List all inquiries for centre
+async function getInquiries(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const { isRead = '', page = 1, limit = 20 } = req.query;
+
+    const where = { centreId };
+
+    if (isRead !== '') {
+      where.isRead = isRead === 'true';
+    }
+
+    const [inquiries, total] = await Promise.all([
+      prisma.inquiry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      }),
+      prisma.inquiry.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        inquiries,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get inquiries error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch inquiries',
+      code: 'INQUIRIES_ERROR'
+    });
+  }
+}
+
+// PATCH /api/centre/inquiries/:id/mark-read - Mark inquiry as read
+async function markInquiryRead(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const inquiryId = parseInt(req.params.id);
+
+    const inquiry = await prisma.inquiry.findFirst({
+      where: { id: inquiryId, centreId }
+    });
+
+    if (!inquiry) {
+      return res.status(404).json({
+        success: false,
+        error: 'Inquiry not found',
+        code: 'INQUIRY_NOT_FOUND'
+      });
+    }
+
+    const updated = await prisma.inquiry.update({
+      where: { id: inquiryId },
+      data: { isRead: true }
+    });
+
+    res.json({
+      success: true,
+      message: 'Inquiry marked as read',
+      data: updated
+    });
+  } catch (error) {
+    console.error('Mark inquiry read error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark inquiry as read',
+      code: 'INQUIRY_UPDATE_ERROR'
+    });
+  }
+}
+
+// DELETE /api/centre/inquiries/:id - Delete inquiry
+async function deleteInquiry(req, res) {
+  try {
+    const centreId = req.user.centreId;
+    const inquiryId = parseInt(req.params.id);
+
+    const inquiry = await prisma.inquiry.findFirst({
+      where: { id: inquiryId, centreId }
+    });
+
+    if (!inquiry) {
+      return res.status(404).json({
+        success: false,
+        error: 'Inquiry not found',
+        code: 'INQUIRY_NOT_FOUND'
+      });
+    }
+
+    await prisma.inquiry.delete({
+      where: { id: inquiryId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Inquiry deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete inquiry error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete inquiry',
+      code: 'INQUIRY_DELETE_ERROR'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD STATS
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/centre/dashboard-stats - Get centre dashboard statistics
+async function getDashboardStats(req, res) {
+  try {
+    const centreId = req.user.centreId;
+
+    const [
+      totalStudents,
+      activeStudents,
+      totalSessions,
+      upcomingSessions,
+      totalGroups,
+      openGroups,
+      pendingApplications,
+      unreadInquiries
+    ] = await Promise.all([
+      prisma.user.count({ where: { centreId, role: 'STUDENT' } }),
+      prisma.user.count({
+        where: {
+          centreId,
+          role: 'STUDENT',
+          lastSeenAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }
+        }
+      }),
+      prisma.mockSession.count({ where: { centreId } }),
+      prisma.mockSession.count({
+        where: {
+          centreId,
+          dateTime: { gte: new Date() }
+        }
+      }),
+      prisma.studyGroup.count({ where: { centreId } }),
+      prisma.studyGroup.count({
+        where: {
+          centreId,
+          status: 'OPEN'
+        }
+      }),
+      prisma.groupApplication.count({
+        where: {
+          group: { centreId },
+          status: 'PENDING'
+        }
+      }),
+      prisma.inquiry.count({
+        where: {
+          centreId,
+          isRead: false
+        }
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        students: {
+          total: totalStudents,
+          activeNow: activeStudents
+        },
+        sessions: {
+          total: totalSessions,
+          upcoming: upcomingSessions
+        },
+        groups: {
+          total: totalGroups,
+          open: openGroups
+        },
+        applications: {
+          pending: pendingApplications
+        },
+        inquiries: {
+          unread: unreadInquiries
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch dashboard stats',
+      code: 'STATS_ERROR'
+    });
+  }
+}
+
+module.exports = {
+  // Profile CRUD
+  getCentreProfile,
+  updateCentreProfile,
+  // Mock Sessions CRUD
+  getMockSessions,
+  getMockSessionById,
+  createMockSession,
+  updateMockSession,
+  deleteMockSession,
+  // Mock Results CRUD
+  getMockResults,
+  updateMockResult,
+  deleteMockResult,
+  // Study Groups CRUD
+  getStudyGroups,
+  getStudyGroupById,
+  createStudyGroup,
+  updateStudyGroup,
+  deleteStudyGroup,
+  // Applications CRUD
+  getGroupApplications,
+  respondToApplication,
+  // Inquiries CRUD
+  getInquiries,
+  markInquiryRead,
+  deleteInquiry,
+  // Dashboard
+  getDashboardStats
+};

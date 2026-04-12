@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // Teacher Dashboard API - IELTSPRACTICE
-// Handles teacher dashboard functionality
-// ═════════════════════════════════════════════════════════════
+// Complete CRUD operations for teachers
+// ═══════════════════════════════════════════════════════════════
 
 'use strict';
 
@@ -9,318 +9,170 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
+const prisma = require('../models/prisma');
 const { verifyTeacherAuth } = require('./teacherAuth');
+const teacherCtrl = require('../controllers/teacherController');
 
-const prisma = new PrismaClient();
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'materials');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-// ─── MULTER CONFIGURATION ─────────────────────────────────────────────────────────────
+// ─── MULTER CONFIGURATION ─────────────────────────────────────
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/materials/');
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, 'material-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: function (req, file, cb) {
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/msword',
+      'image/jpeg',
+      'image/png'
+    ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, DOCX, and PPTX files are allowed.'), false);
+      cb(new Error('Invalid file type. Only PDF, DOC, DOCX, PPT, PPTX, JPG, PNG allowed.'), false);
     }
   }
 });
 
-// ─── DASHBOARD STATS ─────────────────────────────────────────────────────────────
+// ─── DASHBOARD STATS ──────────────────────────────────────────
 /**
  * GET /api/teacher/dashboard-stats
- * Fetch dashboard statistics for teacher
+ * Fetch comprehensive dashboard statistics
  */
-router.get('/dashboard-stats', verifyTeacherAuth, async (req, res) => {
-  const teacherId = req.user.id;
+router.get('/dashboard-stats', verifyTeacherAuth, teacherCtrl.getDashboardStats);
 
-  try {
-    // Get next lesson countdown
-    const nextLesson = await prisma.lesson.findFirst({
-      where: {
-        teacherId: teacherId,
-        status: 'SCHEDULED',
-        startTime: {
-          gte: new Date()
-        }
-      },
-      orderBy: {
-        startTime: 'asc'
-      }
-    });
+// ─── PROFILE ROUTES ───────────────────────────────────────────
+/**
+ * GET /api/teacher/profile
+ * Get current teacher profile
+ */
+router.get('/profile', verifyTeacherAuth, teacherCtrl.getTeacherProfile);
 
-    // Get follower count
-    const followerCount = await prisma.follow.count({
-      where: {
-        teacherId: teacherId
-      }
-    });
+/**
+ * PUT /api/teacher/profile
+ * Update teacher profile
+ */
+router.put('/profile', verifyTeacherAuth, teacherCtrl.updateTeacherProfile);
 
-    // Get total hours taught (completed lessons)
-    const completedLessons = await prisma.lesson.findMany({
-      where: {
-        teacherId: teacherId,
-        status: 'COMPLETED'
-      },
-      select: {
-        startTime: true
-      }
-    });
+/**
+ * PATCH /api/teacher/profile/password
+ * Update teacher password
+ */
+router.patch('/profile/password', verifyTeacherAuth, teacherCtrl.updateTeacherPassword);
 
-    // Calculate total hours (assuming each lesson is 1 hour)
-    const hoursTaught = completedLessons.length;
-
-    // Calculate countdown to next lesson
-    let countdown = null;
-    if (nextLesson) {
-      const now = new Date();
-      const lessonTime = new Date(nextLesson.startTime);
-      const diff = lessonTime - now;
-      
-      if (diff > 0) {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        countdown = {
-          hours,
-          minutes,
-          seconds,
-          total: diff
-        };
-      }
-    }
-
-    res.json({
-      success: true,
-      data: {
-        nextLesson: nextLesson,
-        countdown,
-        followerCount,
-        hoursTaught,
-        completedLessons: completedLessons.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Dashboard stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch dashboard stats',
-      code: 'STATS_ERROR'
-    });
-  }
-});
-
-// ─── GET LESSONS ─────────────────────────────────────────────────────────────
+// ─── LESSONS CRUD ─────────────────────────────────────────────
 /**
  * GET /api/teacher/lessons
- * Fetch all lessons for the logged-in teacher
+ * List all lessons for current teacher with pagination
+ * Query: ?status=SCHEDULED&page=1&limit=10&upcoming=true
  */
-router.get('/lessons', verifyTeacherAuth, async (req, res) => {
-  const teacherId = req.user.id;
-  const { status, page = 1, limit = 10 } = req.query;
+router.get('/lessons', verifyTeacherAuth, teacherCtrl.getLessons);
 
-  try {
-    const where = { teacherId };
-    if (status) {
-      where.status = status;
-    }
+/**
+ * GET /api/teacher/lessons/:id
+ * Get single lesson with materials
+ */
+router.get('/lessons/:id', verifyTeacherAuth, teacherCtrl.getLessonById);
 
-    const lessons = await prisma.lesson.findMany({
-      where,
-      orderBy: {
-        startTime: 'desc'
-      },
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      take: parseInt(limit),
-      include: {
-        materials: {
-          select: {
-            id: true,
-            fileName: true,
-            fileType: true,
-            fileUrl: true,
-            createdAt: true
-          }
-        }
-      }
-    });
-
-    const total = await prisma.lesson.count({ where });
-
-    res.json({
-      success: true,
-      data: {
-        lessons,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get lessons error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch lessons',
-      code: 'LESSONS_ERROR'
-    });
-  }
-});
-
-// ─── CREATE LESSON ─────────────────────────────────────────────────────────────
 /**
  * POST /api/teacher/lessons
- * Create a new lesson
+ * Create new lesson
+ * Body: { title, zoomLink, startTime, status? }
  */
-router.post('/lessons', verifyTeacherAuth, async (req, res) => {
-  const teacherId = req.user.id;
-  const { title, zoomLink, startTime } = req.body;
+router.post('/lessons', verifyTeacherAuth, teacherCtrl.createLesson);
 
-  // Input validation
-  if (!title || !zoomLink || !startTime) {
-    return res.status(400).json({
-      success: false,
-      error: 'Title, Zoom link, and start time are required',
-      code: 'MISSING_FIELDS'
-    });
-  }
-
-  try {
-    const lesson = await prisma.lesson.create({
-      data: {
-        title,
-        zoomLink,
-        startTime: new Date(startTime),
-        teacherId,
-        status: 'SCHEDULED'
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Lesson created successfully',
-      data: lesson
-    });
-
-  } catch (error) {
-    console.error('Create lesson error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create lesson',
-      code: 'CREATE_LESSON_ERROR'
-    });
-  }
-});
-
-// ─── GET FOLLOWERS ─────────────────────────────────────────────────────────────
 /**
- * GET /api/teacher/followers
- * Fetch list of students following this teacher
+ * PUT /api/teacher/lessons/:id
+ * Update lesson
+ * Body: { title?, zoomLink?, startTime?, status? }
  */
-router.get('/followers', verifyTeacherAuth, async (req, res) => {
-  const teacherId = req.user.id;
-  const { page = 1, limit = 10 } = req.query;
+router.put('/lessons/:id', verifyTeacherAuth, teacherCtrl.updateLesson);
 
-  try {
-    const follows = await prisma.follow.findMany({
-      where: {
-        teacherId
-      },
-      include: {
-        student: {
-          select: {
-            id: true,
-            full_name: true,
-            email: true,
-            country: true,
-            current_band: true,
-            target_band: true,
-            createdAt: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      take: parseInt(limit)
-    });
+/**
+ * DELETE /api/teacher/lessons/:id
+ * Delete lesson
+ */
+router.delete('/lessons/:id', verifyTeacherAuth, teacherCtrl.deleteLesson);
 
-    const total = await prisma.follow.count({
-      where: { teacherId }
-    });
+// ─── MATERIALS CRUD ───────────────────────────────────────────
+/**
+ * GET /api/teacher/materials
+ * List all materials for current teacher
+ * Query: ?lessonId=123&page=1&limit=10
+ */
+router.get('/materials', verifyTeacherAuth, teacherCtrl.getMaterials);
 
-    res.json({
-      success: true,
-      data: {
-        followers: follows.map(follow => follow.student),
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
+/**
+ * GET /api/teacher/materials/:id
+ * Get single material
+ */
+router.get('/materials/:id', verifyTeacherAuth, teacherCtrl.getMaterialById);
 
-  } catch (error) {
-    console.error('Get followers error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch followers',
-      code: 'FOLLOWERS_ERROR'
-    });
-  }
-});
-
-// ─── UPLOAD MATERIAL ─────────────────────────────────────────────────────────────
 /**
  * POST /api/teacher/materials
- * Upload a material file
+ * Upload a material file (multipart/form-data)
+ * FormData: file (required), lessonId (optional)
  */
 router.post('/materials', verifyTeacherAuth, upload.single('file'), async (req, res) => {
-  const teacherId = req.user.id;
-  const { lessonId } = req.body;
-
-  if (!req.file) {
-    return res.status(400).json({
-      success: false,
-      error: 'No file uploaded',
-      code: 'NO_FILE'
-    });
-  }
-
   try {
+    const teacherId = req.user.id;
+    const { lessonId } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+        code: 'NO_FILE'
+      });
+    }
+
+    // If lessonId provided, verify it belongs to this teacher
+    if (lessonId) {
+      const lesson = await prisma.lesson.findFirst({
+        where: { id: parseInt(lessonId), teacherId }
+      });
+
+      if (!lesson) {
+        // Delete uploaded file
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({
+          success: false,
+          error: 'Lesson not found',
+          code: 'LESSON_NOT_FOUND'
+        });
+      }
+    }
+
     const material = await prisma.material.create({
       data: {
+        teacherId,
         fileName: req.file.originalname,
         fileUrl: `/uploads/materials/${req.file.filename}`,
         fileType: req.file.mimetype,
-        teacherId,
         lessonId: lessonId ? parseInt(lessonId) : null
       }
     });
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: 'Material uploaded successfully',
       data: material
@@ -328,6 +180,10 @@ router.post('/materials', verifyTeacherAuth, upload.single('file'), async (req, 
 
   } catch (error) {
     console.error('Upload material error:', error);
+    // Delete uploaded file on error
+    if (req.file && req.file.path) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
     res.status(500).json({
       success: false,
       error: 'Failed to upload material',
@@ -336,59 +192,149 @@ router.post('/materials', verifyTeacherAuth, upload.single('file'), async (req, 
   }
 });
 
-// ─── GET MATERIALS ─────────────────────────────────────────────────────────────
 /**
- * GET /api/teacher/materials
- * Retrieve list of materials for the teacher
+ * PUT /api/teacher/materials/:id
+ * Update material metadata
+ * Body: { fileName?, fileType?, lessonId? }
  */
-router.get('/materials', verifyTeacherAuth, async (req, res) => {
-  const teacherId = req.user.id;
-  const { lessonId, page = 1, limit = 10 } = req.query;
+router.put('/materials/:id', verifyTeacherAuth, teacherCtrl.updateMaterial);
 
+/**
+ * DELETE /api/teacher/materials/:id
+ * Delete material (also removes file from disk)
+ */
+router.delete('/materials/:id', verifyTeacherAuth, async (req, res) => {
   try {
-    const where = { teacherId };
-    if (lessonId) {
-      where.lessonId = parseInt(lessonId);
-    }
+    const materialId = parseInt(req.params.id);
+    const teacherId = req.user.id;
 
-    const materials = await prisma.material.findMany({
-      where,
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      take: parseInt(limit)
+    const material = await prisma.material.findFirst({
+      where: { id: materialId, teacherId }
     });
 
-    const total = await prisma.material.count({ where });
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        error: 'Material not found',
+        code: 'MATERIAL_NOT_FOUND'
+      });
+    }
+
+    // Delete file from disk
+    const filePath = path.join(__dirname, '..', '..', material.fileUrl.replace(/^\//, ''));
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    await prisma.material.delete({
+      where: { id: materialId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Material deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete material error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete material',
+      code: 'MATERIAL_DELETE_ERROR'
+    });
+  }
+});
+
+// ─── FOLLOWERS CRUD ───────────────────────────────────────────
+/**
+ * GET /api/teacher/followers
+ * List all students following this teacher
+ * Query: ?page=1&limit=10
+ */
+router.get('/followers', verifyTeacherAuth, teacherCtrl.getFollowers);
+
+/**
+ * GET /api/teacher/followers/count
+ * Get total follower count
+ */
+router.get('/followers/count', verifyTeacherAuth, teacherCtrl.getFollowerCount);
+
+/**
+ * DELETE /api/teacher/followers/:studentId
+ * Remove a follower
+ */
+router.delete('/followers/:studentId', verifyTeacherAuth, teacherCtrl.removeFollower);
+
+// ─── TEACHER STUDENTS ─────────────────────────────────────────
+/**
+ * GET /api/teacher/students
+ * Returns paginated list of all students following this teacher,
+ * including their band scores and activity counts.
+ * Requires TEACHER role.
+ * Query: ?page=1&limit=20&search=
+ */
+router.get('/students', verifyTeacherAuth, teacherCtrl.getTeacherStudents);
+
+// ─── ASSIGNMENTS ──────────────────────────────────────────────
+/**
+ * POST /api/teacher/assignment
+ * Create a new assignment (lesson with due date / description).
+ * Requires TEACHER role.
+ * Body: { title, startTime, zoomLink?, description? }
+ */
+router.post('/assignment', verifyTeacherAuth, teacherCtrl.createAssignment);
+
+// ─── QUICK STATS ──────────────────────────────────────────────
+/**
+ * GET /api/teacher/stats/summary
+ * Quick summary stats for UI cards
+ */
+router.get('/stats/summary', verifyTeacherAuth, async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+
+    const [
+      totalLessons,
+      upcomingLessons,
+      completedLessons,
+      totalMaterials,
+      followerCount
+    ] = await Promise.all([
+      prisma.lesson.count({ where: { teacherId } }),
+      prisma.lesson.count({
+        where: {
+          teacherId,
+          status: 'SCHEDULED',
+          startTime: { gte: new Date() }
+        }
+      }),
+      prisma.lesson.count({
+        where: {
+          teacherId,
+          status: 'COMPLETED'
+        }
+      }),
+      prisma.material.count({ where: { teacherId } }),
+      prisma.follow.count({ where: { teacherId } })
+    ]);
 
     res.json({
       success: true,
       data: {
-        materials,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
+        totalLessons,
+        upcomingLessons,
+        completedLessons,
+        totalMaterials,
+        followerCount
       }
     });
 
   } catch (error) {
-    console.error('Get materials error:', error);
+    console.error('Get stats summary error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch materials',
-      code: 'MATERIALS_ERROR'
+      error: 'Failed to fetch stats',
+      code: 'STATS_ERROR'
     });
   }
 });

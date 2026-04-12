@@ -8,7 +8,7 @@
 // ─── TOKEN VERIFICATION ─────────────────────────────────────────────────────────────
 async function verifyToken(token) {
   try {
-    const response = await fetch('/api/auth/teacher/verify', {
+    const response = await fetch('/api/auth/verify-token', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

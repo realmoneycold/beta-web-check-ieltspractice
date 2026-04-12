@@ -1,782 +1,598 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create Account — IELTSPRACTICE</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | IELTS Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <meta name="view-transition" content="same-origin">
+    <style>
+        @import url('https://api.fontshare.com/v2/css?f[]=clash-grotesk@700,600,400&f[]=satoshi@700,500,400&display=swap');
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --lavender-main: #8B5CF6;
+            --brand-orange: #FF6B35;
+            --bg-soft: #F9F5FF;
+            --dark: #111827;
+        }
 
-    :root {
-      --navy:        #1a365d;
-      --navy-deep:   #112240;
-      --navy-mid:    #1e3f6e;
-      --green:       #1C6758;
-      --green-light: #22836f;
-      --green-pale:  #d4ede9;
-      --white:       #ffffff;
-      --off-white:   #f7f9fc;
-      --slate:       #64748b;
-      --slate-light: #94a3b8;
-      --border:      #dde3ec;
-      --error:       #dc2626;
-      --success:     #16a34a;
-      --font-display:'Playfair Display', Georgia, serif;
-      --font-body:   'DM Sans', sans-serif;
-      --radius:      10px;
-      --shadow-sm:   0 1px 3px rgba(26,54,93,.08), 0 1px 2px rgba(26,54,93,.04);
-      --shadow-md:   0 4px 16px rgba(26,54,93,.12);
-      --shadow-lg:   0 10px 40px rgba(26,54,93,.18);
-    }
+        body {
+            font-family: 'Satoshi', sans-serif;
+            background-color: var(--bg-soft);
+            color: var(--dark);
+            margin: 0;
+            overflow-x: hidden;
+        }
 
-    html, body { height: 100%; font-family: var(--font-body); background: var(--off-white); color: var(--navy-deep); }
+        h1, h2, h3, h4 {
+            font-family: 'Clash Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
 
-    /* ─── Layout ─── */
-    .page { display: flex; min-height: 100vh; }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
 
-    /* ─── Left Panel ─── */
-    .left-panel {
-      flex: 0 0 42%;
-      background: linear-gradient(155deg, var(--navy-deep) 0%, var(--navy) 45%, var(--navy-mid) 100%);
-      display: flex; flex-direction: column; justify-content: space-between;
-      padding: 48px 52px; position: relative; overflow: hidden;
-    }
-    .left-panel::before {
-      content: ''; position: absolute; top: -120px; right: -120px;
-      width: 420px; height: 420px; border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,.07); pointer-events: none;
-    }
-    .left-panel::after {
-      content: ''; position: absolute; bottom: -160px; left: -100px;
-      width: 500px; height: 500px; border-radius: 50%;
-      border: 1.5px solid rgba(28,103,88,.25); pointer-events: none;
-    }
-    .panel-bg-dot {
-      position: absolute; width: 280px; height: 280px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(28,103,88,.18) 0%, transparent 70%);
-      top: 30%; left: 50%; transform: translateX(-50%); pointer-events: none;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
-    .brand-icon { width: 42px; height: 42px; background: var(--green); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .brand-icon svg { width: 22px; height: 22px; fill: var(--white); }
-    .brand-name { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--white); letter-spacing: .5px; }
-    .brand-name span { color: #5ecfb8; }
-    .panel-content { position: relative; z-index: 1; }
-    .panel-eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: .72rem; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase;
-      color: #5ecfb8; margin-bottom: 20px;
-    }
-    .panel-eyebrow::before { content: ''; display: block; width: 24px; height: 2px; background: #5ecfb8; border-radius: 2px; }
-    .panel-heading { font-family: var(--font-display); font-size: clamp(2rem, 3vw, 2.75rem); font-weight: 700; line-height: 1.18; color: var(--white); margin-bottom: 20px; }
-    .panel-heading em { font-style: italic; color: #5ecfb8; }
-    .panel-tagline { font-size: .95rem; font-weight: 400; line-height: 1.65; color: rgba(255,255,255,.65); max-width: 320px; }
-    .stats-strip { display: flex; gap: 28px; margin-top: 40px; }
-    .stat { display: flex; flex-direction: column; gap: 2px; }
-    .stat-num { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: var(--white); }
-    .stat-label { font-size: .72rem; font-weight: 500; letter-spacing: .5px; color: rgba(255,255,255,.45); text-transform: uppercase; }
-    .stat-divider { width: 1px; background: rgba(255,255,255,.12); align-self: stretch; }
-    .feature-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 36px; }
-    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 100px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); font-size: .78rem; font-weight: 500; color: rgba(255,255,255,.7); }
-    .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: #5ecfb8; flex-shrink: 0; }
-    .panel-footer { position: relative; z-index: 1; font-size: .78rem; color: rgba(255,255,255,.3); }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
 
-    /* ─── Right Panel ─── */
-    .right-panel {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-      padding: 48px 40px; background: var(--white); overflow-y: auto;
-    }
-    .form-shell { width: 100%; max-width: 440px; padding: 8px 0 40px; }
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-    /* Progress stepper */
-    .stepper {
-      display: flex; align-items: center; gap: 0; margin-bottom: 36px;
-    }
-    .step {
-      display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;
-    }
-    .step-circle {
-      width: 32px; height: 32px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .75rem; font-weight: 700;
-      border: 2px solid var(--border); color: var(--slate-light); background: var(--white);
-      transition: all .3s;
-    }
-    .step.active .step-circle { border-color: var(--green); background: var(--green); color: var(--white); }
-    .step.done   .step-circle { border-color: var(--green); background: var(--green-pale); color: var(--green); }
-    .step-label { font-size: .7rem; font-weight: 600; color: var(--slate-light); text-transform: uppercase; letter-spacing: .5px; }
-    .step.active .step-label { color: var(--green); }
-    .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 4px; margin-bottom: 22px; }
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-    /* Top nav */
-    .form-topnav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; font-size: .82rem; color: var(--slate); }
-    .form-topnav a { color: var(--green); font-weight: 600; text-decoration: none; transition: opacity .15s; }
-    .form-topnav a:hover { opacity: .75; }
+        .transition-playful {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
 
-    .form-title { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--navy-deep); line-height: 1.2; margin-bottom: 8px; }
-    .form-subtitle { font-size: .9rem; color: var(--slate); line-height: 1.55; margin-bottom: 28px; }
+        .card-lift:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.2);
+        }
 
-    /* ─── Fields ─── */
-    .field-group { display: flex; flex-direction: column; gap: 16px; margin-bottom: 22px; }
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    .field-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .btn-bounce:hover {
+            transform: scale(1.05);
+        }
 
-    label { font-size: .82rem; font-weight: 600; color: var(--navy); letter-spacing: .2px; }
+        .orange-text {
+            color: var(--brand-orange);
+        }
 
-    .input-wrap { position: relative; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F9F5FF;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D4C5E2;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8B5CF6;
+        }
 
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
-      width: 100%; padding: 11px 16px;
-      border: 1.5px solid var(--border); border-radius: var(--radius);
-      font-family: var(--font-body); font-size: .9rem; color: var(--navy-deep);
-      background: var(--white); outline: none;
-      transition: border-color .2s, box-shadow .2s;
-    }
-    input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(28,103,88,.12); }
-    input.input-error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(220,38,38,.08); }
-    input.input-success { border-color: var(--success); box-shadow: 0 0 0 3px rgba(22,163,74,.08); }
+        .strength-seg {
+            transition: all 0.3s ease;
+        }
 
-    /* Password fields with icons */
-    .has-icon input { padding-right: 44px; }
-    .input-icon {
-      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
-      background: none; border: none; cursor: pointer; color: var(--slate-light);
-      padding: 2px; display: flex; align-items: center; transition: color .15s; pointer-events: auto;
-    }
-    .input-icon:hover { color: var(--navy); }
-    .input-icon svg { width: 18px; height: 18px; }
+        #countryDropdown::-webkit-scrollbar {
+            width: 4px;
+        }
 
-    /* Password strength bar */
-    .strength-bar {
-      display: flex; gap: 4px; margin-top: 6px;
-    }
-    .strength-seg {
-      flex: 1; height: 3px; border-radius: 2px; background: var(--border);
-      transition: background .3s;
-    }
-    .strength-seg.weak   { background: #ef4444; }
-    .strength-seg.fair   { background: #f97316; }
-    .strength-seg.good   { background: #eab308; }
-    .strength-seg.strong { background: var(--success); }
-    .strength-label { font-size: .72rem; color: var(--slate-light); margin-top: 4px; }
-
-    /* Country select wrapper */
-    .select-wrap {
-      position: relative;
-    }
-    .select-wrap select {
-      width: 100%; padding: 11px 40px 11px 16px;
-      border: 1.5px solid var(--border); border-radius: var(--radius);
-      font-family: var(--font-body); font-size: .9rem; color: var(--navy-deep);
-      background: var(--white); outline: none; appearance: none; -webkit-appearance: none;
-      cursor: pointer; transition: border-color .2s, box-shadow .2s;
-    }
-    .select-wrap select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(28,103,88,.12); }
-    .select-wrap select.input-error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(220,38,38,.08); }
-    .select-caret {
-      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
-      pointer-events: none; color: var(--slate-light);
-    }
-    .select-caret svg { width: 16px; height: 16px; }
-
-    /* Country search */
-    .country-search-wrap { position: relative; }
-    .country-search-input {
-      width: 100%; padding: 11px 16px 11px 40px;
-      border: 1.5px solid var(--border); border-radius: var(--radius);
-      font-family: var(--font-body); font-size: .9rem; color: var(--navy-deep);
-      background: var(--white); outline: none;
-      transition: border-color .2s, box-shadow .2s;
-    }
-    .country-search-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(28,103,88,.12); }
-    .country-search-icon {
-      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
-      color: var(--slate-light); pointer-events: none;
-    }
-    .country-search-icon svg { width: 16px; height: 16px; }
-    .country-dropdown {
-      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-      background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius);
-      box-shadow: var(--shadow-md); z-index: 100; max-height: 220px; overflow-y: auto;
-      display: none;
-    }
-    .country-dropdown.open { display: block; }
-    .country-option {
-      padding: 9px 16px; font-size: .88rem; color: var(--navy-deep);
-      cursor: pointer; display: flex; align-items: center; gap: 10px;
-      transition: background .12s;
-    }
-    .country-option:hover, .country-option.highlighted { background: var(--green-pale); color: var(--green); }
-    .country-option .flag { font-size: 1.1rem; }
-    .country-no-results { padding: 12px 16px; font-size: .85rem; color: var(--slate); text-align: center; }
-
-    .field-error { font-size: .75rem; color: var(--error); margin-top: 3px; display: none; }
-    .field-error.visible { display: block; }
-    .field-hint { font-size: .75rem; color: var(--slate-light); margin-top: 3px; }
-
-    /* Confirm password match indicator */
-    .pw-match {
-      font-size: .75rem; margin-top: 3px;
-      display: none;
-    }
-    .pw-match.show { display: block; }
-    .pw-match.match { color: var(--success); }
-    .pw-match.no-match { color: var(--error); }
-
-    /* Terms checkbox */
-    .terms-row {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 14px; background: var(--off-white);
-      border-radius: var(--radius); border: 1.5px solid var(--border);
-      margin-bottom: 20px; transition: border-color .2s;
-    }
-    .terms-row.error { border-color: var(--error); }
-    .terms-row input[type="checkbox"] {
-      width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
-      accent-color: var(--green); cursor: pointer;
-      border: none; box-shadow: none; padding: 0;
-    }
-    .terms-row input[type="checkbox"]:focus { box-shadow: none; border-color: transparent; }
-    .terms-text { font-size: .82rem; color: var(--slate); line-height: 1.5; }
-    .terms-text a { color: var(--green); font-weight: 600; text-decoration: none; }
-    .terms-text a:hover { opacity: .75; }
-
-    /* Buttons */
-    .btn-primary {
-      width: 100%; padding: 13px 24px; background: var(--green); color: var(--white);
-      border: none; border-radius: var(--radius); font-family: var(--font-body);
-      font-size: .95rem; font-weight: 600; letter-spacing: .3px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: background .2s, transform .12s, box-shadow .2s;
-      box-shadow: 0 2px 8px rgba(28,103,88,.3); overflow: hidden;
-    }
-    .btn-primary:hover:not(:disabled) { background: var(--green-light); box-shadow: 0 4px 16px rgba(28,103,88,.4); transform: translateY(-1px); }
-    .btn-primary:active:not(:disabled) { transform: translateY(0); }
-    .btn-primary:disabled { opacity: .75; cursor: not-allowed; }
-    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .65s linear infinite; display: none; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .btn-primary.loading .spinner { display: block; }
-
-    /* Divider */
-    .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--slate-light); font-size: .78rem; font-weight: 500; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-    /* Social buttons */
-    .social-buttons { display: flex; flex-direction: column; gap: 12px; }
-    .btn-social {
-      width: 100%; padding: 11px 20px; border: 1.5px solid var(--border); border-radius: var(--radius);
-      background: var(--white); font-family: var(--font-body); font-size: .88rem; font-weight: 500;
-      color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: border-color .2s, background .2s, box-shadow .2s;
-    }
-    .btn-social:hover { border-color: #b0bec5; background: var(--off-white); box-shadow: var(--shadow-sm); }
-    .btn-social svg { width: 20px; height: 20px; flex-shrink: 0; }
-
-    /* Footer */
-    .form-footer { margin-top: 24px; text-align: center; font-size: .83rem; color: var(--slate); }
-    .form-footer a { color: var(--green); font-weight: 600; text-decoration: none; transition: opacity .15s; }
-    .form-footer a:hover { opacity: .75; }
-
-    /* Toast */
-    .toast {
-      position: fixed; bottom: 28px; left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--navy-deep); color: white;
-      padding: 12px 22px; border-radius: var(--radius);
-      font-size: .85rem; font-weight: 500; box-shadow: var(--shadow-lg);
-      opacity: 0; transition: opacity .3s, transform .3s;
-      pointer-events: none; white-space: nowrap; z-index: 9999;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* Scrollbar for country dropdown */
-    .country-dropdown::-webkit-scrollbar { width: 5px; }
-    .country-dropdown::-webkit-scrollbar-track { background: transparent; }
-    .country-dropdown::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-    @media (max-width: 820px) { .left-panel { display: none; } .right-panel { padding: 40px 24px; } }
-    @media (max-width: 420px) { .right-panel { padding: 32px 20px; } }
-  </style>
+        @view-transition {
+            navigation: auto;
+        }
+    </style>
 </head>
 <body>
+    <div class="min-h-screen relative flex flex-col">
+        <!-- Header (Persistent Navigation) -->
+        <nav class="flex items-center justify-between px-8 md:px-16 py-8 bg-white z-40 sticky top-0 border-b border-purple-50">
+            <div class="flex items-center gap-12">
+                <a href="./index.html" class="text-3xl font-black flex items-center uppercase tracking-tighter">
+                    <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                    <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                </a>
+                <div class="hidden lg:flex items-center gap-8 font-semibold text-gray-600">
+                    <a id="nav-home-link" href="./index.html" class="hover:text-black transition-colors">Home</a>
+                    <a id="nav-courses-link" href="./courses.html" class="hover:text-black transition-colors">Courses</a>
+                    <a id="nav-exam-link" href="./pages/exam-dates.html" class="hover:text-black transition-colors">Exam &amp; Mock dates</a>
+                    <a id="nav-centres-link" href="./pages/education-centres.html" class="hover:text-black transition-colors">Educational Centres</a>
+                    <a id="nav-contact-link" href="./contact.html" class="hover:text-black transition-colors">Contact</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <a id="nav-signup-link" href="./signup.html" class="font-bold text-[#000000] transition-colors">Sign up</a>
+                <a id="nav-login-btn" href="/login.html" class="bg-[#FF6B35] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
+                    Login
+                </a>
+            </div>
+        </nav>
 
-<div class="page">
+        <main class="flex-grow flex items-center justify-center py-12 md:py-16 px-6">
+            <div class="max-w-[1360px] w-full grid grid-cols-1 lg:grid-cols-2 gap-12 bg-white rounded-[48px] p-8 md:p-12 lg:p-16 shadow-2xl shadow-purple-100/50 relative overflow-hidden">
+                
+                <!-- Left Side: Motivation & Stats (Desktop Only) -->
+                <div class="hidden lg:flex flex-col justify-between">
+                    <div>
+                        <div class="inline-block px-4 py-2 rounded-xl bg-[#FFF8F5] text-[#FF6B35] text-xs font-black uppercase mb-6">New Journey</div>
+                        <h1 class="text-6xl font-black mb-6 leading-tight">
+                            Start Your <br/><span class="orange-text">IELTS Story</span> <br/>Today
+                        </h1>
+                        <p class="text-xl text-gray-500 mb-10 max-w-sm font-medium leading-relaxed">
+                            Unlock full access to AI mock tests, band tracking, and the world's best IELTS resources.
+                        </p>
 
-  <!-- ══ LEFT PANEL ══ -->
-  <aside class="left-panel">
-    <div class="panel-bg-dot"></div>
+                        <div class="space-y-6 mb-12">
+                            <div class="flex items-center gap-5 group cursor-default">
+                                <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all">
+                                    <iconify-icon icon="ph:rocket-launch-bold" class="text-2xl"></iconify-icon>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-700">AI-Powered Mock Tests</p>
+                                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Realistic Feedback</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-5 group cursor-default">
+                                <div class="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                    <iconify-icon icon="ph:chart-line-up-bold" class="text-2xl"></iconify-icon>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-700">Band Score Tracking</p>
+                                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Visual Progress</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-5 group cursor-default">
+                                <div class="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center text-yellow-600 group-hover:bg-yellow-600 group-hover:text-white transition-all">
+                                    <iconify-icon icon="ph:users-three-bold" class="text-2xl"></iconify-icon>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-700">Live Expert Tutoring</p>
+                                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Direct Guidance</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-    <a href="/" class="brand">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24"><path d="M4 4h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v10h11V6H4zm14 1h2v10h-2V7zm-7 2h5v2h-5V9zm0 3h5v2h-5v-2zm-4-3h3v5H7V9z"/></svg>
-      </div>
-      <span class="brand-name">IELTS<span>PRACTICE</span></span>
-    </a>
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="bg-[#F9F5FF] p-6 rounded-[32px] card-lift transition-playful">
+                            <div class="text-3xl font-black text-dark">50K+</div>
+                            <div class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Students</div>
+                        </div>
+                        <div class="bg-[#F5F1FF] p-6 rounded-[32px] card-lift transition-playful">
+                            <div class="text-3xl font-black text-dark">1.2K+</div>
+                            <div class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Centres</div>
+                        </div>
+                        <div class="bg-[#FFFBEB] p-6 rounded-[32px] card-lift transition-playful">
+                            <div class="text-3xl font-black text-dark">98%</div>
+                            <div class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pass Rate</div>
+                        </div>
+                    </div>
+                </div>
 
-    <div class="panel-content">
-      <div class="panel-eyebrow">Join the Platform</div>
-      <h1 class="panel-heading">Start Your<br/><em>IELTS Journey</em><br/>Today</h1>
-      <p class="panel-tagline">Create your account and unlock full access to mock tests, band tracking, live tutoring, and centre management tools.</p>
-      <div class="stats-strip">
-        <div class="stat"><span class="stat-num">50K+</span><span class="stat-label">Students</span></div>
-        <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-num">1,200+</span><span class="stat-label">Centres</span></div>
-        <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-num">98%</span><span class="stat-label">Pass Rate</span></div>
-      </div>
-      <div class="feature-pills">
-        <span class="pill"><span class="pill-dot"></span>AI-powered mock tests</span>
-        <span class="pill"><span class="pill-dot"></span>Band score tracking</span>
-        <span class="pill"><span class="pill-dot"></span>Live tutoring</span>
-        <span class="pill"><span class="pill-dot"></span>Centre management</span>
-      </div>
+                <!-- Right Side: Signup Form -->
+                <div class="relative z-10">
+                    <div class="max-w-md mx-auto">
+                        <!-- Stepper -->
+                        <div class="flex items-center justify-between mb-10 px-4">
+                            <div class="flex flex-col items-center gap-2">
+                                <div class="w-10 h-10 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center font-black shadow-lg shadow-purple-200">1</div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-[#8B5CF6]">Details</span>
+                            </div>
+                            <div class="h-1 flex-1 mx-4 bg-gray-100 rounded-full relative overflow-hidden">
+                                <div class="absolute inset-0 bg-purple-100 w-1/3"></div>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 opacity-30">
+                                <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-black">2</div>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Verify</span>
+                            </div>
+                            <div class="h-1 flex-1 mx-4 bg-gray-100 rounded-full"></div>
+                            <div class="flex flex-col items-center gap-2 opacity-30">
+                                <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-black">3</div>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Ready</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <h2 class="text-4xl font-black mb-2">Create Account</h2>
+                            <p class="text-gray-500 font-medium">Start your free 7-day trial today</p>
+                        </div>
+
+                        <form id="signup-form-main" class="space-y-5">
+                            <!-- Full Name -->
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-black text-gray-600 ml-2 uppercase tracking-widest">Full Name</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <iconify-icon icon="ph:user-bold" class="text-xl"></iconify-icon>
+                                    </span>
+                                    <input type="text" id="fullname-input" placeholder="John Doe" class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none">
+                                </div>
+                                <div id="fullname-error" class="hidden text-red-500 text-xs font-bold mt-1 ml-2">Please enter your full name</div>
+                            </div>
+
+                            <!-- Username -->
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-black text-gray-600 ml-2 uppercase tracking-widest">Username</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <iconify-icon icon="ph:at-bold" class="text-xl"></iconify-icon>
+                                    </span>
+                                    <input type="text" id="username-input" placeholder="choose_your_username" class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none">
+                                </div>
+                                <div id="username-error" class="hidden text-red-500 text-xs font-bold mt-1 ml-2">Username required</div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-black text-gray-600 ml-2 uppercase tracking-widest">Email Address</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <iconify-icon icon="ph:envelope-bold" class="text-xl"></iconify-icon>
+                                    </span>
+                                    <input type="email" id="email-input" placeholder="you@example.com" class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none">
+                                </div>
+                                <div id="email-error" class="hidden text-red-500 text-xs font-bold mt-1 ml-2">Valid email required</div>
+                            </div>
+
+                            <!-- Country Searchable -->
+                            <div class="space-y-1.5 relative">
+                                <label class="text-xs font-black text-gray-600 ml-2 uppercase tracking-widest">Country</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <iconify-icon icon="ph:globe-hemisphere-west-bold" class="text-xl"></iconify-icon>
+                                    </span>
+                                    <input type="text" id="country-input" name="country" placeholder="Select your country" readonly class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none cursor-pointer">
+                                    <span class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                        <iconify-icon icon="ph:caret-down-bold"></iconify-icon>
+                                    </span>
+                                </div>
+                                <div id="country-error" class="hidden text-red-500 text-xs font-bold mt-1 ml-2">Please select a country</div>
+                                <!-- Dropdown Mock -->
+                                <div id="countryDropdown" class="hidden absolute z-50 left-0 right-0 top-full mt-2 bg-white border border-purple-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2">
+                                    <div class="p-2 border-b border-gray-50">
+                                        <input type="text" id="country-search" placeholder="Search countries..." class="w-full bg-gray-50 border-none rounded-xl px-4 py-2 text-sm outline-none">
+                                    </div>
+                                    <div class="space-y-1 pt-2" id="country-list">
+                                        <!-- Javascript Populated -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-black text-gray-600 ml-2 uppercase tracking-widest">Password</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <iconify-icon icon="ph:lock-bold" class="text-xl"></iconify-icon>
+                                    </span>
+                                    <input type="password" id="password-input" placeholder="••••••••" class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none">
+                                    <button type="button" id="pw-toggle" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#8B5CF6]">
+                                        <iconify-icon id="pw-icon" icon="ph:eye-bold" class="text-xl"></iconify-icon>
+                                    </button>
+                                </div>
+                                <div id="password-error" class="hidden text-red-500 text-xs font-bold mt-1 ml-2">Password must be at least 8 characters</div>
+                                <!-- Strength Bar -->
+                                <div class="flex gap-1.5 px-2 pt-1">
+                                    <div class="h-1.5 flex-1 rounded-full strength-seg bg-gray-100" id="seg-1"></div>
+                                    <div class="h-1.5 flex-1 rounded-full strength-seg bg-gray-100" id="seg-2"></div>
+                                    <div class="h-1.5 flex-1 rounded-full strength-seg bg-gray-100" id="seg-3"></div>
+                                    <div class="h-1.5 flex-1 rounded-full strength-seg bg-gray-100" id="seg-4"></div>
+                                </div>
+                            </div>
+
+                            <!-- Terms -->
+                            <label class="flex items-start gap-3 cursor-pointer group px-2">
+                                <input type="checkbox" id="terms-checkbox" class="mt-1 w-5 h-5 rounded-lg border-2 border-purple-100 text-[#8B5CF6] focus:ring-[#8B5CF6] transition-all">
+                                <span class="text-xs font-medium text-gray-500 leading-relaxed">
+                                    I agree to the <a href="./termsconditions.html" class="text-[#8B5CF6] font-black hover:underline">Terms of Service</a> and <a href="./privacypolicy.html" class="text-[#8B5CF6] font-black hover:underline">Privacy Policy</a>.
+                                </span>
+                            </label>
+                            <div id="terms-error" class="hidden text-red-500 text-xs font-bold ml-2">You must agree to the Terms</div>
+
+                            <div id="signup-error" class="hidden p-4 rounded-xl bg-red-50 text-red-600 font-bold text-sm text-center"></div>
+                            <button type="submit" id="submit-btn" class="w-full bg-[#FF6B35] text-white py-4 rounded-2xl font-bold text-lg transition-playful btn-bounce shadow-xl shadow-orange-200 mt-2 flex items-center justify-center gap-3">
+                                <span id="btn-spinner" class="hidden animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></span>
+                                <span id="btn-text">Create Free Account</span>
+                            </button>
+                        </form>
+
+                        <div class="relative my-8">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-100"></div>
+                            </div>
+                            <div class="relative flex justify-center text-xs uppercase">
+                                <span class="bg-white px-4 font-black text-gray-400 tracking-widest">Or signup with</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="flex items-center justify-center gap-3 bg-white border-2 border-gray-100 px-6 py-3.5 rounded-2xl font-bold hover:bg-gray-50 transition-all">
+                                <iconify-icon icon="logos:google-icon" class="text-lg"></iconify-icon>
+                                <span class="text-sm">Google</span>
+                            </button>
+                            <button class="flex items-center justify-center gap-3 bg-white border-2 border-gray-100 px-6 py-3.5 rounded-2xl font-bold hover:bg-gray-50 transition-all">
+                                <iconify-icon icon="logos:telegram" class="text-lg"></iconify-icon>
+                                <span class="text-sm">Telegram</span>
+                            </button>
+                        </div>
+
+                        <p class="mt-8 text-center font-medium text-gray-500">
+                            Already have an account? <a id="login-footer-link" href="/login.html" class="text-[#8B5CF6] font-black hover:underline">Sign in here</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Floating Decorative Elements -->
+                <div class="absolute -bottom-10 -left-10 w-80 h-80 bg-orange-100 rounded-full blur-[100px] opacity-40 -z-10"></div>
+                <div class="absolute -top-10 -right-10 w-80 h-80 bg-purple-100 rounded-full blur-[100px] opacity-40 -z-10"></div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="px-6 md:px-16 py-24 bg-white border-t border-purple-50">
+            <div class="max-w-[1360px] mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 items-start">
+                    <div class="lg:col-span-5">
+                        <div class="text-3xl font-black flex items-center uppercase tracking-tighter mb-8">
+                            <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                            <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                        </div>
+                        <p class="text-gray-400 text-lg font-medium max-w-sm mb-10 leading-relaxed">
+                            Empowering students worldwide to achieve their dreams through innovative, technology-driven IELTS preparation tools.
+                        </p>
+                        <div class="flex gap-4">
+                            <a id="foot-soc-1" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-2" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-3" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 grid grid-cols-2 gap-10">
+                        <div>
+                            <h6 class="font-black uppercase text-xs tracking-widest text-gray-400 mb-8">Quick Links</h6>
+                            <ul class="space-y-4 font-bold text-gray-700">
+                                <li><a id="foot-1" href="./index.html" class="hover:text-purple-600 transition-colors">Home</a></li>
+                                <li><a id="foot-2" href="./courses.html" class="hover:text-purple-600 transition-colors">Courses</a></li>
+                                <li><a id="foot-3" href="./pages/education-centres.html" class="hover:text-purple-600 transition-colors">Centers</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h6 class="font-black uppercase text-xs tracking-widest text-gray-400 mb-8">Support</h6>
+                            <ul class="space-y-4 font-bold text-gray-700">
+                                <li><a id="foot-5" href="#" class="hover:text-purple-600 transition-colors">Help Center</a></li>
+                                <li><a id="foot-6" href="#" class="hover:text-purple-600 transition-colors">FAQ</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-4 bg-[#F5F1FF] p-8 rounded-[40px]">
+                        <h6 class="font-black uppercase text-xs tracking-widest text-purple-600 mb-6">Contact Us</h6>
+                        <div class="space-y-6">
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm"><iconify-icon icon="ph:envelope-bold"></iconify-icon></div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase">Email</p>
+                                    <p class="font-black">hello@ieltspractice.com</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-24 pt-10 border-t border-purple-50 flex flex-col md:flex-row justify-between items-center gap-6 text-xs font-black text-gray-400 tracking-widest">
+                    <div>© 2024 IELTSPRACTICE LEARNING PLATFORM</div>
+                    <div class="flex gap-8">
+                        <a id="policy-link" href="#" class="hover:text-purple-600 transition-colors">PRIVACY POLICY</a>
+                        <a id="terms-link" href="#" class="hover:text-purple-600 transition-colors">TERMS OF SERVICE</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
     </div>
 
-    <footer class="panel-footer">&copy; 2025 IELTSPRACTICE. All rights reserved.</footer>
-  </aside>
+    <script>
+        // Interactive Password Strength Logic
+        const passwordInput = document.getElementById('password-input');
+        const segments = [document.getElementById('seg-1'), document.getElementById('seg-2'), document.getElementById('seg-3'), document.getElementById('seg-4')];
 
-  <!-- ══ RIGHT PANEL ══ -->
-  <main class="right-panel">
-    <div class="form-shell">
+        passwordInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const len = val.length;
 
-      <!-- Stepper -->
-      <div class="stepper">
-        <div class="step active">
-          <div class="step-circle">1</div>
-          <div class="step-label">Details</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step">
-          <div class="step-circle">2</div>
-          <div class="step-label">Verify</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step">
-          <div class="step-circle">3</div>
-          <div class="step-label">Ready</div>
-        </div>
-      </div>
+            segments.forEach(seg => seg.className = 'h-1.5 flex-1 rounded-full strength-seg bg-gray-100');
 
-      <div class="form-topnav">
-        <span>Already have an account?</span>
-        <a href="../login.html">Sign in →</a>
-      </div>
+            if (len > 0) {
+                if (len < 4) {
+                    segments[0].className = 'h-1.5 flex-1 rounded-full strength-seg bg-red-400';
+                } else if (len < 8) {
+                    segments[0].className = 'h-1.5 flex-1 rounded-full strength-seg bg-orange-400';
+                    segments[1].className = 'h-1.5 flex-1 rounded-full strength-seg bg-orange-400';
+                } else if (len < 12) {
+                    segments[0].className = 'h-1.5 flex-1 rounded-full strength-seg bg-yellow-400';
+                    segments[1].className = 'h-1.5 flex-1 rounded-full strength-seg bg-yellow-400';
+                    segments[2].className = 'h-1.5 flex-1 rounded-full strength-seg bg-yellow-400';
+                } else {
+                    segments.forEach(seg => seg.className = 'h-1.5 flex-1 rounded-full strength-seg bg-[#8B5CF6]');
+                }
+            }
+        });
 
-      <h2 class="form-title">Create Account</h2>
-      <p class="form-subtitle">Fill in your details below to get started. We'll verify your email next.</p>
+        // Country Dropdown Mock Interaction
+        const countryInput = document.getElementById('country-input');
+        const countryDropdown = document.getElementById('countryDropdown');
 
-      <div id="signupError" class="field-error" style="margin-bottom:12px; display:none;"></div>
+        countryInput.addEventListener('click', () => {
+            countryDropdown.classList.toggle('hidden');
+        });
 
-      <form id="signupForm" novalidate> 
-        <div class="field-group">
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!countryInput.contains(e.target) && !countryDropdown.contains(e.target)) {
+                countryDropdown.classList.add('hidden');
+            }
+        });
 
-          <!-- Full Name -->
-          <div class="field">
-            <label for="fullName">Full Name</label>
-            <div class="input-wrap">
-              <input type="text" id="fullName" name="fullName" placeholder="e.g. Amir Karimov" autocomplete="name" />
-            </div>
-            <span class="field-error" id="nameError">Please enter your full name.</span>
-          </div>
 
-          <!-- Email -->
-          <div class="field">
-            <label for="email">Email Address</label>
-            <div class="input-wrap">
-              <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
-            </div>
-            <span class="field-error" id="emailError">Please enter a valid email address.</span>
-          </div>
 
-          <!-- Country (searchable) -->
-          <div class="field">
-            <label for="countrySearch">Country</label>
-            <div class="country-search-wrap" id="countryWrap">
-              <span class="country-search-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-              </span>
-              <input type="text" class="country-search-input" id="countrySearch" placeholder="Search country…" autocomplete="off" readonly />
-              <div class="country-dropdown" id="countryDropdown"></div>
-            </div>
-            <input type="hidden" id="countryValue" name="country" />
-            <span class="field-error" id="countryError">Please select your country.</span>
-          </div>
+        // Toggle Password Eye
+        const pwToggle = document.getElementById('pw-toggle');
+        const pwIcon = document.getElementById('pw-icon');
+        pwToggle.addEventListener('click', () => {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                pwIcon.setAttribute('icon', 'ph:eye-slash-bold');
+            } else {
+                passwordInput.type = 'password';
+                pwIcon.setAttribute('icon', 'ph:eye-bold');
+            }
+        });
 
-          <!-- Password -->
-          <div class="field">
-            <label for="password">Password</label>
-            <div class="input-wrap has-icon">
-              <input type="password" id="password" name="password" placeholder="Create a strong password" autocomplete="new-password" />
-              <button type="button" class="input-icon" id="togglePw1" aria-label="Toggle password">
-                <svg id="eye1Open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg id="eye1Closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
-            </div>
-            <div class="strength-bar">
-              <div class="strength-seg" id="seg1"></div>
-              <div class="strength-seg" id="seg2"></div>
-              <div class="strength-seg" id="seg3"></div>
-              <div class="strength-seg" id="seg4"></div>
-            </div>
-            <div class="strength-label" id="strengthLabel">Use 8+ characters with letters, numbers &amp; symbols.</div>
-            <span class="field-error" id="passwordError">Password must be at least 8 characters.</span>
-          </div>
+        // Live Username Validation
+        const usernameInput = document.getElementById('username-input');
+        const usernameError = document.getElementById('username-error');
+        let unTimer;
+        usernameInput.addEventListener('input', () => {
+            clearTimeout(unTimer);
+            usernameError.classList.add('hidden');
+            usernameError.classList.remove('text-green-500', 'text-red-500');
+            if(usernameInput.value.trim().length >= 3) {
+                unTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(usernameInput.value)}`);
+                        const data = await res.json();
+                        if (!data.available) {
+                            usernameError.textContent = data.message || "This username has already been taken";
+                            usernameError.classList.remove('hidden', 'text-green-500');
+                            usernameError.classList.add('text-red-500');
+                        } else {
+                            usernameError.textContent = "Username is available!";
+                            usernameError.classList.remove('hidden', 'text-red-500');
+                            usernameError.classList.add('text-green-500');
+                        }
+                    } catch (e) {}
+                }, 400);
+            }
+        });
 
-          <!-- Confirm Password -->
-          <div class="field">
-            <label for="confirmPassword">Confirm Password</label>
-            <div class="input-wrap has-icon">
-              <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" />
-              <button type="button" class="input-icon" id="togglePw2" aria-label="Toggle confirm password">
-                <svg id="eye2Open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg id="eye2Closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
-            </div>
-            <div class="pw-match" id="pwMatch"></div>
-            <span class="field-error" id="confirmError">Passwords do not match.</span>
-          </div>
+        // Load Countries
+        const COUNTRIES = [
+          "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua & Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan",
+          "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia & Herz.","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Rep.","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Rep.","East Timor","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","North Korea","South Korea","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts & Nevis","Saint Lucia","Samoa","San Marino","Sao Tome & Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Togo","Tonga","Trinidad & Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emir.","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
+        ];
+        
+        const countryList = document.getElementById('country-list');
+        const searchCountry = document.getElementById('country-search');
+        
+        function populateCountries(filter = '') {
+            countryList.innerHTML = '';
+            const filtered = COUNTRIES.filter(c => c.toLowerCase().includes(filter.toLowerCase()));
+            if (!filtered.length) {
+                countryList.innerHTML = '<div class="px-4 py-2 text-sm text-gray-400">No countries found</div>';
+                return;
+            }
+            filtered.forEach(c => {
+                const div = document.createElement('div');
+                div.className = "px-4 py-2.5 hover:bg-[#F5F1FF] hover:text-[#8B5CF6] rounded-xl cursor-pointer font-bold text-sm transition-colors";
+                div.textContent = c;
+                div.onclick = (e) => {
+                    countryInput.value = c;
+                    countryDropdown.classList.add('hidden');
+                    document.getElementById('country-error').classList.add('hidden');
+                };
+                countryList.appendChild(div);
+            });
+        }
+        populateCountries();
+        searchCountry.addEventListener('input', (e) => populateCountries(e.target.value));
 
-        </div>
+        // Form Validation & Submit
+        document.getElementById('signup-form-main').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('fullname-input').value.trim();
+            const username = document.getElementById('username-input').value.trim();
+            const email = document.getElementById('email-input').value.trim();
+            const password = passwordInput.value;
+            const country = countryInput.value;
+            const terms = document.getElementById('terms-checkbox').checked;
+            
+            let isValid = true;
+            
+            const setErr = (id, valid) => {
+                const el = document.getElementById(id);
+                if(!valid) { el.classList.remove('hidden'); isValid = false; }
+                else { el.classList.add('hidden'); }
+            };
 
-        <!-- Terms -->
-        <div class="terms-row" id="termsRow">
-          <input type="checkbox" id="terms" name="terms" />
-          <label for="terms" class="terms-text">
-            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-            By creating an account you confirm you are at least 13 years old.
-          </label>
-        </div>
+            setErr('fullname-error', fullName.length >= 2);
 
-        <button type="submit" class="btn-primary" id="submitBtn">
-          <span class="spinner" id="spinner"></span>
-          <span class="btn-label" id="btnLabel">Create Account</span>
-        </button>
-      </form>
+            // Check username — allow if error div is green (available) or empty (not yet checked)
+            const unErrEl = document.getElementById('username-error');
+            const unHasTakenMsg = !unErrEl.classList.contains('hidden') && unErrEl.classList.contains('text-red-500');
+            setErr('username-error', username.length >= 3 && !unHasTakenMsg);
+            if (username.length >= 3 && !unHasTakenMsg) unErrEl.classList.add('hidden');
 
-      <div class="divider">or sign up with</div>
+            setErr('email-error', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+            setErr('password-error', password.length >= 8);
+            setErr('country-error', country !== '');
+            setErr('terms-error', terms);
 
-      <div class="social-buttons">
-        <button class="btn-social btn-google" type="button" onclick="socialStub('Google')">
-          <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Sign up with Google
-        </button>
-        <button class="btn-social btn-telegram" type="button" onclick="socialStub('Telegram')">
-          <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z" fill="#2CA5E0"/></svg>
-          Sign up with Telegram
-        </button>
-      </div>
+            if (!isValid) return;
 
-      <p class="form-footer">Already have an account? <a href="../login.html">Sign in here</a></p>
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.querySelector('#btn-text').textContent = 'Creating...';
+            submitBtn.querySelector('#btn-spinner').classList.remove('hidden');
 
-    </div>
-  </main>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-// ─── Country data ────────────────────────────────────────────────────────────
-const COUNTRIES = [
-  {name:"Afghanistan",flag:"🇦🇫"},{name:"Albania",flag:"🇦🇱"},{name:"Algeria",flag:"🇩🇿"},
-  {name:"Andorra",flag:"🇦🇩"},{name:"Angola",flag:"🇦🇴"},{name:"Argentina",flag:"🇦🇷"},
-  {name:"Armenia",flag:"🇦🇲"},{name:"Australia",flag:"🇦🇺"},{name:"Austria",flag:"🇦🇹"},
-  {name:"Azerbaijan",flag:"🇦🇿"},{name:"Bahrain",flag:"🇧🇭"},{name:"Bangladesh",flag:"🇧🇩"},
-  {name:"Belarus",flag:"🇧🇾"},{name:"Belgium",flag:"🇧🇪"},{name:"Bolivia",flag:"🇧🇴"},
-  {name:"Bosnia and Herzegovina",flag:"🇧🇦"},{name:"Brazil",flag:"🇧🇷"},{name:"Bulgaria",flag:"🇧🇬"},
-  {name:"Cambodia",flag:"🇰🇭"},{name:"Cameroon",flag:"🇨🇲"},{name:"Canada",flag:"🇨🇦"},
-  {name:"Chile",flag:"🇨🇱"},{name:"China",flag:"🇨🇳"},{name:"Colombia",flag:"🇨🇴"},
-  {name:"Croatia",flag:"🇭🇷"},{name:"Cuba",flag:"🇨🇺"},{name:"Cyprus",flag:"🇨🇾"},
-  {name:"Czech Republic",flag:"🇨🇿"},{name:"Denmark",flag:"🇩🇰"},{name:"Ecuador",flag:"🇪🇨"},
-  {name:"Egypt",flag:"🇪🇬"},{name:"Estonia",flag:"🇪🇪"},{name:"Ethiopia",flag:"🇪🇹"},
-  {name:"Finland",flag:"🇫🇮"},{name:"France",flag:"🇫🇷"},{name:"Georgia",flag:"🇬🇪"},
-  {name:"Germany",flag:"🇩🇪"},{name:"Ghana",flag:"🇬🇭"},{name:"Greece",flag:"🇬🇷"},
-  {name:"Hungary",flag:"🇭🇺"},{name:"India",flag:"🇮🇳"},{name:"Indonesia",flag:"🇮🇩"},
-  {name:"Iran",flag:"🇮🇷"},{name:"Iraq",flag:"🇮🇶"},{name:"Ireland",flag:"🇮🇪"},
-  {name:"Israel",flag:"🇮🇱"},{name:"Italy",flag:"🇮🇹"},{name:"Japan",flag:"🇯🇵"},
-  {name:"Jordan",flag:"🇯🇴"},{name:"Kazakhstan",flag:"🇰🇿"},{name:"Kenya",flag:"🇰🇪"},
-  {name:"Kuwait",flag:"🇰🇼"},{name:"Kyrgyzstan",flag:"🇰🇬"},{name:"Latvia",flag:"🇱🇻"},
-  {name:"Lebanon",flag:"🇱🇧"},{name:"Lithuania",flag:"🇱🇹"},{name:"Luxembourg",flag:"🇱🇺"},
-  {name:"Malaysia",flag:"🇲🇾"},{name:"Mexico",flag:"🇲🇽"},{name:"Moldova",flag:"🇲🇩"},
-  {name:"Mongolia",flag:"🇲🇳"},{name:"Morocco",flag:"🇲🇦"},{name:"Myanmar",flag:"🇲🇲"},
-  {name:"Nepal",flag:"🇳🇵"},{name:"Netherlands",flag:"🇳🇱"},{name:"New Zealand",flag:"🇳🇿"},
-  {name:"Nigeria",flag:"🇳🇬"},{name:"North Korea",flag:"🇰🇵"},{name:"Norway",flag:"🇳🇴"},
-  {name:"Oman",flag:"🇴🇲"},{name:"Pakistan",flag:"🇵🇰"},{name:"Palestine",flag:"🇵🇸"},
-  {name:"Peru",flag:"🇵🇪"},{name:"Philippines",flag:"🇵🇭"},{name:"Poland",flag:"🇵🇱"},
-  {name:"Portugal",flag:"🇵🇹"},{name:"Qatar",flag:"🇶🇦"},{name:"Romania",flag:"🇷🇴"},
-  {name:"Russia",flag:"🇷🇺"},{name:"Saudi Arabia",flag:"🇸🇦"},{name:"Serbia",flag:"🇷🇸"},
-  {name:"Singapore",flag:"🇸🇬"},{name:"Slovakia",flag:"🇸🇰"},{name:"South Africa",flag:"🇿🇦"},
-  {name:"South Korea",flag:"🇰🇷"},{name:"Spain",flag:"🇪🇸"},{name:"Sri Lanka",flag:"🇱🇰"},
-  {name:"Sweden",flag:"🇸🇪"},{name:"Switzerland",flag:"🇨🇭"},{name:"Syria",flag:"🇸🇾"},
-  {name:"Taiwan",flag:"🇹🇼"},{name:"Tajikistan",flag:"🇹🇯"},{name:"Thailand",flag:"🇹🇭"},
-  {name:"Tunisia",flag:"🇹🇳"},{name:"Turkey",flag:"🇹🇷"},{name:"Turkmenistan",flag:"🇹🇲"},
-  {name:"Ukraine",flag:"🇺🇦"},{name:"United Arab Emirates",flag:"🇦🇪"},
-  {name:"United Kingdom",flag:"🇬🇧"},{name:"United States",flag:"🇺🇸"},
-  {name:"Uzbekistan",flag:"🇺🇿"},{name:"Venezuela",flag:"🇻🇪"},{name:"Vietnam",flag:"🇻🇳"},
-  {name:"Yemen",flag:"🇾🇪"},{name:"Zimbabwe",flag:"🇿🇼"},
-];
-// Sort alphabetically, but pin Uzbekistan first
-COUNTRIES.sort((a,b)=>a.name.localeCompare(b.name));
-const UZ_IDX = COUNTRIES.findIndex(c=>c.name==="Uzbekistan");
-if(UZ_IDX>0){ const [uz]=COUNTRIES.splice(UZ_IDX,1); COUNTRIES.unshift(uz); }
-
-// ─── Country dropdown logic ──────────────────────────────────────────────────
-const searchInput   = document.getElementById('countrySearch');
-const dropdown      = document.getElementById('countryDropdown');
-const countryValue  = document.getElementById('countryValue');
-let selectedCountry = null;
-let highlightIndex  = -1;
-
-function renderDropdown(query=''){
-  const q = query.toLowerCase();
-  const filtered = q ? COUNTRIES.filter(c=>c.name.toLowerCase().includes(q)) : COUNTRIES;
-  dropdown.innerHTML = '';
-  if(!filtered.length){
-    dropdown.innerHTML = '<div class="country-no-results">No countries found</div>';
-    return;
-  }
-  filtered.forEach((c,i)=>{
-    const div = document.createElement('div');
-    div.className='country-option';
-    div.innerHTML = `<span class="flag">${c.flag}</span><span>${c.name}</span>`;
-    div.addEventListener('mousedown', e => { e.preventDefault(); selectCountry(c); });
-    dropdown.appendChild(div);
-  });
-  highlightIndex = -1;
-}
-
-function openDropdown(){
-  searchInput.readOnly = false;
-  renderDropdown(selectedCountry ? '' : '');
-  dropdown.classList.add('open');
-  searchInput.select();
-}
-
-function closeDropdown(){
-  dropdown.classList.remove('open');
-  searchInput.readOnly = true;
-  if(selectedCountry) searchInput.value = `${selectedCountry.flag}  ${selectedCountry.name}`;
-  else searchInput.value = '';
-}
-
-function selectCountry(c){
-  selectedCountry = c;
-  countryValue.value = c.name;
-  searchInput.value = `${c.flag}  ${c.name}`;
-  closeDropdown();
-  document.getElementById('countryError').classList.remove('visible');
-}
-
-searchInput.addEventListener('focus', openDropdown);
-searchInput.addEventListener('blur', () => setTimeout(closeDropdown, 150));
-searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
-searchInput.addEventListener('keydown', e => {
-  const opts = dropdown.querySelectorAll('.country-option');
-  if(!opts.length) return;
-  if(e.key==='ArrowDown'){
-    e.preventDefault();
-    highlightIndex = Math.min(highlightIndex+1, opts.length-1);
-  } else if(e.key==='ArrowUp'){
-    e.preventDefault();
-    highlightIndex = Math.max(highlightIndex-1, 0);
-  } else if(e.key==='Enter' && highlightIndex>=0){
-    e.preventDefault();
-    opts[highlightIndex].dispatchEvent(new MouseEvent('mousedown'));
-    return;
-  } else if(e.key==='Escape'){ closeDropdown(); return; }
-  opts.forEach((o,i)=>o.classList.toggle('highlighted', i===highlightIndex));
-  if(opts[highlightIndex]) opts[highlightIndex].scrollIntoView({block:'nearest'});
-});
-
-// Default to Uzbekistan
-selectCountry(COUNTRIES[0]);
-
-// ─── Password toggle helpers ────────────────────────────────────────────────
-function makeToggle(btnId, inputId, openId, closedId){
-  document.getElementById(btnId).addEventListener('click', ()=>{
-    const inp = document.getElementById(inputId);
-    const isHidden = inp.type==='password';
-    inp.type = isHidden ? 'text' : 'password';
-    document.getElementById(openId).style.display   = isHidden ? 'none'  : 'block';
-    document.getElementById(closedId).style.display = isHidden ? 'block' : 'none';
-  });
-}
-makeToggle('togglePw1','password','eye1Open','eye1Closed');
-makeToggle('togglePw2','confirmPassword','eye2Open','eye2Closed');
-
-// ─── Password strength ──────────────────────────────────────────────────────
-function calcStrength(pw){
-  let score = 0;
-  if(pw.length >= 8)  score++;
-  if(pw.length >= 12) score++;
-  if(/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if(/\d/.test(pw))   score++;
-  if(/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(4, Math.floor(score * 4/5));
-}
-
-const STRENGTH_MAP = [
-  {label:'',cls:''},
-  {label:'Weak — add more characters',cls:'weak'},
-  {label:'Fair — try adding symbols',cls:'fair'},
-  {label:'Good — almost there!',cls:'good'},
-  {label:'Strong password ✓',cls:'strong'},
-];
-
-document.getElementById('password').addEventListener('input', function(){
-  const pw = this.value;
-  const lvl = pw ? calcStrength(pw) : 0;
-  for(let i=1;i<=4;i++){
-    const seg = document.getElementById(`seg${i}`);
-    seg.className = 'strength-seg';
-    if(i<=lvl) seg.classList.add(STRENGTH_MAP[lvl].cls);
-  }
-  document.getElementById('strengthLabel').textContent =
-    pw ? STRENGTH_MAP[lvl].label : 'Use 8+ characters with letters, numbers & symbols.';
-  checkMatch();
-});
-
-// ─── Confirm password match ─────────────────────────────────────────────────
-function checkMatch(){
-  const pw  = document.getElementById('password').value;
-  const cpw = document.getElementById('confirmPassword').value;
-  const el  = document.getElementById('pwMatch');
-  const inp = document.getElementById('confirmPassword');
-  if(!cpw){ el.className='pw-match'; return; }
-  if(pw===cpw){
-    el.className='pw-match show match'; el.textContent='✓ Passwords match';
-    inp.classList.remove('input-error'); inp.classList.add('input-success');
-    document.getElementById('confirmError').classList.remove('visible');
-  } else {
-    el.className='pw-match show no-match'; el.textContent='✗ Passwords do not match';
-    inp.classList.add('input-error'); inp.classList.remove('input-success');
-  }
-}
-document.getElementById('confirmPassword').addEventListener('input', checkMatch);
-
-// ─── Toast ──────────────────────────────────────────────────────────────────
-function showToast(msg, duration=3000){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), duration);
-}
-
-// ─── Validation helpers ─────────────────────────────────────────────────────
-function setErr(id, errId, show){
-  const el=document.getElementById(id), er=document.getElementById(errId);
-  if(show){ el.classList.add('input-error'); er.classList.add('visible'); }
-  else    { el.classList.remove('input-error'); er.classList.remove('visible'); }
-}
-function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
-
-// ─── Form submit ─────────────────────────────────────────────────────────────
-document.getElementById('signupForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-
-  const name    = document.getElementById('fullName').value.trim();
-  const email   = document.getElementById('email').value.trim();
-  const country = countryValue.value;
-  const pw      = document.getElementById('password').value;
-  const cpw     = document.getElementById('confirmPassword').value;
-  const terms   = document.getElementById('terms').checked;
-
-  let valid = true;
-
-  if(name.length < 2)       { setErr('fullName','nameError',true);    valid=false; }
-  else                        { setErr('fullName','nameError',false); }
-
-  if(!isValidEmail(email))  { setErr('email','emailError',true);      valid=false; }
-  else                        { setErr('email','emailError',false); }
-
-  if(!country){
-    document.getElementById('countryError').classList.add('visible'); valid=false;
-  } else {
-    document.getElementById('countryError').classList.remove('visible');
-  }
-
-  if(pw.length < 8)          { setErr('password','passwordError',true);  valid=false; }
-  else                         { setErr('password','passwordError',false); }
-
-  if(pw !== cpw || !cpw)     { setErr('confirmPassword','confirmError',true);  valid=false; }
-  else                         { setErr('confirmPassword','confirmError',false); }
-
-  if(!terms){
-    document.getElementById('termsRow').classList.add('error');
-    showToast('Please accept the Terms of Service to continue.');
-    valid=false;
-  } else {
-    document.getElementById('termsRow').classList.remove('error');
-  }
-
-  if(!valid) return;
-
-  const errBox = document.getElementById('signupError');
-  if (errBox) {
-    errBox.style.display = 'none';
-    errBox.textContent = '';
-  }
-
-  // Loading state
-  const btn=document.getElementById('submitBtn');
-  const lbl=document.getElementById('btnLabel');
-  const spn=document.getElementById('spinner');
-  btn.disabled=true; btn.classList.add('loading');
-  spn.style.display='block'; lbl.textContent='Creating account…';
-
-  try {
-    const res = await fetch('http://localhost:4000/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        full_name: name,
-        email,
-        password: pw,
-        role: 'STUDENT',
-        country,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      if (errBox) {
-        errBox.textContent = data.message || 'Could not create account.';
-        errBox.style.display = 'block';
-      } else {
-        showToast(data.message || 'Could not create account.');
-      }
-      btn.disabled=false; btn.classList.remove('loading');
-      spn.style.display='none'; lbl.textContent='Create Account';
-      return;
-    }
-
-    localStorage.setItem('pendingName',    name);
-    localStorage.setItem('pendingEmail',   email);
-    localStorage.setItem('pendingCountry', country);
-
-    window.location.href='verify-email.html';
-  } catch (err) {
-    console.error(err);
-    showToast('Network error. Please try again.');
-  } finally {
-    btn.disabled=false; btn.classList.remove('loading');
-    spn.style.display='none'; lbl.textContent='Create Account';
-  }
-});
-
-// ─── Social stub ─────────────────────────────────────────────────────────────
-function socialStub(p){ showToast(`${p} sign-up coming soon!`); }
-
-// ─── Live email validation ───────────────────────────────────────────────────
-document.getElementById('email').addEventListener('input', function(){
-  if(isValidEmail(this.value)) setErr('email','emailError',false);
-});
-</script>
+            try {
+                const res = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        full_name: fullName,
+                        username: username,
+                        email: email,
+                        password: password,
+                        country: country,
+                        role: 'STUDENT'
+                    })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    localStorage.setItem('pendingEmail', email);
+                    if (data.dev_verification_code) {
+                        localStorage.setItem('dev_verification_code', data.dev_verification_code);
+                    }
+                    window.location.href = '/verify-email.html';
+                } else {
+                    const errBox = document.getElementById('signup-error');
+                    errBox.textContent = data.message || 'Registration failed';
+                    errBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                const errBox = document.getElementById('signup-error');
+                errBox.textContent = 'Network error. Please try again later.';
+                errBox.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.querySelector('#btn-text').textContent = 'Create Free Account';
+                submitBtn.querySelector('#btn-spinner').classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,694 +1,807 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style id="styleguide-variables">
-    :root {
-      --vId-color-token-a: #1C6758;
-      --vId-color-token-b: #3D8361;
-      --vId-color-token-c: #000;
-      --vId-color-token-d: #fff;
-      --vId-c58c1989-ada3-4666-90df-67ca3f601e2a: #D6CDA4;
-      --vId-f5d7075a-c172-42b4-a062-4ca7a3cad9bb: #151614ff;
-      --vId-font-token-a: Poppins;
-    }
-  </style>
-  <title>IELTSPRACTICE — Exam &amp; Mock Test Booking</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Practice | Exam & Mock Dates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js" defer init></script>
+    
+    <style>
+        @import url('https://api.fontshare.com/v2/css?f[]=clash-grotesk@700,600,400&f[]=satoshi@700,500,400&display=swap');
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.7.2/css/all.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Home page CSS for header styles -->
-  <link rel="stylesheet" type="text/css" href="../index.css">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            navy: { DEFAULT: '#1a365d', dark: '#0f2240', light: '#254e8a', muted: '#2d4a73' },
-            accent: { orange: '#e8621a', orangeHover: '#cf5415' },
-            success: '#1a8a5a',
-            cream: '#f8f6f1',
-          },
-          fontFamily: {
-            display: ['Playfair Display', 'serif'],
-            body: ['DM Sans', 'sans-serif'],
-          }
+        :root {
+            --lavender-main: #8B5CF6;
+            --brand-orange: #FF6B35;
+            --bg-soft: #F9F5FF;
+            --dark: #111827;
         }
-      }
-    }
-  </script>
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: 'Satoshi', sans-serif;
+            background-color: var(--bg-soft);
+            color: var(--dark);
+            margin: 0;
+            overflow-x: hidden;
+        }
 
-    /* ── Page body ── */
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: #f8f6f1;
-      margin: 0;
-      padding: 0;
-    }
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Clash Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
 
-    /* ───────────────────────────────────────────
-       HEADER — pixel-matched to screenshot
-    ─────────────────────────────────────────── */
-    .site-header {
-      background-color: #151614;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      padding: 0 40px;
-      height: 72px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.45);
-    }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
 
-    .site-header .logo {
-      font-family: 'Poppins', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-    }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
 
-    .site-header nav {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-    }
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-    .site-header nav a {
-      font-family: 'Poppins', sans-serif;
-      font-size: 15px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.88);
-      text-decoration: none;
-      padding: 6px 18px;
-      border-radius: 6px;
-      transition: color 0.2s, background 0.2s;
-      white-space: nowrap;
-    }
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-    .site-header nav a:hover {
-      color: #ffffff;
-      background: rgba(255,255,255,0.07);
-    }
+        .transition-playful {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
 
-    .site-header nav a.active {
-      color: #ffffff;
-      font-weight: 500;
-    }
+        .card-lift:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.15);
+        }
 
-    .site-header .btn-get-started {
-      font-family: 'Poppins', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      color: #ffffff;
-      background: #1C6758;
-      border: none;
-      border-radius: 100px;
-      padding: 12px 28px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 0.2s, transform 0.1s;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-    }
+        .btn-bounce:hover {
+            transform: scale(1.05);
+        }
 
-    .site-header .btn-get-started:hover {
-      background: #165248;
-      transform: scale(1.03);
-    }
+        .orange-text {
+            color: var(--brand-orange);
+        }
 
-    /* Mobile hamburger */
-    .site-header .mobile-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 22px;
-      cursor: pointer;
-      padding: 4px;
-    }
+        .purple-badge { background-color: #F5F1FF; color: #8B5CF6; }
+        .orange-badge  { background-color: #FFF8F5; color: #FF6B35; }
+        .yellow-badge  { background-color: #FFFBEB; color: #D97706; }
+        .blue-badge    { background-color: #EFF6FF; color: #3B82F6; }
+        .gray-badge    { background-color: #F3F4F6; color: #4B5563; }
 
-    @media (max-width: 900px) {
-      .site-header nav { display: none; }
-      .site-header .btn-get-started { display: none; }
-      .site-header .mobile-menu-btn { display: block; }
-    }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F9F5FF;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D4C5E2;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8B5CF6;
+        }
 
-    @media (max-width: 480px) {
-      .site-header { padding: 0 20px; }
-    }
-
-    /* ── Sidebar ── */
-    .sidebar { background: #fff; border-right: 1px solid #e5e0d8; }
-    .filter-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #7a6e60; margin-bottom: 6px; display: block; }
-    .filter-input { width: 100%; border: 1.5px solid #e0dbd2; border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; font-family: 'DM Sans', sans-serif; color: #1a365d; background: #faf9f7; outline: none; transition: border-color .2s; }
-    .filter-input:focus { border-color: #1a365d; }
-
-    .toggle-group { display: flex; border-radius: 8px; overflow: hidden; border: 1.5px solid #e0dbd2; }
-    .toggle-btn { flex: 1; padding: 7px 0; font-size: 0.78rem; font-weight: 500; text-align: center; cursor: pointer; background: #faf9f7; color: #7a6e60; transition: all .2s; border: none; }
-    .toggle-btn.active { background: #1a365d; color: #fff; }
-    .toggle-btn + .toggle-btn { border-left: 1.5px solid #e0dbd2; }
-
-    input[type=range] { -webkit-appearance: none; height: 4px; background: #e0dbd2; border-radius: 2px; outline: none; cursor: pointer; width: 100%; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #1a365d; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
-
-    /* ── Cards ── */
-    .exam-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(26,54,93,.07); border: 1px solid #ede8df; transition: transform .2s, box-shadow .2s; overflow: hidden; }
-    .exam-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(26,54,93,.13); }
-
-    .date-block { background: #1a365d; color: #fff; width: 72px; min-width: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 8px; border-radius: 10px; }
-    .date-block .day-num { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; line-height: 1; }
-    .date-block .month { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; opacity: .8; }
-    .date-block .weekday { font-size: 0.68rem; opacity: .65; margin-top: 3px; }
-
-    .seat-bar { height: 5px; background: #eae5dc; border-radius: 3px; overflow: hidden; }
-    .seat-bar-fill { height: 100%; border-radius: 3px; }
-    .seat-critical { background: #e8621a; }
-    .seat-low { background: #f0a020; }
-    .seat-ok { background: #1a8a5a; }
-
-    .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.04em; }
-    .tag-official { background: #e8f0fb; color: #1a365d; }
-    .tag-mock { background: #fff3e8; color: #c25510; }
-    .tag-computer { background: #e8f5f0; color: #1a6a45; }
-    .tag-paper { background: #f0f0f8; color: #444488; }
-    .tag-academic { background: #fdf0f8; color: #8a1a5d; }
-    .tag-general { background: #f5f8e8; color: #5a6a1a; }
-
-    .book-btn { background: #e8621a; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: background .2s, transform .1s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
-    .book-btn:hover { background: #cf5415; transform: scale(1.03); }
-
-    .pay-card { background: linear-gradient(135deg, #1a365d 0%, #0f2240 100%); color: #fff; border-radius: 16px; }
-
-    .hero-strip { background: linear-gradient(90deg, #1a365d 0%, #254e8a 60%, #1a365d 100%); position: relative; overflow: hidden; }
-    .hero-strip::before { content: ''; position: absolute; right: 60px; top: -40px; width: 180px; height: 180px; border-radius: 50%; background: rgba(232,98,26,0.12); }
-    .hero-strip::after { content: ''; position: absolute; right: -20px; bottom: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(232,98,26,0.07); }
-
-    #sidebar { transition: transform .3s; }
-    @media (max-width: 1023px) {
-      #sidebar { position: fixed; left: 0; top: 0; height: 100vh; z-index: 50; transform: translateX(-100%); width: 280px; overflow-y: auto; }
-      #sidebar.open { transform: translateX(0); box-shadow: 4px 0 30px rgba(0,0,0,.2); }
-    }
-
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .exam-card { animation: fadeUp .4s ease both; }
-    .exam-card:nth-child(1) { animation-delay: .05s; }
-    .exam-card:nth-child(2) { animation-delay: .1s; }
-    .exam-card:nth-child(3) { animation-delay: .15s; }
-    .exam-card:nth-child(4) { animation-delay: .2s; }
-    .exam-card:nth-child(5) { animation-delay: .25s; }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #f0ece4; }
-    ::-webkit-scrollbar-thumb { background: #c8bfaf; border-radius: 3px; }
-
-    /* Mobile sidebar overlay */
-    #sidebarOverlay { background: rgba(0,0,0,0.4); }
-  </style>
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #8B5CF6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+            border: 2px solid white;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #E5E7EB;
+            border-radius: 10px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
 </head>
-<body class="min-h-screen" style="background:#f8f6f1">
+<body>
+    <div class="min-h-screen flex flex-col relative">
+        
+        <!-- Header (Persistent Navigation) -->
+        <!-- component: NavigationHeader (5600dfca-4b47-45ca-8a94-e5a9370f7684) -->
+        <div v-scope="{ ...{'activeItem':'exam','homeHref':'../index.html','coursesHref':'../courses.html','examHref':'./exam-dates.html','centresHref':'./education-centres.html','contactHref':'../contact.html','signupHref':'/signup.html','loginHref':'/login.html'}, $emit() {} }">
+        <nav class="flex items-center justify-between px-8 md:px-16 py-8 bg-white shadow-sm relative z-40">
+            <div class="flex items-center gap-12">
+                <a href="../index.html" class="text-3xl font-black flex items-center uppercase tracking-tighter">
+                    <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                    <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                </a>
+                <div class="hidden lg:flex items-center gap-8 font-semibold text-gray-600">
+                    <a :href="homeHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'home' }">Home</a>
+                    <a :href="coursesHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'courses' }">Courses</a>
+                    <a :href="examHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'exam' }">Exam &amp; Mock dates</a>
+                    <a :href="centresHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'centres' }">Educational Centres</a>
+                    <a :href="contactHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'contact' }">Contact</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <a :href="signupHref" class="font-bold hover:text-[#FF6B35] transition-colors hidden sm:block">Sign up</a>
+                <a :href="loginHref" class="bg-[#FF6B35] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
+                    Login
+                </a>
+                <!-- Mobile menu button -->
+                <button class="lg:hidden text-2xl text-gray-700" id="mobileMenuToggle">
+                    <iconify-icon icon="ph:list-bold"></iconify-icon>
+                </button>
+            </div>
+        </nav>
+        </div>
+        <!-- /component: NavigationHeader (5600dfca-4b47-45ca-8a94-e5a9370f7684) -->
 
-<!-- ═══════════════════════════════════════════
-     HEADER — matched to screenshot design
-═══════════════════════════════════════════ -->
-<header class="site-header">
-  <span class="logo">IELTS PRACTICE</span>
-  <nav>
-    <a href="../index.html">Home</a>
-    <a href="./exam-dates.html" class="active">Exam &amp; Mock Dates</a>
-    <a href="./education-centres.html">Education Centres</a>
-    <a href="../contact.html">Contact</a>
-  </nav>
-  <a href="#" class="btn-get-started">Get Started</a>
-  <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i></button>
-</header>
+        <main class="flex-1 w-full">
+            <!-- Hero Section -->
+            <section class="px-4 md:px-8 lg:px-16 pt-6 pb-12 overflow-hidden">
+                <div class="max-w-[1360px] mx-auto bg-gray-900 rounded-[40px] p-8 md:p-16 relative shadow-2xl overflow-hidden">
+                    <!-- Decorative Gradients -->
+                    <div class="absolute -top-20 -right-20 w-[400px] h-[400px] bg-[#8B5CF6] rounded-full mix-blend-screen filter blur-[100px] opacity-60 float-animation"></div>
+                    <div class="absolute -bottom-20 -left-20 w-[300px] h-[300px] bg-[#FF6B35] rounded-full mix-blend-screen filter blur-[100px] opacity-40 float-animation" style="animation-delay: -3s;"></div>
+                    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')] opacity-20"></div>
+                    
+                    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+                        <div class="max-w-2xl">
+                            <div class="inline-block px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md text-white border border-white/20 text-sm font-bold uppercase mb-6 tracking-wider">
+                                Booking Portal
+                            </div>
+                            <h1 class="text-white text-4xl md:text-6xl font-black mb-4 leading-tight">
+                                Secure your spot for <br>
+                                <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B35] to-[#FFA07A]">Exam & Mock Tests</span>
+                            </h1>
+                            <p class="text-gray-300 text-lg md:text-xl font-medium mb-8">
+                                Find and book official IELTS exams and highly realistic mock tests across top educational centres near you.
+                            </p>
+                            <div class="flex flex-wrap gap-4">
+                                <div class="bg-white/10 backdrop-blur-md border border-white/10 text-white px-5 py-3 rounded-2xl flex items-center gap-3 font-bold shadow-lg">
+                                    <div class="w-10 h-10 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35]">
+                                        <iconify-icon icon="ph:calendar-check-fill" class="text-xl"></iconify-icon>
+                                    </div>
+                                    <div>
+                                        <div class="text-2xl font-black leading-none">24</div>
+                                        <div class="text-[10px] text-gray-300 uppercase tracking-wider">Upcoming Dates</div>
+                                    </div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur-md border border-white/10 text-white px-5 py-3 rounded-2xl flex items-center gap-3 font-bold shadow-lg">
+                                    <div class="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-[#8B5CF6]">
+                                        <iconify-icon icon="ph:map-pin-fill" class="text-xl"></iconify-icon>
+                                    </div>
+                                    <div>
+                                        <div class="text-2xl font-black leading-none">6</div>
+                                        <div class="text-[10px] text-gray-300 uppercase tracking-wider">Active Cities</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Optional Decorative Graphic for Desktop -->
+                        <div class="hidden lg:block relative">
+                            <div class="w-64 h-80 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[32px] p-6 shadow-2xl rotate-3 float-animation">
+                                <div class="w-full h-32 bg-gradient-to-br from-purple-500/20 to-orange-500/20 rounded-2xl mb-4 flex items-center justify-center">
+                                    <iconify-icon icon="ph:seal-check-fill" class="text-6xl text-white/50"></iconify-icon>
+                                </div>
+                                <div class="w-3/4 h-4 bg-white/20 rounded-full mb-3"></div>
+                                <div class="w-1/2 h-4 bg-white/20 rounded-full mb-6"></div>
+                                <div class="w-full h-12 bg-[#FF6B35] rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-<!-- Mobile overlay -->
-<div id="sidebarOverlay" class="fixed inset-0 z-30 hidden" onclick="closeMobileNav()"></div>
+            <!-- Main Content Area: Sidebar + Results -->
+            <section class="px-4 md:px-8 lg:px-16 pb-24">
+                <div class="max-w-[1360px] mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
+                    
+                    <!-- Mobile Filter Toggle Button -->
+                    <button id="mobileFilterBtn" class="lg:hidden w-full bg-white border-2 border-purple-100 p-4 rounded-2xl font-bold text-purple-700 flex items-center justify-center gap-2 shadow-sm">
+                        <iconify-icon icon="ph:faders-bold" class="text-xl"></iconify-icon>
+                        Filter Results
+                    </button>
 
-<!-- ═══════════════════════════════════════════
-     HERO STRIP
-═══════════════════════════════════════════ -->
-<div class="hero-strip px-6 py-5">
-  <div class="max-w-screen-xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-    <div>
-      <h1 class="font-display text-white text-2xl sm:text-3xl font-bold">Exam &amp; Mock Test Booking</h1>
-      <p class="text-sm mt-1" style="color:rgba(255,255,255,0.65)">Find official IELTS exams and mock tests across Uzbekistan</p>
+                    <!-- Filter Sidebar -->
+                    <aside id="filterSidebar" class="hidden lg:block w-full lg:w-80 shrink-0 space-y-8">
+                        <div class="bg-white p-6 rounded-[32px] border-2 border-purple-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-8">
+                            <div class="flex items-center gap-2 mb-8">
+                                <iconify-icon icon="ph:faders-bold" class="text-purple-600 text-xl"></iconify-icon>
+                                <h3 class="font-black text-xl">Filter Results</h3>
+                            </div>
+
+                            <div class="space-y-6">
+                                <!-- Search Venue -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Search Venue</label>
+                                    <div class="relative">
+                                        <iconify-icon icon="ph:magnifying-glass-bold" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></iconify-icon>
+                                        <input type="text" id="searchInput" placeholder="e.g. British Council..." class="w-full bg-gray-50 border-2 border-transparent focus:border-purple-200 focus:bg-white rounded-2xl py-3 pl-11 pr-4 font-medium text-gray-700 outline-none transition-all">
+                                    </div>
+                                </div>
+
+                                <!-- City -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">City</label>
+                                    <div class="relative">
+                                        <select id="cityFilter" class="w-full bg-gray-50 border-2 border-transparent focus:border-purple-200 focus:bg-white rounded-2xl py-3 px-4 font-medium text-gray-700 outline-none appearance-none transition-all cursor-pointer">
+                                            <option value="">All Cities</option>
+                                            <option value="Tashkent">Tashkent</option>
+                                            <option value="Samarkand">Samarkand</option>
+                                            <option value="Bukhara">Bukhara</option>
+                                            <option value="Fergana">Fergana</option>
+                                        </select>
+                                        <iconify-icon icon="ph:caret-down-bold" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></iconify-icon>
+                                    </div>
+                                </div>
+
+                                <!-- Date -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Date</label>
+                                    <input type="date" id="dateFilter" class="w-full bg-gray-50 border-2 border-transparent focus:border-purple-200 focus:bg-white rounded-2xl py-3 px-4 font-medium text-gray-700 outline-none transition-all cursor-pointer text-sm">
+                                </div>
+
+                                <!-- Test Type -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Test Type</label>
+                                    <div class="flex bg-gray-50 p-1 rounded-2xl border-2 border-transparent" id="testTypeGroup">
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn bg-white shadow-sm text-purple-600" data-val="All">All</button>
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn text-gray-500 hover:text-gray-900" data-val="Official">Official</button>
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn text-gray-500 hover:text-gray-900" data-val="Mock">Mock</button>
+                                    </div>
+                                </div>
+
+                                <!-- Module -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Module</label>
+                                    <div class="flex bg-gray-50 p-1 rounded-2xl border-2 border-transparent" id="moduleGroup">
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn bg-white shadow-sm text-purple-600" data-val="All">All</button>
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn text-gray-500 hover:text-gray-900" data-val="Academic">Academic</button>
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn text-gray-500 hover:text-gray-900" data-val="General">General</button>
+                                    </div>
+                                </div>
+
+                                <!-- Format -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Format</label>
+                                    <div class="flex bg-gray-50 p-1 rounded-2xl border-2 border-transparent" id="formatGroup">
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn bg-white shadow-sm text-purple-600" data-val="All">All</button>
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn text-gray-500 hover:text-gray-900" data-val="Computer">Computer</button>
+                                        <button class="flex-1 py-2 px-3 text-sm font-bold rounded-xl transition-all toggle-btn text-gray-500 hover:text-gray-900" data-val="Paper">Paper</button>
+                                    </div>
+                                </div>
+
+                                <!-- Max Price -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Max Price (UZS)</label>
+                                    <input type="range" id="priceSlider" min="50000" max="3000000" step="50000" value="3000000" class="w-full">
+                                    <div class="flex justify-between items-center mt-2">
+                                        <span class="text-xs font-medium text-gray-400">50k</span>
+                                        <span id="priceDisplay" class="font-black text-purple-600">3,000,000 UZS</span>
+                                    </div>
+                                </div>
+
+                                <!-- Reset Button -->
+                                <button id="resetBtn" class="w-full py-3 mt-4 text-sm font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all flex items-center justify-center gap-2">
+                                    <iconify-icon icon="ph:arrow-counter-clockwise-bold"></iconify-icon>
+                                    Reset Filters
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Results Area -->
+                    <div class="flex-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                            <p class="text-gray-500 font-medium"><span id="resultCount" class="font-black text-gray-900 text-xl">5</span> dates available</p>
+                            <div class="relative inline-block">
+                                <select class="bg-white border-2 border-purple-50 rounded-2xl py-2 pl-4 pr-10 font-bold text-sm outline-none cursor-pointer appearance-none hover:border-purple-200 transition-colors shadow-sm text-gray-700">
+                                    <option>Sort: Soonest first</option>
+                                    <option>Sort: Price low to high</option>
+                                    <option>Sort: Price high to low</option>
+                                    <option>Sort: Most seats</option>
+                                </select>
+                                <iconify-icon icon="ph:caret-down-bold" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></iconify-icon>
+                            </div>
+                        </div>
+
+                        <!-- Cards Container -->
+                        <div id="cardsContainer" class="space-y-6">
+
+                            <!-- Card 1 (Official, Computer) -->
+                            <div class="exam-card bg-white p-6 rounded-[32px] border-2 border-transparent hover:border-purple-100 transition-playful card-lift shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row gap-6 scroll-reveal"
+                                 data-type="Official" data-module="Academic" data-format="Computer" data-city="Tashkent" data-price="1350000" data-venue="british council tashkent">
+                                
+                                <!-- Date Block -->
+                                <div class="shrink-0 w-full sm:w-24 bg-[#F5F1FF] text-[#8B5CF6] rounded-2xl flex sm:flex-col items-center justify-center p-4 gap-2 sm:gap-0 border border-purple-100/50">
+                                    <span class="font-display text-4xl sm:text-5xl font-black leading-none">14</span>
+                                    <div class="flex flex-col sm:items-center">
+                                        <span class="text-sm font-bold uppercase tracking-widest">Jul</span>
+                                        <span class="text-xs font-medium opacity-80">Monday</span>
+                                    </div>
+                                </div>
+
+                                <!-- Info Block -->
+                                <div class="flex-1">
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider purple-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:certificate-fill"></iconify-icon> Official IDP
+                                        </span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider bg-pink-50 text-pink-600">Academic</span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider blue-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:desktop-fill"></iconify-icon> Computer
+                                        </span>
+                                    </div>
+                                    
+                                    <h3 class="text-xl font-black text-gray-900 mb-1 flex items-center gap-2">
+                                        British Council Tashkent
+                                    </h3>
+                                    <p class="text-gray-500 text-sm font-medium mb-4 flex items-center gap-1">
+                                        <iconify-icon icon="ph:map-pin-fill" class="text-orange-500"></iconify-icon> Amir Temur Ave 21, Tashkent
+                                    </p>
+
+                                    <!-- Seats -->
+                                    <div class="mb-2">
+                                        <div class="flex justify-between items-end mb-1 text-sm">
+                                            <span class="font-bold text-red-500 flex items-center gap-1">
+                                                <iconify-icon icon="ph:fire-fill"></iconify-icon> Only 5 seats remaining!
+                                            </span>
+                                            <span class="font-bold text-gray-400 text-xs">5/30</span>
+                                        </div>
+                                        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-red-500 rounded-full" style="width: 16%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Block -->
+                                <div class="shrink-0 sm:w-40 flex flex-row sm:flex-col justify-between items-center sm:items-end sm:border-l-2 border-dashed border-gray-100 sm:pl-6">
+                                    <div class="text-left sm:text-right">
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fee</p>
+                                        <p class="text-xl sm:text-2xl font-black text-[#111827] leading-none mb-1">1,350k</p>
+                                        <p class="text-xs font-bold text-gray-400">UZS</p>
+                                    </div>
+                                    <button class="bg-[#FF6B35] text-white px-6 py-3 rounded-xl font-bold text-sm btn-bounce transition-playful shadow-lg shadow-orange-500/20 whitespace-nowrap">
+                                        Book Now
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Card 2 (Mock, General) -->
+                            <div class="exam-card bg-white p-6 rounded-[32px] border-2 border-transparent hover:border-orange-100 transition-playful card-lift shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row gap-6 scroll-reveal"
+                                 data-type="Mock" data-module="General" data-format="Computer" data-city="Tashkent" data-price="280000" data-venue="ieltspractice hub tashkent">
+                                
+                                <!-- Date Block -->
+                                <div class="shrink-0 w-full sm:w-24 bg-[#FFF8F5] text-[#FF6B35] rounded-2xl flex sm:flex-col items-center justify-center p-4 gap-2 sm:gap-0 border border-orange-100/50">
+                                    <span class="font-display text-4xl sm:text-5xl font-black leading-none">18</span>
+                                    <div class="flex flex-col sm:items-center">
+                                        <span class="text-sm font-bold uppercase tracking-widest">Jul</span>
+                                        <span class="text-xs font-medium opacity-80">Friday</span>
+                                    </div>
+                                </div>
+
+                                <!-- Info Block -->
+                                <div class="flex-1">
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider orange-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:flask-fill"></iconify-icon> Mock Test
+                                        </span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider bg-teal-50 text-teal-600">General Training</span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider blue-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:desktop-fill"></iconify-icon> Computer
+                                        </span>
+                                    </div>
+                                    
+                                    <h3 class="text-xl font-black text-gray-900 mb-1 flex items-center gap-2">
+                                        IELTSPRACTICE Hub Tashkent
+                                    </h3>
+                                    <p class="text-gray-500 text-sm font-medium mb-4 flex items-center gap-1">
+                                        <iconify-icon icon="ph:map-pin-fill" class="text-orange-500"></iconify-icon> Chilonzor 7, Tashkent
+                                    </p>
+
+                                    <!-- Seats -->
+                                    <div class="mb-2">
+                                        <div class="flex justify-between items-end mb-1 text-sm">
+                                            <span class="font-bold text-green-500 flex items-center gap-1">
+                                                <iconify-icon icon="ph:check-circle-fill"></iconify-icon> 18 seats available
+                                            </span>
+                                            <span class="font-bold text-gray-400 text-xs">18/30</span>
+                                        </div>
+                                        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-green-500 rounded-full" style="width: 60%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Block -->
+                                <div class="shrink-0 sm:w-40 flex flex-row sm:flex-col justify-between items-center sm:items-end sm:border-l-2 border-dashed border-gray-100 sm:pl-6">
+                                    <div class="text-left sm:text-right">
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fee</p>
+                                        <p class="text-xl sm:text-2xl font-black text-[#111827] leading-none mb-1">280k</p>
+                                        <p class="text-xs font-bold text-gray-400">UZS</p>
+                                    </div>
+                                    <button class="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm btn-bounce transition-playful shadow-lg shadow-gray-900/20 whitespace-nowrap">
+                                        Book Mock
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Card 3 (Official, Paper) -->
+                            <div class="exam-card bg-white p-6 rounded-[32px] border-2 border-transparent hover:border-purple-100 transition-playful card-lift shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row gap-6 scroll-reveal"
+                                 data-type="Official" data-module="Academic" data-format="Paper" data-city="Samarkand" data-price="1350000" data-venue="samarkand international university">
+                                
+                                <div class="shrink-0 w-full sm:w-24 bg-[#F5F1FF] text-[#8B5CF6] rounded-2xl flex sm:flex-col items-center justify-center p-4 gap-2 sm:gap-0 border border-purple-100/50">
+                                    <span class="font-display text-4xl sm:text-5xl font-black leading-none">26</span>
+                                    <div class="flex flex-col sm:items-center">
+                                        <span class="text-sm font-bold uppercase tracking-widest">Jul</span>
+                                        <span class="text-xs font-medium opacity-80">Saturday</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex-1">
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider purple-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:certificate-fill"></iconify-icon> Official British Council
+                                        </span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider bg-pink-50 text-pink-600">Academic</span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider gray-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:file-text-fill"></iconify-icon> Paper-based
+                                        </span>
+                                    </div>
+                                    
+                                    <h3 class="text-xl font-black text-gray-900 mb-1 flex items-center gap-2">
+                                        Samarkand International University
+                                    </h3>
+                                    <p class="text-gray-500 text-sm font-medium mb-4 flex items-center gap-1">
+                                        <iconify-icon icon="ph:map-pin-fill" class="text-orange-500"></iconify-icon> University Blvd, Samarkand
+                                    </p>
+
+                                    <div class="mb-2">
+                                        <div class="flex justify-between items-end mb-1 text-sm">
+                                            <span class="font-bold text-yellow-500 flex items-center gap-1">
+                                                <iconify-icon icon="ph:warning-circle-fill"></iconify-icon> Only 9 seats left
+                                            </span>
+                                            <span class="font-bold text-gray-400 text-xs">9/25</span>
+                                        </div>
+                                        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-yellow-400 rounded-full" style="width: 36%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="shrink-0 sm:w-40 flex flex-row sm:flex-col justify-between items-center sm:items-end sm:border-l-2 border-dashed border-gray-100 sm:pl-6">
+                                    <div class="text-left sm:text-right">
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fee</p>
+                                        <p class="text-xl sm:text-2xl font-black text-[#111827] leading-none mb-1">1,350k</p>
+                                        <p class="text-xs font-bold text-gray-400">UZS</p>
+                                    </div>
+                                    <button class="bg-[#FF6B35] text-white px-6 py-3 rounded-xl font-bold text-sm btn-bounce transition-playful shadow-lg shadow-orange-500/20 whitespace-nowrap">
+                                        Book Now
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Card 4 (Mock, Paper) -->
+                            <div class="exam-card bg-white p-6 rounded-[32px] border-2 border-transparent hover:border-orange-100 transition-playful card-lift shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row gap-6 scroll-reveal"
+                                 data-type="Mock" data-module="Academic" data-format="Paper" data-city="Fergana" data-price="150000" data-venue="fergana language academy">
+                                
+                                <div class="shrink-0 w-full sm:w-24 bg-[#FFF8F5] text-[#FF6B35] rounded-2xl flex sm:flex-col items-center justify-center p-4 gap-2 sm:gap-0 border border-orange-100/50">
+                                    <span class="font-display text-4xl sm:text-5xl font-black leading-none">02</span>
+                                    <div class="flex flex-col sm:items-center">
+                                        <span class="text-sm font-bold uppercase tracking-widest">Aug</span>
+                                        <span class="text-xs font-medium opacity-80">Saturday</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex-1">
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider orange-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:flask-fill"></iconify-icon> Mock Test
+                                        </span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider bg-pink-50 text-pink-600">Academic</span>
+                                        <span class="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider gray-badge flex items-center gap-1">
+                                            <iconify-icon icon="ph:file-text-fill"></iconify-icon> Paper-based
+                                        </span>
+                                    </div>
+                                    
+                                    <h3 class="text-xl font-black text-gray-900 mb-1 flex items-center gap-2">
+                                        Fergana Language Academy
+                                    </h3>
+                                    <p class="text-gray-500 text-sm font-medium mb-4 flex items-center gap-1">
+                                        <iconify-icon icon="ph:map-pin-fill" class="text-orange-500"></iconify-icon> Mustaqillik 14, Fergana
+                                    </p>
+
+                                    <div class="mb-2">
+                                        <div class="flex justify-between items-end mb-1 text-sm">
+                                            <span class="font-bold text-green-500 flex items-center gap-1">
+                                                <iconify-icon icon="ph:check-circle-fill"></iconify-icon> 22 seats available
+                                            </span>
+                                            <span class="font-bold text-gray-400 text-xs">22/25</span>
+                                        </div>
+                                        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-green-500 rounded-full" style="width: 88%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="shrink-0 sm:w-40 flex flex-row sm:flex-col justify-between items-center sm:items-end sm:border-l-2 border-dashed border-gray-100 sm:pl-6">
+                                    <div class="text-left sm:text-right">
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fee</p>
+                                        <p class="text-xl sm:text-2xl font-black text-[#111827] leading-none mb-1">150k</p>
+                                        <p class="text-xs font-bold text-gray-400">UZS</p>
+                                    </div>
+                                    <button class="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm btn-bounce transition-playful shadow-lg shadow-gray-900/20 whitespace-nowrap">
+                                        Book Mock
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="noResults" class="hidden bg-white rounded-[32px] border-2 border-dashed border-purple-100 p-16 text-center">
+                                <div class="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-6 text-purple-200 text-5xl">
+                                    <iconify-icon icon="ph:magnifying-glass-duotone"></iconify-icon>
+                                </div>
+                                <h4 class="text-2xl font-black mb-2">No exams found</h4>
+                                <p class="text-gray-500 font-medium mb-6">Try adjusting your filters to see more available dates.</p>
+                                <button onclick="document.getElementById('resetBtn').click()" class="text-purple-600 font-bold hover:text-purple-700 transition-colors inline-flex items-center gap-2">
+                                    Clear all filters <iconify-icon icon="ph:arrow-right-bold"></iconify-icon>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="px-6 md:px-16 py-24 bg-white border-t border-purple-50 mt-auto">
+            <div class="max-w-[1360px] mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 items-start">
+                    <div class="lg:col-span-5">
+                        <div class="text-3xl font-black flex items-center uppercase tracking-tighter mb-8">
+                            <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                            <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                        </div>
+                        <p class="text-gray-400 text-lg font-medium max-w-sm mb-10 leading-relaxed">
+                            Empowering students worldwide to achieve their dreams through innovative, technology-driven IELTS preparation tools.
+                        </p>
+                        <div class="flex gap-4">
+                            <a id="soc-1" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
+                            <a id="soc-2" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
+                            <a id="soc-3" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
+                            <a id="soc-4" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:linkedin-logo-bold"></iconify-icon></a>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 grid grid-cols-2 gap-10">
+                        <div>
+                            <h6 class="font-black uppercase text-xs tracking-widest text-gray-400 mb-8">Quick Links</h6>
+                            <ul class="space-y-4 font-bold text-gray-700">
+                                <li><a id="foot-1" href="../index.html" class="hover:text-purple-600 transition-colors">Home</a></li>
+                                <li><a id="foot-2" href="../courses.html" class="hover:text-purple-600 transition-colors">Courses</a></li>
+                                <li><a id="foot-3" href="./education-centres.html" class="hover:text-purple-600 transition-colors">Centers</a></li>
+                                <li><a id="foot-4" href="../dashboard.html" class="hover:text-purple-600 transition-colors">Mock Exams</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h6 class="font-black uppercase text-xs tracking-widest text-gray-400 mb-8">Support</h6>
+                            <ul class="space-y-4 font-bold text-gray-700">
+                                <li><a id="foot-5" href="#" class="hover:text-purple-600 transition-colors">Help Center</a></li>
+                                <li><a id="foot-6" href="#" class="hover:text-purple-600 transition-colors">FAQ</a></li>
+                                <li><a id="foot-7" href="#" class="hover:text-purple-600 transition-colors">Privacy</a></li>
+                                <li><a id="foot-8" href="#" class="hover:text-purple-600 transition-colors">Terms</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-4 bg-[#F5F1FF] p-8 rounded-[40px]">
+                        <h6 class="font-black uppercase text-xs tracking-widest text-purple-600 mb-6">Contact Us</h6>
+                        <div class="space-y-6">
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm"><iconify-icon icon="ph:envelope-bold"></iconify-icon></div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase">Email</p>
+                                    <p class="font-black">hello@ieltspractice.com</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-orange-600 shadow-sm"><iconify-icon icon="ph:phone-bold"></iconify-icon></div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase">Phone</p>
+                                    <p class="font-black">+1 (555) 888-9900</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-24 pt-10 border-t border-purple-50 flex flex-col md:flex-row justify-between items-center gap-6 text-xs font-black text-gray-400 tracking-widest">
+                    <div>© 2024 IELTSPRACTICE LEARNING PLATFORM</div>
+                    <div class="flex gap-8">
+                        <a id="copy-1" href="#" class="hover:text-purple-600 transition-colors">PRIVACY POLICY</a>
+                        <a id="copy-2" href="#" class="hover:text-purple-600 transition-colors">TERMS OF SERVICE</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
     </div>
-    <div class="flex items-center gap-5 text-sm" style="color:rgba(255,255,255,0.75)">
-      <span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar-check" style="color:#e8621a"></i> 24 upcoming dates</span>
-      <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot" style="color:#e8621a"></i> 6 cities</span>
-    </div>
-  </div>
-</div>
 
-<!-- ═══════════════════════════════════════════
-     LAYOUT
-═══════════════════════════════════════════ -->
-<div class="max-w-screen-xl mx-auto flex gap-0 lg:gap-6 px-0 sm:px-4 lg:px-6 py-6">
+    <script>
+        // Scroll Reveal Animation
+        const observerOptions = {
+            root: null,
+            threshold: 0.1,
+            rootMargin: '0px'
+        };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
 
-  <!-- SIDEBAR -->
-  <aside id="sidebar" class="sidebar w-64 lg:w-72 flex-shrink-0 rounded-none lg:rounded-2xl p-5 pt-6 self-start lg:sticky" style="top:80px">
-    <div class="flex items-center justify-between mb-5 lg:hidden">
-      <span class="font-display text-lg font-bold" style="color:#1a365d">Filters</span>
-      <button onclick="closeSidebar()" style="color:#1a365d;opacity:.6"><i class="fa-solid fa-xmark text-xl"></i></button>
-    </div>
-    <div class="hidden lg:flex items-center gap-2 mb-5">
-      <i class="fa-solid fa-sliders text-sm" style="color:rgba(26,54,93,0.45)"></i>
-      <span class="font-semibold text-sm tracking-wide" style="color:#1a365d">FILTER RESULTS</span>
-    </div>
+        // Mobile Sidebar Toggle
+        const mobileFilterBtn = document.getElementById('mobileFilterBtn');
+        const filterSidebar = document.getElementById('filterSidebar');
+        
+        mobileFilterBtn.addEventListener('click', () => {
+            filterSidebar.classList.toggle('hidden');
+            if(!filterSidebar.classList.contains('hidden')) {
+                filterSidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
 
-    <div class="space-y-5">
-      <div>
-        <label class="filter-label">Search Venue</label>
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:rgba(26,54,93,0.3)"></i>
-          <input type="text" placeholder="e.g. British Council…" class="filter-input" style="padding-left:2.25rem" id="searchInput" oninput="applyFilters()"/>
-        </div>
-      </div>
+        // Filter Logic
+        function initFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const cityFilter = document.getElementById('cityFilter');
+            const priceSlider = document.getElementById('priceSlider');
+            const priceDisplay = document.getElementById('priceDisplay');
+            const resetBtn = document.getElementById('resetBtn');
+            const resultCount = document.getElementById('resultCount');
+            const noResults = document.getElementById('noResults');
+            const cardsContainer = document.getElementById('cardsContainer');
+            const allCards = Array.from(document.querySelectorAll('.exam-card'));
 
-      <div>
-        <label class="filter-label">City</label>
-        <select class="filter-input" id="cityFilter" onchange="applyFilters()">
-          <option value="">All Cities</option>
-          <option>Tashkent</option>
-          <option>Samarkand</option>
-          <option>Bukhara</option>
-          <option>Namangan</option>
-          <option>Fergana</option>
-          <option>Navoi</option>
-        </select>
-      </div>
+            // Group Toggle Logic
+            function handleToggleGroup(groupId) {
+                const group = document.getElementById(groupId);
+                const btns = group.querySelectorAll('.toggle-btn');
+                btns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        btns.forEach(b => {
+                            b.classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
+                            b.classList.add('text-gray-500');
+                        });
+                        const target = e.currentTarget;
+                        target.classList.remove('text-gray-500');
+                        target.classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+                        applyFilters();
+                    });
+                });
+            }
 
-      <div>
-        <label class="filter-label">Date</label>
-        <input type="date" class="filter-input" id="dateFilter" onchange="applyFilters()"/>
-      </div>
+            handleToggleGroup('testTypeGroup');
+            handleToggleGroup('moduleGroup');
+            handleToggleGroup('formatGroup');
 
-      <div>
-        <label class="filter-label">Test Type</label>
-        <div class="toggle-group" id="testTypeGroup">
-          <button class="toggle-btn active" onclick="setToggle('testTypeGroup',this)">All</button>
-          <button class="toggle-btn" onclick="setToggle('testTypeGroup',this)">Official</button>
-          <button class="toggle-btn" onclick="setToggle('testTypeGroup',this)">Mock</button>
-        </div>
-      </div>
+            // Get active value from a toggle group
+            function getActiveToggle(groupId) {
+                const group = document.getElementById(groupId);
+                const activeBtn = group.querySelector('.bg-white.text-purple-600');
+                return activeBtn ? activeBtn.getAttribute('data-val') : 'All';
+            }
 
-      <div>
-        <label class="filter-label">Module</label>
-        <div class="toggle-group" id="moduleGroup">
-          <button class="toggle-btn active" onclick="setToggle('moduleGroup',this)">All</button>
-          <button class="toggle-btn" onclick="setToggle('moduleGroup',this)">Academic</button>
-          <button class="toggle-btn" onclick="setToggle('moduleGroup',this)">General</button>
-        </div>
-      </div>
+            // Price Slider Update
+            priceSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                priceDisplay.textContent = val.toLocaleString('en-US') + ' UZS';
+                applyFilters();
+            });
 
-      <div>
-        <label class="filter-label">Format</label>
-        <div class="toggle-group" id="formatGroup">
-          <button class="toggle-btn active" onclick="setToggle('formatGroup',this)">All</button>
-          <button class="toggle-btn" onclick="setToggle('formatGroup',this)">Computer</button>
-          <button class="toggle-btn" onclick="setToggle('formatGroup',this)">Paper</button>
-        </div>
-      </div>
+            // Event Listeners for inputs
+            searchInput.addEventListener('input', applyFilters);
+            cityFilter.addEventListener('change', applyFilters);
 
-      <div>
-        <label class="filter-label">Max Price (UZS)</label>
-        <div class="space-y-2">
-          <input type="range" min="50000" max="3000000" step="50000" value="3000000" id="priceSlider" oninput="updatePrice(this.value)"/>
-          <div class="flex justify-between text-xs font-medium" style="color:rgba(26,54,93,0.55)">
-            <span>50,000</span>
-            <span id="priceDisplay" style="color:#1a365d;font-weight:600">3,000,000 UZS</span>
-          </div>
-        </div>
-      </div>
+            // Apply Filters Function
+            function applyFilters() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const city = cityFilter.value;
+                const maxPrice = parseInt(priceSlider.value);
+                const type = getActiveToggle('testTypeGroup');
+                const module = getActiveToggle('moduleGroup');
+                const format = getActiveToggle('formatGroup');
 
-      <button onclick="resetFilters()" class="w-full py-2 text-sm font-semibold rounded-lg transition-colors" style="color:rgba(26,54,93,0.55);border:1.5px solid rgba(26,54,93,0.18)" onmouseover="this.style.color='#1a365d';this.style.borderColor='rgba(26,54,93,0.35)'" onmouseout="this.style.color='rgba(26,54,93,0.55)';this.style.borderColor='rgba(26,54,93,0.18)'">
-        <i class="fa-solid fa-rotate-left mr-1.5 text-xs"></i> Reset Filters
-      </button>
-    </div>
-  </aside>
+                let visibleCount = 0;
 
-  <!-- MAIN -->
-  <main class="flex-1 min-w-0 px-4 sm:px-0">
+                allCards.forEach(card => {
+                    const cardType = card.dataset.type;
+                    const cardModule = card.dataset.module;
+                    const cardFormat = card.dataset.format;
+                    const cardCity = card.dataset.city;
+                    const cardPrice = parseInt(card.dataset.price);
+                    const cardVenue = card.dataset.venue.toLowerCase();
 
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-sm font-medium" style="color:rgba(26,54,93,0.55)"><span id="resultCount">5</span> results found</p>
-      <select class="filter-input w-auto text-sm py-2">
-        <option>Sort: Soonest first</option>
-        <option>Sort: Price low–high</option>
-        <option>Sort: Price high–low</option>
-        <option>Sort: Most seats</option>
-      </select>
-    </div>
+                    let show = true;
 
-    <div class="space-y-4" id="cardsContainer">
+                    if (searchTerm && !cardVenue.includes(searchTerm) && !cardCity.toLowerCase().includes(searchTerm)) show = false;
+                    if (city && cardCity !== city) show = false;
+                    if (cardPrice > maxPrice) show = false;
+                    if (type !== 'All' && cardType !== type) show = false;
+                    if (module !== 'All' && cardModule !== module) show = false;
+                    if (format !== 'All' && cardFormat !== format) show = false;
 
-      <!-- Card 1 -->
-      <div class="exam-card p-5" data-type="Official" data-module="Academic" data-format="Computer" data-city="Tashkent" data-price="1350000" data-venue="british council tashkent">
-        <div class="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-          <div class="date-block">
-            <span class="day-num">14</span>
-            <span class="month">Jul</span>
-            <span class="weekday">Monday</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span class="tag tag-official"><i class="fa-solid fa-certificate text-xs"></i> Official IDP IELTS</span>
-              <span class="tag tag-academic">Academic</span>
-              <span class="tag tag-computer"><i class="fa-solid fa-desktop text-xs"></i> Computer</span>
-            </div>
-            <div class="flex items-center gap-1.5 font-semibold text-base mb-1" style="color:#1a365d">
-              <i class="fa-solid fa-location-dot text-sm" style="color:#e8621a"></i>
-              British Council Tashkent
-            </div>
-            <div class="text-xs mb-3 ml-5" style="color:rgba(26,54,93,0.5)">Amir Temur Ave 21, Tashkent · <a href="#" style="color:rgba(26,54,93,0.65);text-decoration:underline">View map</a></div>
-            <div class="mb-1 flex items-center justify-between text-xs font-medium">
-              <span class="font-semibold" style="color:#c0392b"><i class="fa-solid fa-fire text-xs mr-1"></i>Only 5 seats remaining!</span>
-              <span style="color:rgba(26,54,93,0.45)">5 / 30</span>
-            </div>
-            <div class="seat-bar mb-1"><div class="seat-bar-fill seat-critical" style="width:83%"></div></div>
-          </div>
-          <div class="flex flex-col items-end justify-between gap-3" style="min-width:max-content">
-            <div class="text-right">
-              <div class="text-xs font-medium mb-0.5" style="color:rgba(26,54,93,0.4)">Registration fee</div>
-              <div class="text-xl font-bold" style="color:#1a365d">1,350,000</div>
-              <div class="text-xs" style="color:rgba(26,54,93,0.45)">UZS</div>
-            </div>
-            <button class="book-btn"><i class="fa-solid fa-pen-to-square mr-1.5 text-xs"></i>Book Now</button>
-          </div>
-        </div>
-      </div>
+                    if (show) {
+                        card.style.display = 'flex';
+                        visibleCount++;
+                        // Retrigger animation for visible items
+                        card.classList.remove('active');
+                        setTimeout(() => card.classList.add('active'), 50);
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
 
-      <!-- Card 2 -->
-      <div class="exam-card p-5" data-type="Mock" data-module="General" data-format="Computer" data-city="Tashkent" data-price="280000" data-venue="ieltspractice hub tashkent">
-        <div class="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-          <div class="date-block" style="background:#c25510">
-            <span class="day-num">18</span>
-            <span class="month">Jul</span>
-            <span class="weekday">Friday</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span class="tag tag-mock"><i class="fa-solid fa-flask text-xs"></i> Mock Test</span>
-              <span class="tag tag-general">General Training</span>
-              <span class="tag tag-computer"><i class="fa-solid fa-desktop text-xs"></i> Computer</span>
-            </div>
-            <div class="flex items-center gap-1.5 font-semibold text-base mb-1" style="color:#1a365d">
-              <i class="fa-solid fa-location-dot text-sm" style="color:#e8621a"></i>
-              IELTSPRACTICE Hub Tashkent
-            </div>
-            <div class="text-xs mb-3 ml-5" style="color:rgba(26,54,93,0.5)">Chilonzor 7, Tashkent · <a href="#" style="color:rgba(26,54,93,0.65);text-decoration:underline">View map</a></div>
-            <div class="mb-1 flex items-center justify-between text-xs font-medium">
-              <span class="font-semibold" style="color:#1a8a5a"><i class="fa-solid fa-circle-check text-xs mr-1"></i>18 seats available</span>
-              <span style="color:rgba(26,54,93,0.45)">12 / 30</span>
-            </div>
-            <div class="seat-bar mb-1"><div class="seat-bar-fill seat-ok" style="width:40%"></div></div>
-          </div>
-          <div class="flex flex-col items-end justify-between gap-3" style="min-width:max-content">
-            <div class="text-right">
-              <div class="text-xs font-medium mb-0.5" style="color:rgba(26,54,93,0.4)">Registration fee</div>
-              <div class="text-xl font-bold" style="color:#1a365d">280,000</div>
-              <div class="text-xs" style="color:rgba(26,54,93,0.45)">UZS</div>
-            </div>
-            <button class="book-btn"><i class="fa-solid fa-pen-to-square mr-1.5 text-xs"></i>Book Now</button>
-          </div>
-        </div>
-      </div>
+                resultCount.textContent = visibleCount;
+                
+                if (visibleCount === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                }
+            }
 
-      <!-- Card 3 -->
-      <div class="exam-card p-5" data-type="Official" data-module="Academic" data-format="Paper" data-city="Samarkand" data-price="1350000" data-venue="samarkand international university centre">
-        <div class="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-          <div class="date-block">
-            <span class="day-num">26</span>
-            <span class="month">Jul</span>
-            <span class="weekday">Saturday</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span class="tag tag-official"><i class="fa-solid fa-certificate text-xs"></i> Official British Council</span>
-              <span class="tag tag-academic">Academic</span>
-              <span class="tag tag-paper"><i class="fa-solid fa-file-lines text-xs"></i> Paper-based</span>
-            </div>
-            <div class="flex items-center gap-1.5 font-semibold text-base mb-1" style="color:#1a365d">
-              <i class="fa-solid fa-location-dot text-sm" style="color:#e8621a"></i>
-              Samarkand International University Centre
-            </div>
-            <div class="text-xs mb-3 ml-5" style="color:rgba(26,54,93,0.5)">University Blvd, Samarkand · <a href="#" style="color:rgba(26,54,93,0.65);text-decoration:underline">View map</a></div>
-            <div class="mb-1 flex items-center justify-between text-xs font-medium">
-              <span class="font-semibold" style="color:#d97706"><i class="fa-solid fa-triangle-exclamation text-xs mr-1"></i>Only 9 seats left</span>
-              <span style="color:rgba(26,54,93,0.45)">9 / 25</span>
-            </div>
-            <div class="seat-bar mb-1"><div class="seat-bar-fill seat-low" style="width:64%"></div></div>
-          </div>
-          <div class="flex flex-col items-end justify-between gap-3" style="min-width:max-content">
-            <div class="text-right">
-              <div class="text-xs font-medium mb-0.5" style="color:rgba(26,54,93,0.4)">Registration fee</div>
-              <div class="text-xl font-bold" style="color:#1a365d">1,350,000</div>
-              <div class="text-xs" style="color:rgba(26,54,93,0.45)">UZS</div>
-            </div>
-            <button class="book-btn"><i class="fa-solid fa-pen-to-square mr-1.5 text-xs"></i>Book Now</button>
-          </div>
-        </div>
-      </div>
+            // Reset Filters
+            resetBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                cityFilter.value = '';
+                priceSlider.value = 3000000;
+                priceDisplay.textContent = '3,000,000 UZS';
+                
+                // Reset toggles to 'All'
+                ['testTypeGroup', 'moduleGroup', 'formatGroup'].forEach(groupId => {
+                    const group = document.getElementById(groupId);
+                    const btns = group.querySelectorAll('.toggle-btn');
+                    btns.forEach((b, index) => {
+                        if (index === 0) {
+                            b.classList.remove('text-gray-500');
+                            b.classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+                        } else {
+                            b.classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
+                            b.classList.add('text-gray-500');
+                        }
+                    });
+                });
 
-      <!-- Card 4 -->
-      <div class="exam-card p-5" data-type="Mock" data-module="Academic" data-format="Paper" data-city="Fergana" data-price="150000" data-venue="fergana language academy">
-        <div class="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-          <div class="date-block" style="background:#c25510">
-            <span class="day-num">02</span>
-            <span class="month">Aug</span>
-            <span class="weekday">Saturday</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span class="tag tag-mock"><i class="fa-solid fa-flask text-xs"></i> Mock Test</span>
-              <span class="tag tag-academic">Academic</span>
-              <span class="tag tag-paper"><i class="fa-solid fa-file-lines text-xs"></i> Paper-based</span>
-            </div>
-            <div class="flex items-center gap-1.5 font-semibold text-base mb-1" style="color:#1a365d">
-              <i class="fa-solid fa-location-dot text-sm" style="color:#e8621a"></i>
-              Fergana Language Academy
-            </div>
-            <div class="text-xs mb-3 ml-5" style="color:rgba(26,54,93,0.5)">Mustaqillik ko'chasi 14, Fergana · <a href="#" style="color:rgba(26,54,93,0.65);text-decoration:underline">View map</a></div>
-            <div class="mb-1 flex items-center justify-between text-xs font-medium">
-              <span class="font-semibold" style="color:#1a8a5a"><i class="fa-solid fa-circle-check text-xs mr-1"></i>22 seats available</span>
-              <span style="color:rgba(26,54,93,0.45)">3 / 25</span>
-            </div>
-            <div class="seat-bar mb-1"><div class="seat-bar-fill seat-ok" style="width:12%"></div></div>
-          </div>
-          <div class="flex flex-col items-end justify-between gap-3" style="min-width:max-content">
-            <div class="text-right">
-              <div class="text-xs font-medium mb-0.5" style="color:rgba(26,54,93,0.4)">Registration fee</div>
-              <div class="text-xl font-bold" style="color:#1a365d">150,000</div>
-              <div class="text-xs" style="color:rgba(26,54,93,0.45)">UZS</div>
-            </div>
-            <button class="book-btn"><i class="fa-solid fa-pen-to-square mr-1.5 text-xs"></i>Book Now</button>
-          </div>
-        </div>
-      </div>
+                applyFilters();
+            });
+        }
 
-      <!-- Card 5 -->
-      <div class="exam-card p-5" data-type="Official" data-module="General" data-format="Computer" data-city="Bukhara" data-price="1350000" data-venue="bukhara education centre">
-        <div class="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-          <div class="date-block">
-            <span class="day-num">09</span>
-            <span class="month">Aug</span>
-            <span class="weekday">Saturday</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span class="tag tag-official"><i class="fa-solid fa-certificate text-xs"></i> Official IDP IELTS</span>
-              <span class="tag tag-general">General Training</span>
-              <span class="tag tag-computer"><i class="fa-solid fa-desktop text-xs"></i> Computer</span>
-            </div>
-            <div class="flex items-center gap-1.5 font-semibold text-base mb-1" style="color:#1a365d">
-              <i class="fa-solid fa-location-dot text-sm" style="color:#e8621a"></i>
-              Bukhara Education Centre
-            </div>
-            <div class="text-xs mb-3 ml-5" style="color:rgba(26,54,93,0.5)">Navruz ko'chasi 3, Bukhara · <a href="#" style="color:rgba(26,54,93,0.65);text-decoration:underline">View map</a></div>
-            <div class="mb-1 flex items-center justify-between text-xs font-medium">
-              <span class="font-semibold" style="color:#1a8a5a"><i class="fa-solid fa-circle-check text-xs mr-1"></i>15 seats available</span>
-              <span style="color:rgba(26,54,93,0.45)">10 / 25</span>
-            </div>
-            <div class="seat-bar mb-1"><div class="seat-bar-fill seat-ok" style="width:40%"></div></div>
-          </div>
-          <div class="flex flex-col items-end justify-between gap-3" style="min-width:max-content">
-            <div class="text-right">
-              <div class="text-xs font-medium mb-0.5" style="color:rgba(26,54,93,0.4)">Registration fee</div>
-              <div class="text-xl font-bold" style="color:#1a365d">1,350,000</div>
-              <div class="text-xs" style="color:rgba(26,54,93,0.45)">UZS</div>
-            </div>
-            <button class="book-btn"><i class="fa-solid fa-pen-to-square mr-1.5 text-xs"></i>Book Now</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- No results -->
-      <div id="noResults" class="hidden text-center py-16" style="color:rgba(26,54,93,0.4)">
-        <i class="fa-solid fa-calendar-xmark text-5xl mb-4 block" style="color:rgba(26,54,93,0.15)"></i>
-        <p class="text-lg font-semibold" style="color:rgba(26,54,93,0.35)">No exams match your filters</p>
-        <p class="text-sm mt-1">Try adjusting your search criteria</p>
-      </div>
-    </div>
-
-    <!-- HOW TO PAY -->
-    <div class="pay-card mt-8 p-6">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-9 h-9 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,0.15)">
-          <i class="fa-solid fa-credit-card" style="color:#e8621a"></i>
-        </div>
-        <div>
-          <h3 class="font-display text-white text-lg font-bold">How to Pay</h3>
-          <p class="text-xs" style="color:rgba(255,255,255,0.55)">Secure payment methods accepted in Uzbekistan</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="rounded-xl p-4 flex items-center gap-3 transition-colors cursor-pointer" style="background:rgba(255,255,255,0.1)" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#00A859">
-            <i class="fa-solid fa-mobile-screen text-white text-lg"></i>
-          </div>
-          <div>
-            <div class="text-white font-semibold text-sm">Payme</div>
-            <div class="text-xs mt-0.5" style="color:rgba(255,255,255,0.5)">Pay via Payme · Uzcard / Humo</div>
-          </div>
-        </div>
-        <div class="rounded-xl p-4 flex items-center gap-3 transition-colors cursor-pointer" style="background:rgba(255,255,255,0.1)" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#0055AA">
-            <i class="fa-solid fa-bolt text-white text-lg"></i>
-          </div>
-          <div>
-            <div class="text-white font-semibold text-sm">Click</div>
-            <div class="text-xs mt-0.5" style="color:rgba(255,255,255,0.5)">Pay via Click · Bank transfer</div>
-          </div>
-        </div>
-        <div class="rounded-xl p-4 flex items-center gap-3 transition-colors cursor-pointer" style="background:rgba(255,255,255,0.1)" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#7B2D8B">
-            <i class="fa-solid fa-basket-shopping text-white text-lg"></i>
-          </div>
-          <div>
-            <div class="text-white font-semibold text-sm">Uzum Bank</div>
-            <div class="text-xs mt-0.5" style="color:rgba(255,255,255,0.5)">Pay via Uzum · Installments</div>
-          </div>
-        </div>
-      </div>
-      <p class="text-xs mt-4 flex items-center gap-1.5" style="color:rgba(255,255,255,0.35)">
-        <i class="fa-solid fa-lock text-xs"></i>
-        All payments are encrypted and processed securely. Registration is confirmed instantly upon payment.
-      </p>
-    </div>
-
-    <div class="mt-6 text-center text-xs pb-8" style="color:rgba(26,54,93,0.3)">
-      © 2025 IELTSPRACTICE · Not affiliated with IDP or British Council · IELTS is a registered trademark
-    </div>
-  </main>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     MOBILE SIDEBAR TOGGLE (filter panel)
-═══════════════════════════════════════════ -->
-<script>
-  // ── Mobile filter sidebar ──
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  function closeMobileNav() {
-    document.body.style.overflow = '';
-  }
-
-  // Mobile hamburger (opens filter sidebar on small screens)
-  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-  if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('click', () => {
-      sidebar.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    });
-  }
-
-  // ── Filters ──
-  function setToggle(groupId, btn) {
-    document.querySelectorAll('#' + groupId + ' .toggle-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    applyFilters();
-  }
-
-  function updatePrice(val) {
-    document.getElementById('priceDisplay').textContent = Number(val).toLocaleString('en-US') + ' UZS';
-    applyFilters();
-  }
-
-  function applyFilters() {
-    const search  = document.getElementById('searchInput').value.toLowerCase().trim();
-    const city    = document.getElementById('cityFilter').value;
-    const maxPrice = parseInt(document.getElementById('priceSlider').value);
-    const typeActive   = document.querySelector('#testTypeGroup .toggle-btn.active').textContent.trim();
-    const moduleActive = document.querySelector('#moduleGroup   .toggle-btn.active').textContent.trim();
-    const formatActive = document.querySelector('#formatGroup   .toggle-btn.active').textContent.trim();
-
-    const cards = document.querySelectorAll('#cardsContainer .exam-card');
-    let visible = 0;
-
-    cards.forEach(card => {
-      const type     = card.dataset.type;
-      const module   = card.dataset.module;
-      const format   = card.dataset.format;
-      const cardCity = card.dataset.city;
-      const price    = parseInt(card.dataset.price);
-      const venue    = card.dataset.venue;
-
-      let show = true;
-      if (search && !venue.includes(search) && !cardCity.toLowerCase().includes(search)) show = false;
-      if (city && cardCity !== city) show = false;
-      if (price > maxPrice) show = false;
-      if (typeActive   === 'Official'  && type   !== 'Official')  show = false;
-      if (typeActive   === 'Mock'      && type   !== 'Mock')       show = false;
-      if (moduleActive === 'Academic'  && module !== 'Academic')   show = false;
-      if (moduleActive === 'General'   && module !== 'General')    show = false;
-      if (formatActive === 'Computer'  && format !== 'Computer')   show = false;
-      if (formatActive === 'Paper'     && format !== 'Paper')      show = false;
-
-      card.style.display = show ? '' : 'none';
-      if (show) visible++;
-    });
-
-    document.getElementById('resultCount').textContent = visible;
-    document.getElementById('noResults').classList.toggle('hidden', visible > 0);
-  }
-
-  function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('cityFilter').value  = '';
-    document.getElementById('dateFilter').value  = '';
-    document.getElementById('priceSlider').value = 3000000;
-    document.getElementById('priceDisplay').textContent = '3,000,000 UZS';
-    ['testTypeGroup','moduleGroup','formatGroup'].forEach(id => {
-      document.querySelectorAll('#' + id + ' .toggle-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-    });
-    applyFilters();
-  }
-</script>
+        // Initialize filters when DOM is ready
+        document.addEventListener('DOMContentLoaded', initFilters);
+    </script>
 </body>
 </html>

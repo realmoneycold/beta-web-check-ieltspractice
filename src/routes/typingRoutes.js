@@ -1,10 +1,14 @@
 const express = require('express');
-const { addTypingResult, getLeaderboard } = require('../controllers/studentController');
-const { verifyToken, checkRole } = require('../middleware/auth');
+const { getLeaderboard, submitTypingResult } = require('../controllers/typingController');
+const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/submit', verifyToken, checkRole('STUDENT'), addTypingResult);
-router.get('/leaderboard', verifyToken, checkRole('STUDENT', 'ADMIN', 'CEO'), getLeaderboard);
+// POST /api/typing/submit - Submit a typing test result
+router.post('/submit', verifyToken, submitTypingResult);
+
+// GET /api/typing/leaderboard - Get typing leaderboard
+// Public endpoint (no auth required so dashboard can load it)
+router.get('/leaderboard', getLeaderboard);
 
 module.exports = router;

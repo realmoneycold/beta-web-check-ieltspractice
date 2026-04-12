@@ -10,9 +10,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../models/prisma');
 
 // ─── RATE LIMITING ─────────────────────────────────────────────────────────────────────
 const studentLoginLimiter = rateLimit({

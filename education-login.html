@@ -1,900 +1,780 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Centre Portal — IELTSPRACTICE</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-          },
-          colors: {
-            navy: {
-              950: '#020817',
-              900: '#0f172a',
-              800: '#1e2d4a',
-              700: '#253354',
-              600: '#2d3f6b',
-            },
-            accent: {
-              DEFAULT: '#2563eb',
-              light:   '#3b82f6',
-              soft:    '#dbeafe',
-            },
-          },
-          animation: {
-            'slide-down': 'slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards',
-            'slide-up':   'slideUp 0.3s cubic-bezier(0.4,0,1,1) forwards',
-            'fade-in':    'fadeIn 0.6s ease forwards',
-            'fade-up':    'fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
-            'spin-slow':  'spin 1.4s linear infinite',
-            'pulse-dot':  'pulseDot 2s ease-in-out infinite',
-          },
-          keyframes: {
-            slideDown: {
-              '0%':   { opacity: '0', transform: 'translateY(-16px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            slideUp: {
-              '0%':   { opacity: '1', transform: 'translateY(0)' },
-              '100%': { opacity: '0', transform: 'translateY(-16px)' },
-            },
-            fadeIn: {
-              from: { opacity: '0' },
-              to:   { opacity: '1' },
-            },
-            fadeUp: {
-              '0%':   { opacity: '0', transform: 'translateY(24px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            pulseDot: {
-              '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-              '50%':      { opacity: '0.5', transform: 'scale(0.85)' },
-            },
-          },
-        },
-      },
-    };
-  </script>
-  <style>
-    /* ── Stagger delays ── */
-    .delay-100 { animation-delay: 0.10s; animation-fill-mode: both; }
-    .delay-200 { animation-delay: 0.20s; animation-fill-mode: both; }
-    .delay-300 { animation-delay: 0.30s; animation-fill-mode: both; }
-    .delay-400 { animation-delay: 0.40s; animation-fill-mode: both; }
-    .delay-500 { animation-delay: 0.50s; animation-fill-mode: both; }
-    .delay-600 { animation-delay: 0.60s; animation-fill-mode: both; }
-    .delay-700 { animation-delay: 0.70s; animation-fill-mode: both; }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Centre Portal Login — IELTSPRACTICE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <style>
+        @import url('https://api.fontshare.com/v2/css?f[]=clash-grotesk@700,600,400&f[]=satoshi@700,500,400&display=swap');
 
-    /* ── Page load hidden (opacity 0 until animated in) ── */
-    .animate-fade-up { opacity: 0; }
+        :root {
+            --lavender-main: #8B5CF6;
+            --brand-orange: #FF6B35;
+            --bg-soft: #F9F5FF;
+            --dark: #111827;
+        }
 
-    /* ── Glass card ── */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.97);
-      backdrop-filter: blur(32px) saturate(180%);
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.2),
-        0 32px 80px rgba(2, 8, 23, 0.38),
-        0 8px 24px rgba(2, 8, 23, 0.24);
-    }
+        body {
+            font-family: 'Satoshi', sans-serif;
+            background-color: var(--bg-soft);
+            color: var(--dark);
+            margin: 0;
+            overflow-x: hidden;
+        }
 
-    /* ── Architectural SVG pattern background ── */
-    .arch-bg {
-      background-color: #0f172a;
-      background-image:
-        radial-gradient(ellipse 120% 80% at 30% 60%, rgba(37,99,235,0.18) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 60% at 80% 10%, rgba(59,130,246,0.10) 0%, transparent 60%);
-    }
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .clash-font {
+            font-family: 'Clash Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
 
-    /* ── Input focus ring ── */
-    .input-field {
-      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-    }
-    .input-field:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-    }
-    .input-field.error {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239,68,68,0.10);
-    }
-    .input-field.success {
-      border-color: #10b981;
-    }
+        /* Animations from new design */
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
 
-    /* ── Submit button ── */
-    .btn-signin {
-      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
-      background-size: 200% auto;
-      transition: background-position 0.4s ease, box-shadow 0.2s, transform 0.15s;
-      box-shadow: 0 4px 16px rgba(37,99,235,0.35), 0 1px 4px rgba(37,99,235,0.2);
-    }
-    .btn-signin:hover:not(:disabled) {
-      background-position: right center;
-      box-shadow: 0 8px 28px rgba(37,99,235,0.45), 0 2px 8px rgba(37,99,235,0.25);
-      transform: translateY(-1px);
-    }
-    .btn-signin:active:not(:disabled) {
-      transform: translateY(0);
-    }
-    .btn-signin:disabled {
-      cursor: not-allowed;
-      opacity: 0.75;
-    }
+        .float-animation-delayed {
+            animation: float 6s ease-in-out infinite;
+            animation-delay: 3s;
+        }
 
-    /* ── Checkbox custom ── */
-    .custom-check {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 16px; height: 16px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 4px;
-      background: #fff;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      flex-shrink: 0;
-      position: relative;
-    }
-    .custom-check:checked {
-      background: #2563eb;
-      border-color: #2563eb;
-    }
-    .custom-check:checked::after {
-      content: '';
-      position: absolute;
-      left: 4px; top: 1.5px;
-      width: 5px; height: 8px;
-      border: 2px solid #fff;
-      border-top: none;
-      border-left: none;
-      transform: rotate(45deg);
-    }
-    .custom-check:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
-    }
+        @keyframes float {
 
-    /* ── Scrollbar for long content ── */
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+            0%,
+            100% {
+                transform: translateY(0);
+            }
 
-    /* ── Alert dismiss animation ── */
-    .alert-dismissing {
-      animation: slideUp 0.3s cubic-bezier(0.4,0,1,1) forwards !important;
-    }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
 
-    /* ── SVG grid pattern overlay ── */
-    .grid-overlay {
-      background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-    }
+        .transition-playful {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
 
-    /* ── Floating dots decoration ── */
-    .dot-grid {
-      background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
-      background-size: 24px 24px;
-    }
+        .card-lift:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.2);
+        }
 
-    /* ── Mobile responsive adjustments ── */
-    @media (max-width: 767px) {
-      .glass-card { margin: 1rem; }
-    }
-  </style>
+        .btn-bounce:hover {
+            transform: scale(1.05);
+        }
+
+        /* Staggered entry animations from old design adapted to new vibe */
+        .animate-fade-up {
+            opacity: 0;
+            animation: fadeUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-300 {
+            animation-delay: 0.3s;
+        }
+
+        .delay-400 {
+            animation-delay: 0.4s;
+        }
+
+        .delay-500 {
+            animation-delay: 0.5s;
+        }
+
+        .delay-600 {
+            animation-delay: 0.6s;
+        }
+
+        /* Input styling */
+        .input-field {
+            background-color: #F3F4F6;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            background-color: #ffffff;
+            border-color: var(--lavender-main);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+        }
+
+        .input-field.error {
+            border-color: #EF4444;
+            background-color: #FEF2F2;
+        }
+
+        .input-field.error:focus {
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.1);
+        }
+
+        .input-field.success {
+            border-color: #10B981;
+        }
+
+        /* Custom Checkbox */
+        .custom-check {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #D1D5DB;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .custom-check:checked {
+            background: var(--brand-orange);
+            border-color: var(--brand-orange);
+        }
+
+        .custom-check:checked::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: 2px solid #fff;
+            border-top: none;
+            border-left: none;
+            transform: rotate(45deg);
+        }
+
+        /* Alert dismiss animation */
+        .alert-dismissing {
+            animation: slideUpOut 0.3s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+        }
+
+        @keyframes slideDownIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slideUpOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+        }
+
+        .spinner-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Badges from home page */
+        .purple-badge {
+            background-color: #F5F1FF;
+            color: #8B5CF6;
+        }
+
+        .orange-badge {
+            background-color: #FFF8F5;
+            color: #FF6B35;
+        }
+
+        .yellow-badge {
+            background-color: #FFFBEB;
+            color: #D97706;
+        }
+
+        /* Decorative BG */
+        .bg-pattern {
+            background-image: radial-gradient(#D4C5E2 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: 0.4;
+        }
+    </style>
 </head>
-<body class="font-sans bg-navy-900 min-h-screen overflow-x-hidden">
 
-<!-- ═══════════════════════════════════════════════════
-     SPLIT LAYOUT CONTAINER
-═══════════════════════════════════════════════════ -->
-<div class="flex min-h-screen">
+<body>
 
-  <!-- ════════════════════════════════════
-       LEFT PANEL — Architectural / Brand
-  ════════════════════════════════════ -->
-  <div class="hidden lg:flex lg:w-[52%] xl:w-[56%] relative flex-col arch-bg overflow-hidden">
+    <div class="min-h-screen flex w-full relative overflow-hidden">
 
-    <!-- Grid overlay texture -->
-    <div class="absolute inset-0 grid-overlay"></div>
+        <!-- Mobile Background Blob -->
+        <div
+            class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#8B5CF6] opacity-10 blur-[80px] lg:hidden pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full bg-[#FF6B35] opacity-10 blur-[80px] lg:hidden pointer-events-none">
+        </div>
 
-    <!-- Dot grid texture (top-right corner) -->
-    <div class="absolute top-0 right-0 w-64 h-64 dot-grid opacity-60"></div>
+        <!-- ════════════════════════════════════
+         LEFT PANEL — Brand & Visuals (Hidden on Mobile)
+    ════════════════════════════════════ -->
+        <div class="hidden lg:flex lg:w-1/2 bg-[#F5F1FF] relative flex-col justify-between p-16 overflow-hidden">
+            <!-- Decorative elements -->
+            <div class="absolute inset-0 bg-pattern"></div>
+            <div
+                class="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-white opacity-40 blur-[100px] pointer-events-none">
+            </div>
+            <div
+                class="absolute bottom-[10%] right-[-20%] w-[500px] h-[500px] rounded-full bg-[#8B5CF6] opacity-10 blur-[80px] pointer-events-none">
+            </div>
 
-    <!-- Glowing orbs for depth -->
-    <div class="absolute bottom-0 left-0 w-96 h-96 rounded-full"
-         style="background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%); transform: translate(-30%, 30%);"></div>
-    <div class="absolute top-1/4 right-0 w-72 h-72 rounded-full"
-         style="background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%); transform: translate(40%, 0);"></div>
+            <!-- Header / Logo -->
+            <div class="relative z-10 animate-fade-up">
+                <div class="text-3xl font-black flex items-center uppercase tracking-tighter">
+                    <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                    <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                </div>
+                <div
+                    class="mt-2 inline-block px-3 py-1 rounded-lg purple-badge text-[10px] font-black uppercase tracking-widest">
+                    Education Network
+                </div>
+            </div>
 
-    <!-- Architectural illustration — University building in SVG -->
-    <div class="absolute inset-0 flex items-end justify-center pb-0 opacity-[0.055]">
-      <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" preserveAspectRatio="xMidYMax meet">
-        <!-- Ground -->
-        <rect x="0" y="540" width="900" height="60" fill="white"/>
-        <!-- Main building body -->
-        <rect x="100" y="200" width="700" height="340" fill="white"/>
-        <!-- Roofline cornice -->
-        <rect x="80" y="190" width="740" height="20" fill="white"/>
-        <!-- Grand triangular pediment -->
-        <polygon points="450,80 130,195 770,195" fill="white"/>
-        <!-- Pediment details -->
-        <line x1="450" y1="80" x2="450" y2="195" stroke="#0f172a" stroke-width="3"/>
-        <rect x="430" y="155" width="40" height="40" fill="#0f172a"/>
-        <!-- Columns row -->
-        <rect x="130" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="210" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="290" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="370" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="500" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="580" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="660" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <rect x="740" y="195" width="30" height="345" fill="#0f172a" opacity="0.4"/>
-        <!-- Column bases -->
-        <rect x="120" y="530" width="660" height="12" fill="#0f172a" opacity="0.3"/>
-        <!-- Windows row 1 -->
-        <rect x="160" y="240" width="50" height="70" fill="#0f172a" opacity="0.5"/>
-        <rect x="250" y="240" width="50" height="70" fill="#0f172a" opacity="0.5"/>
-        <rect x="340" y="240" width="50" height="70" fill="#0f172a" opacity="0.5"/>
-        <rect x="460" y="240" width="50" height="70" fill="#0f172a" opacity="0.5"/>
-        <rect x="550" y="240" width="50" height="70" fill="#0f172a" opacity="0.5"/>
-        <rect x="640" y="240" width="50" height="70" fill="#0f172a" opacity="0.5"/>
-        <!-- Window arch tops -->
-        <ellipse cx="185" cy="240" rx="25" ry="12" fill="#0f172a" opacity="0.5"/>
-        <ellipse cx="275" cy="240" rx="25" ry="12" fill="#0f172a" opacity="0.5"/>
-        <ellipse cx="365" cy="240" rx="25" ry="12" fill="#0f172a" opacity="0.5"/>
-        <ellipse cx="485" cy="240" rx="25" ry="12" fill="#0f172a" opacity="0.5"/>
-        <ellipse cx="575" cy="240" rx="25" ry="12" fill="#0f172a" opacity="0.5"/>
-        <ellipse cx="665" cy="240" rx="25" ry="12" fill="#0f172a" opacity="0.5"/>
-        <!-- Windows row 2 -->
-        <rect x="160" y="360" width="50" height="65" fill="#0f172a" opacity="0.4"/>
-        <rect x="250" y="360" width="50" height="65" fill="#0f172a" opacity="0.4"/>
-        <rect x="340" y="360" width="50" height="65" fill="#0f172a" opacity="0.4"/>
-        <rect x="460" y="360" width="50" height="65" fill="#0f172a" opacity="0.4"/>
-        <rect x="550" y="360" width="50" height="65" fill="#0f172a" opacity="0.4"/>
-        <rect x="640" y="360" width="50" height="65" fill="#0f172a" opacity="0.4"/>
-        <!-- Central entrance doors -->
-        <rect x="390" y="440" width="120" height="100" fill="#0f172a" opacity="0.5"/>
-        <ellipse cx="450" cy="440" rx="60" ry="22" fill="#0f172a" opacity="0.5"/>
-        <!-- Door frame -->
-        <rect x="384" y="440" width="132" height="104" fill="none" stroke="white" stroke-width="4" opacity="0.3"/>
-        <!-- Steps -->
-        <rect x="350" y="535" width="200" height="8" fill="#0f172a" opacity="0.3"/>
-        <rect x="330" y="530" width="240" height="8" fill="#0f172a" opacity="0.2"/>
-        <!-- Flag / tower on top -->
-        <rect x="444" y="20" width="12" height="60" fill="white"/>
-        <polygon points="456,20 490,35 456,50" fill="white" opacity="0.8"/>
-        <!-- Side wings -->
-        <rect x="0" y="350" width="110" height="190" fill="white"/>
-        <rect x="790" y="350" width="110" height="190" fill="white"/>
-        <!-- Wing windows -->
-        <rect x="20" y="380" width="40" height="55" fill="#0f172a" opacity="0.4"/>
-        <rect x="20" y="455" width="40" height="55" fill="#0f172a" opacity="0.4"/>
-        <rect x="840" y="380" width="40" height="55" fill="#0f172a" opacity="0.4"/>
-        <rect x="840" y="455" width="40" height="55" fill="#0f172a" opacity="0.4"/>
-      </svg>
+            <!-- Main Messaging & Floating Elements -->
+            <div class="relative z-10 flex-1 flex flex-col justify-center my-12">
+                <h1 class="text-6xl xl:text-7xl font-black mb-6 leading-[1.05] text-dark animate-fade-up delay-100">
+                    Empowering <br>
+                    <span class="text-[#FF6B35]">Educators</span>
+                </h1>
+                <p class="text-xl text-gray-500 max-w-md font-medium leading-relaxed animate-fade-up delay-200">
+                    Manage your students, track performance, and deliver world-class IELTS preparation from one powerful
+                    dashboard.
+                </p>
+
+                <!-- Floating Decorative Cards -->
+                <div class="mt-16 relative h-[240px] w-full max-w-lg">
+                    <!-- Card 1 -->
+                    <div
+                        class="absolute top-0 left-0 bg-white p-6 rounded-[32px] shadow-xl shadow-purple-100/50 w-[240px] float-animation animate-fade-up delay-300">
+                        <div
+                            class="inline-block px-3 py-1.5 rounded-xl bg-[#F5F1FF] text-[#8B5CF6] text-xs font-black uppercase mb-3">
+                            Network
+                        </div>
+                        <div class="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Partner Centres</div>
+                        <div class="text-4xl font-black">1,200+</div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div
+                        class="absolute bottom-0 right-10 bg-white p-6 rounded-[32px] shadow-xl shadow-orange-100/50 w-[240px] float-animation-delayed animate-fade-up delay-400 z-10">
+                        <div
+                            class="inline-block px-3 py-1.5 rounded-xl bg-[#FFF8F5] text-[#FF6B35] text-xs font-black uppercase mb-3">
+                            Scale
+                        </div>
+                        <div class="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Active Students</div>
+                        <div class="text-4xl font-black">94k+</div>
+                    </div>
+
+                    <!-- Small Avatar group floating -->
+                    <div
+                        class="absolute top-1/2 left-[45%] bg-white p-3 rounded-full shadow-lg flex -space-x-3 float-animation animate-fade-up delay-500">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                            class="w-10 h-10 rounded-full border-2 border-white bg-blue-100" alt="Teacher">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka"
+                            class="w-10 h-10 rounded-full border-2 border-white bg-pink-100" alt="Teacher">
+                        <div
+                            class="w-10 h-10 rounded-full border-2 border-white bg-[#FF6B35] flex items-center justify-center text-white text-xs font-black">
+                            +</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer / Trust -->
+            <div
+                class="relative z-10 animate-fade-up delay-600 flex items-center gap-4 text-gray-400 text-sm font-bold">
+                <iconify-icon icon="ph:shield-check-fill" class="text-2xl text-[#10B981]"></iconify-icon>
+                <span>Secure Education Gateway &middot; SOC 2 Type II Certified</span>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════
+         RIGHT PANEL — Login Form Container
+    ════════════════════════════════════ -->
+        <div class="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-12 lg:p-20 relative z-10">
+
+            <!-- Mobile Logo -->
+            <div class="lg:hidden mb-10 text-center animate-fade-up">
+                <div class="text-3xl font-black flex items-center justify-center uppercase tracking-tighter">
+                    <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                    <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                </div>
+                <div
+                    class="mt-2 inline-block px-3 py-1 rounded-lg purple-badge text-[10px] font-black uppercase tracking-widest">
+                    Centre Portal
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div
+                class="bg-white w-full max-w-[480px] rounded-[48px] p-8 sm:p-12 shadow-2xl shadow-purple-100/60 border border-gray-100 relative">
+
+                <!-- Header -->
+                <div class="mb-10 text-center animate-fade-up delay-100">
+                    <h2 class="text-4xl font-black mb-3 text-dark">Welcome back</h2>
+                    <p class="text-gray-500 font-medium text-lg">Sign in to manage your centre</p>
+                </div>
+
+                <!-- Error Alert Box -->
+                <div id="errorAlert" class="hidden mb-8 rounded-3xl overflow-hidden bg-red-50 border border-red-100 p-5"
+                    style="animation: slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm">
+                            <iconify-icon icon="ph:warning-circle-bold" class="text-xl"></iconify-icon>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <h4 class="text-red-700 font-black text-lg leading-tight" id="errorTitle">Invalid
+                                Credentials</h4>
+                            <p class="text-red-600/80 font-medium text-sm mt-1" id="errorMessage">The email or password
+                                you entered is incorrect. Please try again.</p>
+                        </div>
+                        <button type="button" onclick="dismissAlert()"
+                            class="w-8 h-8 rounded-full hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center">
+                            <iconify-icon icon="ph:x-bold"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <form id="loginForm" novalidate autocomplete="on">
+
+                    <!-- Centre Selection -->
+                    <div class="mb-6 animate-fade-up delay-200">
+                        <label for="centreSelect" class="block font-bold text-gray-700 text-sm mb-2 ml-1">
+                            Select Your Centre
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <iconify-icon icon="ph:buildings-bold" class="text-xl text-gray-400"></iconify-icon>
+                            </div>
+                            <select id="centreSelect"
+                                class="input-field w-full pl-12 pr-10 py-4 rounded-2xl text-base font-medium text-gray-800 appearance-none cursor-pointer"
+                                required>
+                                <option value="">Choose your education centre...</option>
+                                <!-- Options populated by JS -->
+                            </select>
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                <iconify-icon icon="ph:caret-down-bold" class="text-gray-400"></iconify-icon>
+                            </div>
+                        </div>
+                        <p class="hidden text-red-500 text-sm font-bold mt-2 ml-1 flex items-center gap-1.5"
+                            id="centreError">
+                            <iconify-icon icon="ph:info-bold"></iconify-icon>
+                            Please select a centre.
+                        </p>
+                    </div>
+
+                    <!-- Email field -->
+                    <div class="mb-6 animate-fade-up delay-300">
+                        <label for="email" class="block font-bold text-gray-700 text-sm mb-2 ml-1">
+                            Email Address
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <iconify-icon icon="ph:envelope-simple-bold" class="text-xl text-gray-400"
+                                    id="emailIcon"></iconify-icon>
+                            </div>
+                            <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+                                placeholder="manager@centre.com"
+                                class="input-field w-full pl-12 pr-4 py-4 rounded-2xl text-base font-medium text-gray-800" />
+                        </div>
+                        <p class="hidden text-red-500 text-sm font-bold mt-2 ml-1 flex items-center gap-1.5"
+                            id="emailError">
+                            <iconify-icon icon="ph:info-bold"></iconify-icon>
+                            <span id="emailErrorText">Please enter a valid email address.</span>
+                        </p>
+                    </div>
+
+                    <!-- Password field -->
+                    <div class="mb-8 animate-fade-up delay-400">
+                        <div class="flex items-center justify-between mb-2 ml-1 mr-1">
+                            <label for="password" class="block font-bold text-gray-700 text-sm">
+                                Password
+                            </label>
+                            <a href="/forgot-password"
+                                class="text-sm font-black text-[#8B5CF6] hover:text-[#7C3AED] transition-colors">
+                                Forgot Password?
+                            </a>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <iconify-icon icon="ph:lock-key-bold" class="text-xl text-gray-400"></iconify-icon>
+                            </div>
+                            <input id="password" name="password" type="password" autocomplete="current-password"
+                                placeholder="Enter your password"
+                                class="input-field w-full pl-12 pr-12 py-4 rounded-2xl text-base font-medium text-gray-800" />
+                            <button type="button" id="togglePassword" onclick="togglePasswordVisibility()"
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                aria-label="Toggle password visibility">
+                                <iconify-icon id="eyeOpen" icon="ph:eye-bold" class="text-xl"></iconify-icon>
+                                <iconify-icon id="eyeClosed" icon="ph:eye-closed-bold"
+                                    class="text-xl hidden"></iconify-icon>
+                            </button>
+                        </div>
+                        <p class="hidden text-red-500 text-sm font-bold mt-2 ml-1 flex items-center gap-1.5"
+                            id="passwordError">
+                            <iconify-icon icon="ph:info-bold"></iconify-icon>
+                            Password is required.
+                        </p>
+                    </div>
+
+                    <!-- Remember me -->
+                    <div class="flex items-center gap-3 mb-10 animate-fade-up delay-500 ml-1">
+                        <input type="checkbox" id="rememberMe" class="custom-check" aria-label="Remember me" />
+                        <label for="rememberMe" class="text-base font-medium text-gray-600 cursor-pointer select-none">
+                            Remember this device for 30 days
+                        </label>
+                    </div>
+
+                    <!-- Submit button -->
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-[#FF6B35] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#e85a2a] transition-playful btn-bounce shadow-xl shadow-orange-200 flex items-center justify-center gap-3 animate-fade-up delay-600">
+                        <span id="btnText">Sign In to Dashboard</span>
+                        <iconify-icon id="btnIcon" icon="ph:arrow-right-bold"></iconify-icon>
+                        <iconify-icon id="btnSpinner" icon="ph:spinner-gap-bold"
+                            class="hidden spinner-spin text-2xl"></iconify-icon>
+                    </button>
+
+                </form>
+            </div>
+
+            <!-- Mobile footer text -->
+            <p class="lg:hidden text-center mt-10 text-sm font-bold text-gray-400 animate-fade-up delay-600">
+                IELTSPRACTICE &copy; 2026<br>
+                Secure Education Gateway
+            </p>
+        </div>
     </div>
 
-    <!-- Content overlay -->
-    <div class="relative z-10 flex flex-col justify-between h-full p-10 xl:p-14">
-
-      <!-- Logo / Brand -->
-      <div class="animate-fade-up">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center"
-               style="background: linear-gradient(135deg, #2563eb, #3b82f6);">
-            <!-- Graduation cap icon -->
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-              <path d="M12 3L1 9l11 6 9-4.91V17M5 13.18v4L12 21l7-3.82v-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div class="text-white font-bold text-sm tracking-tight">IELTSPRACTICE</div>
-            <div class="text-blue-400/70 text-[10px] tracking-[0.18em] uppercase font-medium">Education Network</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Central headline -->
-      <div class="animate-fade-up delay-200">
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
-             style="background: rgba(37,99,235,0.15); border: 1px solid rgba(59,130,246,0.25);">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse-dot"></span>
-          <span class="text-blue-300 text-xs font-semibold tracking-wider uppercase">Centre Portal Access</span>
-        </div>
-
-        <h1 class="text-white font-extrabold leading-tight mb-5"
-            style="font-size: clamp(2rem, 3.5vw, 3.2rem); letter-spacing: -0.03em;">
-          Empowering<br />
-          <span style="background: linear-gradient(90deg, #60a5fa, #93c5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-            Educators
-          </span><br />
-          Everywhere
-        </h1>
-
-        <p class="text-slate-400 leading-relaxed max-w-sm" style="font-size: 0.95rem;">
-          Access your centre dashboard to manage students, track performance, and deliver world-class IELTS preparation.
-        </p>
-      </div>
-
-      <!-- Feature pills -->
-      <div class="animate-fade-up delay-400">
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                 style="background: rgba(37,99,235,0.2);">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#60a5fa" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-              </svg>
-            </div>
-            <span class="text-slate-300 text-sm">Student Management &amp; Progress Tracking</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                 style="background: rgba(37,99,235,0.2);">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#60a5fa" stroke-width="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-            </div>
-            <span class="text-slate-300 text-sm">Real-time Analytics &amp; Band Score Reports</span>
-          </div>
-          <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                 style="background: rgba(37,99,235,0.2);">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#60a5fa" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <span class="text-slate-300 text-sm">Class Scheduling &amp; Content Assignment</span>
-          </div>
-        </div>
-
-        <!-- Trust indicators -->
-        <div class="mt-8 pt-6 border-t border-white/[0.08]">
-          <div class="flex items-center gap-6">
-            <div>
-              <div class="text-white font-bold text-xl">1,200+</div>
-              <div class="text-slate-500 text-xs mt-0.5">Partner Centres</div>
-            </div>
-            <div class="w-px h-8 bg-white/10"></div>
-            <div>
-              <div class="text-white font-bold text-xl">94k+</div>
-              <div class="text-slate-500 text-xs mt-0.5">Active Students</div>
-            </div>
-            <div class="w-px h-8 bg-white/10"></div>
-            <div>
-              <div class="text-white font-bold text-xl">7.4</div>
-              <div class="text-slate-500 text-xs mt-0.5">Avg Band Score</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer text on left panel -->
-      <div class="animate-fade-up delay-600">
-        <p class="text-slate-600 text-xs">
-          IELTSPRACTICE © 2026 — Secure Education Gateway
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════
-       RIGHT PANEL — Login Form
-  ════════════════════════════════════ -->
-  <div class="flex-1 flex flex-col items-center justify-center px-5 sm:px-8 py-10 relative"
-       style="background: linear-gradient(160deg, #0f172a 0%, #101828 40%, #0a1120 100%);">
-
-    <!-- Mobile-only subtle background -->
-    <div class="absolute inset-0 lg:hidden"
-         style="background-image: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(37,99,235,0.12) 0%, transparent 70%);"></div>
-
-    <!-- Mobile logo (top of form on small screens) -->
-    <div class="lg:hidden flex items-center gap-2.5 mb-8 animate-fade-up relative z-10">
-      <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-           style="background: linear-gradient(135deg, #2563eb, #3b82f6);">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-          <path d="M12 3L1 9l11 6 9-4.91V17M5 13.18v4L12 21l7-3.82v-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <span class="text-white font-bold text-sm tracking-tight">IELTSPRACTICE</span>
-    </div>
-
-    <!-- Glass card -->
-    <div class="glass-card w-full max-w-[420px] rounded-2xl px-8 sm:px-10 py-10 relative z-10 animate-fade-up delay-100">
-
-      <!-- Error alert -->
-      <div id="errorAlert"
-           class="hidden mb-6 rounded-xl overflow-hidden"
-           style="border: 1px solid rgba(239,68,68,0.25);">
-        <div class="flex items-start gap-3 px-4 py-3.5"
-             style="background: rgba(254,242,242,0.95);">
-          <div class="flex-shrink-0 mt-0.5">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-red-700 font-semibold text-sm" id="errorTitle">Invalid Credentials</p>
-            <p class="text-red-600/80 text-xs mt-0.5" id="errorMessage">The email or password you entered is incorrect. Please try again.</p>
-          </div>
-          <button onclick="dismissAlert()" class="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors ml-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Header -->
-      <div class="mb-8 animate-fade-up delay-200">
-        <div class="flex items-center gap-2 mb-1">
-          <div class="w-1 h-5 rounded-full" style="background: linear-gradient(180deg, #2563eb, #60a5fa);"></div>
-          <span class="text-slate-400 text-xs font-semibold tracking-widest uppercase">Centre Portal</span>
-        </div>
-        <h2 class="text-navy-900 font-extrabold mt-2" style="font-size: 1.6rem; letter-spacing: -0.025em; color: #0f172a;">
-          Welcome back
-        </h2>
-        <p class="text-slate-400 text-sm mt-1.5">Sign in to manage your education centre.</p>
-      </div>
-
-      <!-- Form -->
-      <form id="loginForm" novalidate autocomplete="on">
-
-        <!-- Centre Selection -->
-        <div class="mb-5 animate-fade-up delay-200">
-          <label for="centreSelect" class="block text-sm font-600 mb-1.5"
-                 style="color: #1e293b; font-weight: 600; font-size: 0.8rem;">
-            Select Your Centre
-          </label>
-          <div class="relative">
-            <!-- Building icon -->
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                <path d="M3 21h18"/>
-                <path d="M5 21V7l8-4v18"/>
-                <path d="M19 21V11l-8-4"/>
-                <path d="M9 9l1 1h4"/>
-              </svg>
-            </div>
-            <select
-              id="centreSelect"
-              class="input-field w-full pl-10 pr-4 py-3 rounded-xl text-sm border bg-slate-50/60 appearance-none cursor-pointer"
-              style="border-color: #e2e8f0; color: #0f172a; font-size: 0.875rem;"
-              required
-            >
-              <option value="">Choose your education centre...</option>
-            </select>
-            <!-- Custom dropdown arrow -->
-            <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                <polyline points="6,9 12,15 18,9"/>
-              </svg>
-            </div>
-          </div>
-          <p class="hidden text-red-500 text-xs mt-1.5 flex items-center gap-1" id="centreError">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-            Please select an education centre.
-          </p>
-        </div>
-
-        <!-- Email field -->
-        <div class="mb-5 animate-fade-up delay-300">
-          <label for="email" class="block text-sm font-600 mb-1.5"
-                 style="color: #1e293b; font-weight: 600; font-size: 0.8rem;">
-            Email Address
-          </label>
-          <div class="relative">
-            <!-- Envelope icon -->
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" id="emailIcon">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-            </div>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              inputmode="email"
-              autocomplete="email"
-              placeholder="manager@centre.com"
-              class="input-field w-full pl-10 pr-4 py-3 rounded-xl text-sm border bg-slate-50/60"
-              style="border-color: #e2e8f0; color: #0f172a; font-size: 0.875rem;"
-            />
-          </div>
-          <p class="hidden text-red-500 text-xs mt-1.5 flex items-center gap-1" id="emailError">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-            <span id="emailErrorText">Please enter a valid email address.</span>
-          </p>
-        </div>
-
-        <!-- Password field -->
-        <div class="mb-5 animate-fade-up delay-400">
-          <div class="flex items-center justify-between mb-1.5">
-            <label for="password" class="block text-sm"
-                   style="color: #1e293b; font-weight: 600; font-size: 0.8rem;">
-              Password
-            </label>
-            <a href="/forgot-password"
-               class="text-xs font-medium transition-colors"
-               style="color: #2563eb;"
-               onmouseover="this.style.color='#1d4ed8'"
-               onmouseout="this.style.color='#2563eb'">
-              Forgot Password?
-            </a>
-          </div>
-          <div class="relative">
-            <!-- Lock icon -->
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0110 0v4"/>
-              </svg>
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              placeholder="Enter your password"
-              class="input-field w-full pl-10 pr-11 py-3 rounded-xl text-sm border bg-slate-50/60"
-              style="border-color: #e2e8f0; color: #0f172a; font-size: 0.875rem;"
-            />
-            <!-- Show/hide toggle -->
-            <button
-              type="button"
-              id="togglePassword"
-              onclick="togglePasswordVisibility()"
-              class="absolute inset-y-0 right-0 pr-3.5 flex items-center transition-opacity hover:opacity-70"
-              aria-label="Toggle password visibility"
-            >
-              <!-- Eye open -->
-              <svg id="eyeOpen" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <!-- Eye closed -->
-              <svg id="eyeClosed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" class="hidden">
-                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-                <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </button>
-          </div>
-          <p class="hidden text-red-500 text-xs mt-1.5 flex items-center gap-1" id="passwordError">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-            Password is required.
-          </p>
-        </div>
-
-        <!-- Remember me -->
-        <div class="flex items-center gap-2.5 mb-7 animate-fade-up delay-500">
-          <input
-            type="checkbox"
-            id="rememberMe"
-            class="custom-check"
-            aria-label="Remember me"
-          />
-          <label for="rememberMe" class="text-sm cursor-pointer select-none" style="color: #475569;">
-            Remember this device for 30 days
-          </label>
-        </div>
-
-        <!-- Submit button -->
-        <button
-          type="submit"
-          id="submitBtn"
-          class="btn-signin w-full rounded-xl py-3.5 text-white font-semibold text-sm tracking-wide flex items-center justify-center gap-2.5 animate-fade-up delay-600"
-          style="letter-spacing: 0.01em;"
-        >
-          <svg id="btnIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0110 0v4"/>
-          </svg>
-          <!-- Spinner (hidden by default) -->
-          <svg id="btnSpinner" class="hidden animate-spin-slow" width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
-            <path d="M12 2a10 10 0 0110 10" stroke="white" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-          <span id="btnText">Sign In to Centre Portal</span>
-        </button>
-
-      </form>
-
-      <!-- Security note -->
-      <div class="flex items-center justify-center gap-1.5 mt-8 animate-fade-up delay-700">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        <span class="text-xs" style="color: #94a3b8;">256-bit SSL encrypted · SOC 2 Type II</span>
-      </div>
-    </div>
-
-    <!-- Mobile footer -->
-    <p class="lg:hidden text-center mt-8 text-xs relative z-10 animate-fade-up delay-700"
-       style="color: #334155;">
-      IELTSPRACTICE © 2026 — Secure Education Gateway
-    </p>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     JAVASCRIPT
+    <!-- ══════════════════════════════════════════
+     JAVASCRIPT (Retained & Adapted)
 ══════════════════════════════════════════ -->
-<script>
-'use strict';
+    <script>
+        'use strict';
 
-/* ─── Load Education Centres ─── */
-async function loadCentres() {
-  try {
-    const response = await fetch('/api/public/centres');
-    const result = await response.json();
-    
-    if (result.success && result.data) {
-      const centreSelect = document.getElementById('centreSelect');
-      result.data.forEach(centre => {
-        const option = document.createElement('option');
-        option.value = centre.id;
-        option.textContent = `${centre.name} (${centre.location})`;
-        centreSelect.appendChild(option);
-      });
-    }
-  } catch (error) {
-    console.error('Failed to load centres:', error);
-  }
-}
+        /* ─── Load Education Centres ─── */
+        async function loadCentres() {
+            try {
+                const response = await fetch('/api/public/centres');
+                const result = await response.json();
 
-/* ─── Restore "Remember Me" state ─── */
-(function restoreRemember() {
-  const saved = localStorage.getItem('centre_remember');
-  const emailSaved = localStorage.getItem('centre_email');
-  if (saved === 'true') {
-    document.getElementById('rememberMe').checked = true;
-    if (emailSaved) document.getElementById('email').value = emailSaved;
-  }
-})();
+                if (result.success && result.data) {
+                    const centreSelect = document.getElementById('centreSelect');
+                    result.data.forEach(centre => {
+                        const option = document.createElement('option');
+                        option.value = centre.id;
+                        option.textContent = `${centre.name} (${centre.location})`;
+                        centreSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load centres:', error);
+            }
+        }
 
-/* ─── Toggle password visibility ─── */
-function togglePasswordVisibility() {
-  const input   = document.getElementById('password');
-  const eyeOpen = document.getElementById('eyeOpen');
-  const eyeClose = document.getElementById('eyeClosed');
-  const isHidden = input.type === 'password';
+        /* ─── Restore "Remember Me" state ─── */
+        (function restoreRemember() {
+            const saved = localStorage.getItem('centre_remember');
+            const emailSaved = localStorage.getItem('centre_email');
+            if (saved === 'true') {
+                document.getElementById('rememberMe').checked = true;
+                if (emailSaved) document.getElementById('email').value = emailSaved;
+            }
+        })();
 
-  input.type     = isHidden ? 'text' : 'password';
-  eyeOpen.classList.toggle('hidden', isHidden);
-  eyeClose.classList.toggle('hidden', !isHidden);
-}
+        /* ─── Toggle password visibility ─── */
+        function togglePasswordVisibility() {
+            const input = document.getElementById('password');
+            const eyeOpen = document.getElementById('eyeOpen');
+            const eyeClose = document.getElementById('eyeClosed');
+            const isHidden = input.type === 'password';
 
-/* ─── Show / dismiss alert ─── */
-function showAlert(title, message) {
-  const alert = document.getElementById('errorAlert');
-  document.getElementById('errorTitle').textContent   = title;
-  document.getElementById('errorMessage').textContent = message;
+            input.type = isHidden ? 'text' : 'password';
 
-  alert.classList.remove('hidden');
-  alert.classList.remove('alert-dismissing');
-  // Force reflow then animate in
-  void alert.offsetWidth;
-  alert.style.animation = 'none';
-  void alert.offsetWidth;
-  alert.style.animation = 'slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards';
-}
+            if (isHidden) {
+                eyeOpen.classList.add('hidden');
+                eyeClose.classList.remove('hidden');
+            } else {
+                eyeOpen.classList.remove('hidden');
+                eyeClose.classList.add('hidden');
+            }
+        }
 
-function dismissAlert() {
-  const alert = document.getElementById('errorAlert');
-  alert.classList.add('alert-dismissing');
-  alert.addEventListener('animationend', () => {
-    alert.classList.add('hidden');
-    alert.classList.remove('alert-dismissing');
-  }, { once: true });
-}
+        /* ─── Show / dismiss alert ─── */
+        function showAlert(title, message) {
+            const alert = document.getElementById('errorAlert');
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorMessage').textContent = message;
 
-/* ─── Field validation ─── */
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
+            alert.classList.remove('hidden');
+            alert.classList.remove('alert-dismissing');
+            // Force reflow then animate in
+            void alert.offsetWidth;
+            alert.style.animation = 'none';
+            void alert.offsetWidth;
+            alert.style.animation = 'slideDownIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+        }
 
-function setFieldError(fieldId, errorId, show, message) {
-  const field = document.getElementById(fieldId);
-  const error = document.getElementById(errorId);
-  if (show) {
-    field.classList.add('error');
-    field.classList.remove('success');
-    error.classList.remove('hidden');
-    if (message && errorId === 'emailError') {
-      document.getElementById('emailErrorText').textContent = message;
-    }
-  } else {
-    field.classList.remove('error');
-    error.classList.add('hidden');
-    if (document.getElementById(fieldId).value.trim()) {
-      field.classList.add('success');
-    }
-  }
-}
+        function dismissAlert() {
+            const alert = document.getElementById('errorAlert');
+            alert.classList.add('alert-dismissing');
+            alert.addEventListener('animationend', () => {
+                alert.classList.add('hidden');
+                alert.classList.remove('alert-dismissing');
+            }, { once: true });
+        }
 
-/* Live validation */
-document.getElementById('email').addEventListener('blur', function() {
-  const val = this.value.trim();
-  if (val && !validateEmail(val)) {
-    setFieldError('email', 'emailError', true, 'Please enter a valid email address.');
-  } else if (val) {
-    setFieldError('email', 'emailError', false);
-  }
-});
+        /* ─── Field validation ─── */
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+        }
 
-document.getElementById('email').addEventListener('input', function() {
-  if (this.classList.contains('error') && validateEmail(this.value.trim())) {
-    setFieldError('email', 'emailError', false);
-  }
-  // Hide global alert on new input
-  const alert = document.getElementById('errorAlert');
-  if (!alert.classList.contains('hidden')) dismissAlert();
-});
+        function setFieldError(fieldId, errorId, show, message) {
+            const field = document.getElementById(fieldId);
+            const error = document.getElementById(errorId);
+            if (show) {
+                field.classList.add('error');
+                field.classList.remove('success');
+                error.classList.remove('hidden');
+                if (message && errorId === 'emailError') {
+                    document.getElementById('emailErrorText').textContent = message;
+                }
+            } else {
+                field.classList.remove('error');
+                error.classList.add('hidden');
+                if (document.getElementById(fieldId).value.trim()) {
+                    field.classList.add('success');
+                }
+            }
+        }
 
-document.getElementById('password').addEventListener('input', function() {
-  if (this.classList.contains('error') && this.value.length > 0) {
-    setFieldError('password', 'passwordError', false);
-  }
-  const alert = document.getElementById('errorAlert');
-  if (!alert.classList.contains('hidden')) dismissAlert();
-});
+        /* Live validation */
+        document.getElementById('email').addEventListener('blur', function () {
+            const val = this.value.trim();
+            if (val && !validateEmail(val)) {
+                setFieldError('email', 'emailError', true, 'Please enter a valid email address.');
+            } else if (val) {
+                setFieldError('email', 'emailError', false);
+            }
+        });
 
-/* ─── Loading state helpers ─── */
-function setLoading(isLoading) {
-  const btn     = document.getElementById('submitBtn');
-  const icon    = document.getElementById('btnIcon');
-  const spinner = document.getElementById('btnSpinner');
-  const text    = document.getElementById('btnText');
+        document.getElementById('email').addEventListener('input', function () {
+            if (this.classList.contains('error') && validateEmail(this.value.trim())) {
+                setFieldError('email', 'emailError', false);
+            }
+            // Hide global alert on new input
+            const alert = document.getElementById('errorAlert');
+            if (!alert.classList.contains('hidden')) dismissAlert();
+        });
 
-  btn.disabled = isLoading;
-  icon.classList.toggle('hidden', isLoading);
-  spinner.classList.toggle('hidden', !isLoading);
-  text.textContent = isLoading ? 'Signing in…' : 'Sign In to Centre Portal';
-}
+        document.getElementById('password').addEventListener('input', function () {
+            if (this.classList.contains('error') && this.value.length > 0) {
+                setFieldError('password', 'passwordError', false);
+            }
+            const alert = document.getElementById('errorAlert');
+            if (!alert.classList.contains('hidden')) dismissAlert();
+        });
 
-/* ─── Form submit + API call ─── */
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
+        document.getElementById('centreSelect').addEventListener('change', function () {
+            if (this.classList.contains('error') && this.value) {
+                setFieldError('centreSelect', 'centreError', false);
+            }
+        });
 
-  const centreId = document.getElementById('centreSelect').value;
-  const email    = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const remember = document.getElementById('rememberMe').checked;
+        /* ─── Loading state helpers ─── */
+        function setLoading(isLoading) {
+            const btn = document.getElementById('submitBtn');
+            const icon = document.getElementById('btnIcon');
+            const spinner = document.getElementById('btnSpinner');
+            const text = document.getElementById('btnText');
 
-  // Client-side validation
-  let hasErrors = false;
+            btn.disabled = isLoading;
 
-  if (!centreId) {
-    setFieldError('centreSelect', 'centreError', true);
-    hasErrors = true;
-  } else {
-    setFieldError('centreSelect', 'centreError', false);
-  }
+            if (isLoading) {
+                btn.classList.add('opacity-80', 'cursor-not-allowed', 'transform-none');
+                btn.classList.remove('btn-bounce');
+                icon.classList.add('hidden');
+                spinner.classList.remove('hidden');
+                text.textContent = 'Authenticating...';
+            } else {
+                btn.classList.remove('opacity-80', 'cursor-not-allowed', 'transform-none');
+                btn.classList.add('btn-bounce');
+                icon.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                text.textContent = 'Sign In to Dashboard';
+            }
+        }
 
-  if (!email) {
-    setFieldError('email', 'emailError', true, 'Email address is required.');
-    hasErrors = true;
-  } else if (!validateEmail(email)) {
-    setFieldError('email', 'emailError', true, 'Please enter a valid email address.');
-    hasErrors = true;
-  } else {
-    setFieldError('email', 'emailError', false);
-  }
+        /* ─── Form submit + Mock API call ─── */
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
 
-  if (!password) {
-    setFieldError('password', 'passwordError', true);
-    hasErrors = true;
-  } else {
-    setFieldError('password', 'passwordError', false);
-  }
+            const centreId = document.getElementById('centreSelect').value;
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('rememberMe').checked;
 
-  if (hasErrors) return;
+            // Client-side validation
+            let hasErrors = false;
 
-  // Handle Remember Me
-  if (remember) {
-    localStorage.setItem('centre_remember', 'true');
-    localStorage.setItem('centre_email', email);
-  } else {
-    localStorage.removeItem('centre_remember');
-    localStorage.removeItem('centre_email');
-  }
+            if (!centreId) {
+                setFieldError('centreSelect', 'centreError', true);
+                hasErrors = true;
+            } else {
+                setFieldError('centreSelect', 'centreError', false);
+            }
 
-  setLoading(true);
+            if (!email) {
+                setFieldError('email', 'emailError', true, 'Email address is required.');
+                hasErrors = true;
+            } else if (!validateEmail(email)) {
+                setFieldError('email', 'emailError', true, 'Please enter a valid email address.');
+                hasErrors = true;
+            } else {
+                setFieldError('email', 'emailError', false);
+            }
 
-  try {
-    const response = await fetch('/api/auth/education/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        centreId: parseInt(centreId),
-        email,
-        password,
-        rememberMe: remember,
-      }),
-    });
+            if (!password) {
+                setFieldError('password', 'passwordError', true);
+                hasErrors = true;
+            } else {
+                setFieldError('password', 'passwordError', false);
+            }
 
-    const data = await response.json();
+            if (hasErrors) return;
 
-    if (!response.ok) {
-      // Handle specific error codes
-      if (response.status === 401) {
-        showAlert(
-          'Invalid Credentials',
-          data.error || 'The email or password you entered is incorrect. Please try again.'
-        );
-        setFieldError('email',    'emailError',    true, ' ');
-        setFieldError('password', 'passwordError', false);
-        document.getElementById('emailError').querySelector('span').textContent = '';
-      } else if (response.status === 403) {
-        showAlert('Access Denied', data.error || 'Your account does not have centre access.');
-      } else if (response.status === 429) {
-        showAlert('Too Many Attempts', data.error || 'You have been temporarily locked out. Please try again in 10 minutes.');
-      } else {
-        showAlert('Something went wrong', data.error || 'An unexpected error occurred. Please try again.');
-      }
-      setLoading(false);
-      return;
-    }
+            // Handle Remember Me
+            if (remember) {
+                localStorage.setItem('centre_remember', 'true');
+                localStorage.setItem('centre_email', email);
+            } else {
+                localStorage.removeItem('centre_email');
+            }
 
-    // Success — store token and user data
-    if (data.success && data.data) {
-      // Store session data
-      localStorage.setItem('education_token', data.data.token);
-      localStorage.setItem('education_user', JSON.stringify(data.data.user));
-      localStorage.setItem('education_centre', JSON.stringify(data.data.centre));
-      
-      // Visual feedback before redirect
-      const btn  = document.getElementById('submitBtn');
-      btn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
-      document.getElementById('btnText').textContent = 'Redirecting…';
-      document.getElementById('btnSpinner').classList.remove('hidden');
-      document.getElementById('btnIcon').classList.add('hidden');
+            setLoading(true);
 
-      // Redirect to centre dashboard
-      setTimeout(() => {
-        window.location.href = '/education-centre.html';
-      }, 600);
-    }
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        centreId: parseInt(centreId),
+                        email,
+                        password,
+                        rememberMe: remember,
+                        role: 'CENTRE'
+                    }),
+                });
 
-  } catch (networkError) {
-    showAlert(
-      'Connection Error',
-      'Unable to reach server. Please check your internet connection and try again.'
-    );
-    setLoading(false);
-  }
-});
+                const data = await response.json();
 
-/* ─── Keyboard shortcut: Enter triggers submit ─── */
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && document.activeElement !== document.getElementById('submitBtn')) {
-    const active = document.activeElement;
-    if (active.id === 'centreSelect' || active.id === 'email' || active.id === 'password') {
-      document.getElementById('loginForm').dispatchEvent(new Event('submit', { cancelable: true }));
-    }
-  }
-});
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        showAlert(
+                            'Invalid Credentials',
+                            data.error || 'The email or password you entered is incorrect. Please try again.'
+                        );
+                        setFieldError('email', 'emailError', true, ' ');
+                        setFieldError('password', 'passwordError', false);
+                        document.getElementById('emailError').querySelector('span').textContent = '';
+                    } else if (response.status === 403) {
+                        showAlert('Access Denied', data.error || 'Your account does not have centre access.');
+                    } else if (response.status === 429) {
+                        showAlert('Too Many Attempts', data.error || 'You have been temporarily locked out. Please try again in 10 minutes.');
+                    } else {
+                        showAlert('Something went wrong', data.error || 'An unexpected error occurred. Please try again.');
+                    }
+                    setLoading(false);
+                    return;
+                }
 
-/* ─── Initialize page ─── */
-document.addEventListener('DOMContentLoaded', function() {
-  loadCentres();
-});
-</script>
+                // Success
+                if (data.success && data.data) {
+                    localStorage.setItem('education_token', data.data.token);
+                    localStorage.setItem('education_user', JSON.stringify(data.data.user));
+                    localStorage.setItem('education_centre', JSON.stringify(data.data.centre));
+                    
+                    const btn = document.getElementById('submitBtn');
+                    btn.style.backgroundColor = '#10B981'; // Green success from new design
+                    btn.style.boxShadow = '0 10px 25px -5px rgba(16, 185, 129, 0.4)';
+                    document.getElementById('btnText').textContent = 'Welcome back!';
+                    document.getElementById('btnSpinner').classList.add('hidden');
+                    document.getElementById('btnIcon').setAttribute('icon', 'ph:check-circle-bold');
+                    document.getElementById('btnIcon').classList.remove('hidden');
+
+                    setTimeout(() => {
+                        window.location.href = '/education-centre.html';
+                    }, 800);
+                }
+            } catch (networkError) {
+                showAlert('Connection Error', 'Unable to reach server. Please check your internet connection and try again.');
+                setLoading(false);
+            }
+        });
+
+        /* ─── Keyboard shortcut: Enter triggers submit ─── */
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && document.activeElement !== document.getElementById('submitBtn')) {
+                const active = document.activeElement;
+                if (active.id === 'centreSelect' || active.id === 'email' || active.id === 'password') {
+                    document.getElementById('loginForm').dispatchEvent(new Event('submit', { cancelable: true }));
+                }
+            }
+        });
+
+        /* ─── Initialize page ─── */
+        document.addEventListener('DOMContentLoaded', function () {
+            loadCentres();
+        });
+    </script>
 </body>
+
 </html>

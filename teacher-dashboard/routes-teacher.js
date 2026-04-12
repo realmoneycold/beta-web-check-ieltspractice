@@ -126,7 +126,7 @@ router.post('/login', async (req, res) => {
     return res.json({
       success:     true,
       token,
-      redirectUrl: '/teacher/dashboard.html',
+      redirectUrl: '/teacher/dashboard',
       teacher: {
         id:            user.id,
         firstName:     user.firstName,

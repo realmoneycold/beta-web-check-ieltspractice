@@ -11,8 +11,14 @@ const studentRoutes = require('./studentRoutes');
 const adminRoutes = require('./adminRoutes');
 const userRoutes = require('./userRoutes');
 const typingRoutes = require('./typingRoutes');
-const ceoRoutes = require('./ceoRoutes');
+const examRoutes = require('./examRoutes');
+const ceoRoutes = require('../../ceo-page/routes-ceo');
 const requireCeoAuth = require('../middleware/ceoAuth');
+const dashboardRoutes = require('./dashboardRoutes');
+
+const centrePortalRoutes = require('./centrePortalRoutes');
+const adminPortalRoutes = require('./adminPortalRoutes');
+const studentPortalRoutes = require('./studentPortalRoutes');
 
 const router = express.Router();
 
@@ -29,7 +35,17 @@ router.use('/student', studentRoutes);
 router.use('/admin', adminRoutes);
 router.use('/user', userRoutes);
 router.use('/typing', typingRoutes);
+router.use('/exams', examRoutes);
 router.use('/ceo', requireCeoAuth, ceoRoutes);
+
+
+// Dashboard routes (must be before /student to avoid conflicts)
+router.use('/student/dashboard', dashboardRoutes);
+
+// New unified logic blocks based on the data engineering architecture
+router.use('/centre', centrePortalRoutes);
+router.use('/admin-portal', adminPortalRoutes);
+router.use('/student-portal', studentPortalRoutes);
 
 module.exports = router;
 

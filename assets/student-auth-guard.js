@@ -8,7 +8,7 @@
 // ─── TOKEN VERIFICATION ─────────────────────────────────────────────────────────────
 async function verifyStudentToken(token) {
   try {
-    const response = await fetch('/api/auth/student/verify', {
+    const response = await fetch('/api/auth/verify-token', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -33,7 +33,7 @@ async function checkStudentAuthentication() {
   
   if (!token) {
     console.log('No student token found, redirecting to login');
-    window.location.href = '/login/login.html';
+    window.location.href = '/login.html';
     return;
   }
 
@@ -44,7 +44,7 @@ async function checkStudentAuthentication() {
     localStorage.removeItem('student_token');
     sessionStorage.removeItem('student_token');
     localStorage.removeItem('student_user');
-    window.location.href = '/login/login.html';
+    window.location.href = '/login.html';
     return;
   }
 
@@ -75,7 +75,7 @@ async function fetchStudentData() {
       localStorage.removeItem('student_token');
       sessionStorage.removeItem('student_token');
       localStorage.removeItem('student_user');
-      window.location.href = '/login/login.html';
+      window.location.href = '/login.html';
     }
   } catch (error) {
     console.error('Failed to fetch student data:', error);
@@ -134,7 +134,7 @@ function logoutStudent() {
   localStorage.removeItem('student_user');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userEmail');
-  window.location.href = '/login/login.html';
+  window.location.href = '/login.html';
 }
 
 // ─── INITIALIZATION ─────────────────────────────────────────────────────

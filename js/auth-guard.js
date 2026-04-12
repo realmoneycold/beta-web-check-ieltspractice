@@ -61,7 +61,7 @@
     }
 
     if (!token) {
-      redirect('login.html');
+      window.location.replace('/login.html');
       return;
     }
 

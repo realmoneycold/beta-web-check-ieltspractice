@@ -1,478 +1,747 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>IELTSPRACTICE — Education Centres</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Practice | Education Centres</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js" defer init></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <style>
+        @import url('https://api.fontshare.com/v2/css?f[]=clash-grotesk@700,600,400&f[]=satoshi@700,500,400&display=swap');
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.7.2/css/all.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+        :root {
+            --lavender-main: #8B5CF6;
+            --brand-orange: #FF6B35;
+            --bg-soft: #F9F5FF;
+            --dark: #111827;
+        }
 
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --green: #1C6758; --dark: #151614; --text: #1a1a1a; --muted: #6b7280;
-  --border: #e5e7eb; --bg: #f7f8fa; --white: #fff; --star: #f59e0b;
-  --font: 'Poppins', sans-serif;
-}
-html, body { height: 100%; font-family: var(--font); }
-body { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); color: var(--text); }
+        body {
+            font-family: 'Satoshi', sans-serif;
+            background-color: var(--bg-soft);
+            color: var(--dark);
+            margin: 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
-/* HEADER */
-.site-header {
-  flex-shrink: 0; background: var(--dark); height: 64px;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 36px; position: relative; z-index: 200;
-  box-shadow: 0 2px 16px rgba(0,0,0,.5);
-}
-.logo { font-size: 18px; font-weight: 800; color: #fff; }
-.header-nav {
-  display: flex; align-items: center; gap: 4px;
-  position: absolute; left: 50%; transform: translateX(-50%);
-}
-.header-nav a {
-  font-size: 13.5px; color: rgba(255,255,255,.85); text-decoration: none;
-  padding: 6px 15px; border-radius: 6px; transition: all .18s;
-}
-.header-nav a:hover { color: #fff; background: rgba(255,255,255,.08); }
-.header-nav a.active { color: #fff; font-weight: 600; }
-.btn-started {
-  background: var(--green); color: #fff; border: none; border-radius: 100px;
-  padding: 9px 22px; font-size: 13.5px; font-weight: 600; cursor: pointer;
-  font-family: var(--font); transition: background .2s;
-}
-.btn-started:hover { background: #155048; }
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Clash Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
 
-/* Nav auth buttons — matches index.html Login/Sign Up design */
-.nav-auth-index {
-  padding: 10px 42px; background: var(--green); border-radius: 100px;
-  border: 2px solid var(--green); font-family: var(--font);
-  font-size: 16px; font-weight: 600; color: #fff; min-height: 54px;
-}
-.nav-auth-index .link {
-  color: inherit; text-decoration: none; cursor: pointer;
-}
-.nav-auth-index .link:hover { opacity: 0.9; }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
 
-/* SPLIT LAYOUT */
-.split { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
 
-/* LEFT PANEL */
-.panel-left {
-  width: 460px; flex-shrink: 0; display: flex; flex-direction: column;
-  background: var(--white); border-right: 1px solid var(--border);
-  overflow: hidden; min-height: 0;
-}
-.panel-header { flex-shrink: 0; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
-.result-lbl { font-size: 11.5px; color: var(--muted); font-weight: 500; margin-bottom: 3px; }
-.page-title { font-size: 20px; font-weight: 700; margin-bottom: 13px; }
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-.search-wrap { position: relative; margin-bottom: 11px; }
-.search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12px; pointer-events: none; }
-.search-input {
-  width: 100%; padding: 9px 12px 9px 34px; border: 1.5px solid var(--border);
-  border-radius: 100px; font-size: 13px; font-family: var(--font); color: var(--text);
-  background: var(--bg); outline: none; transition: border-color .2s;
-}
-.search-input:focus { border-color: var(--green); background: #fff; }
-.search-input::placeholder { color: #aaa; }
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-.pill-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pill {
-  display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px;
-  border: 1.5px solid var(--border); border-radius: 100px; font-size: 12px;
-  font-weight: 500; color: var(--text); background: var(--white); cursor: pointer;
-  transition: all .18s; white-space: nowrap; font-family: var(--font);
-}
-.pill:hover { border-color: var(--green); color: var(--green); }
-.pill.active { background: var(--dark); color: #fff; border-color: var(--dark); }
-.pill i { font-size: 10px; }
-.pill-icon {
-  width: 32px; height: 32px; border: 1.5px solid var(--border); border-radius: 100px;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  background: var(--white); transition: all .18s;
-}
-.pill-icon:hover { border-color: var(--green); }
-.pill-icon i { font-size: 12px; color: var(--muted); }
+        .transition-playful {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
 
-.sort-bar {
-  flex-shrink: 0; padding: 9px 20px; display: flex; align-items: center;
-  justify-content: space-between; border-bottom: 1px solid var(--border); background: #fafafa;
-}
-.sort-lbl { font-size: 11.5px; color: var(--muted); }
-.sort-sel {
-  font-size: 12px; font-family: var(--font); border: 1.5px solid var(--border);
-  border-radius: 8px; padding: 4px 9px; color: var(--text); background: var(--white);
-  cursor: pointer; outline: none;
-}
-.sort-sel:focus { border-color: var(--green); }
+        .card-lift:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.15);
+        }
 
-.cards-scroll {
-  flex: 1; overflow-y: auto; padding: 14px 16px; display: flex;
-  flex-direction: column; gap: 12px; min-height: 0;
-}
-.cards-scroll::-webkit-scrollbar { width: 4px; }
-.cards-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        .btn-bounce:hover {
+            transform: scale(1.05);
+        }
 
-/* CARD */
-.centre-card {
-  display: flex; gap: 12px; padding: 13px; background: var(--white);
-  border-radius: 12px; border: 1.5px solid var(--border);
-  box-shadow: 0 1px 6px rgba(0,0,0,.06); cursor: pointer; transition: all .2s;
-  position: relative; animation: cardIn .3s ease both;
-}
-@keyframes cardIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-.centre-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.11); border-color: #c5d5d1; transform: translateY(-2px); }
-.centre-card.is-active { border-color: var(--green); box-shadow: 0 0 0 3px rgba(28,103,88,.15), 0 6px 24px rgba(0,0,0,.11); }
+        .orange-text {
+            color: var(--brand-orange);
+        }
 
-.card-thumb {
-  width: 110px; min-width: 110px; height: 84px; border-radius: 9px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 30px;
-}
-.card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
-.ctag { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; letter-spacing:.04em; text-transform:uppercase; }
-.ctag-official { background:#e6f4f1; color:#1C6758; }
-.ctag-partner  { background:#fff3e8; color:#c25510; }
-.ctag-online   { background:#eff6ff; color:#1d4ed8; }
-.ctag-open     { background:#f0fdf4; color:#166534; display:flex; align-items:center; gap:3px; }
-.ctag-open::before { content:''; width:5px; height:5px; border-radius:50%; background:#22c55e; }
+        /* Custom Badges */
+        .purple-badge { background-color: #F5F1FF; color: #8B5CF6; }
+        .orange-badge { background-color: #FFF8F5; color: #FF6B35; }
+        .blue-badge { background-color: #EFF6FF; color: #3B82F6; }
+        .green-badge { background-color: #F0FDF4; color: #22C55E; }
 
-.card-name { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-stars { display: flex; align-items: center; gap: 4px; }
-.stars { display: flex; gap: 1px; }
-.sf { color: var(--star); font-size: 10px; }
-.se { color: #d1d5db; font-size: 10px; }
-.rnum { font-size: 11.5px; font-weight: 700; }
-.rcnt { font-size: 10.5px; color: var(--muted); }
-.card-info { font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
-.card-info span { display: flex; align-items: center; gap: 3px; }
-.card-info i { font-size: 9px; color: var(--green); }
+        /* Custom scrollbar for list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #E5E7EB;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #8B5CF6;
+        }
 
-.card-price-badge { position: absolute; bottom: 12px; right: 12px; text-align: right; }
-.cprice-label { font-size: 9px; color: var(--muted); }
-.cprice-val { font-size: 14px; font-weight: 700; color: var(--green); }
-.cprice-unit { font-size: 9px; color: var(--muted); }
+        /* Pill specific styles */
+        .filter-pill {
+            padding: 0.5rem 1rem;            /* px-4 py-2 */
+            border-radius: 0.75rem;          /* rounded-xl */
+            font-size: 0.875rem;             /* text-sm */
+            font-weight: 700;                /* font-bold */
+            border-width: 2px;
+            border-style: solid;
+            transition: all 0.2s ease;       /* transition-all */
+            cursor: pointer;
+            white-space: nowrap;             /* whitespace-nowrap */
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;                     /* gap-2 */
+        }
+        .filter-pill.inactive {
+            background-color: #ffffff;       /* bg-white */
+            border-color: #F3F4F6;           /* border-gray-100 */
+            color: #6B7280;                  /* text-gray-500 */
+        }
+        .filter-pill.inactive:hover {
+            border-color: #E9D5FF;           /* hover:border-purple-200 */
+            color: #9333EA;                  /* hover:text-purple-600 */
+        }
+        .filter-pill.active {
+            background-color: #111827;       /* bg-gray-900 */
+            border-color: #111827;           /* border-gray-900 */
+            color: #ffffff;                  /* text-white */
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* shadow-lg */
+        }
 
-.fav-btn {
-  position: absolute; top: 10px; right: 10px; width: 26px; height: 26px;
-  border-radius: 50%; background: rgba(255,255,255,.92); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .18s;
-}
-.fav-btn i { font-size: 10px; color: #aaa; pointer-events: none; }
-.fav-btn:hover i, .fav-btn.loved i { color: #e85c5c; }
+        /* Map Marker Overrides */
+        .map-marker {
+            background: white;
+            border: 2px solid white;
+            border-radius: 14px;
+            padding: 6px 10px;
+            font-family: 'Satoshi', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            color: #111827;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            transform-origin: center bottom;
+        }
+        .map-marker:hover {
+            transform: scale(1.1) translateY(-4px);
+            border-color: #8B5CF6;
+            color: #8B5CF6;
+        }
+        .map-marker.pm-active {
+            background: #8B5CF6;
+            color: white;
+            border-color: #8B5CF6;
+            transform: scale(1.15) translateY(-4px);
+            z-index: 1000 !important;
+            box-shadow: 0 12px 24px rgba(139, 92, 246, 0.4);
+        }
+        .map-marker.pm-active::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: #8B5CF6 transparent transparent transparent;
+        }
 
-.no-results {
-  display: none; flex-direction: column; align-items: center;
-  padding: 60px 20px; text-align: center; color: var(--muted);
-}
-.no-results i { font-size: 44px; margin-bottom: 14px; opacity: .25; }
-.no-results strong { font-size: 14px; }
-.no-results small { font-size: 11.5px; margin-top: 4px; display: block; }
-
-/* MAP */
-.panel-right { flex: 1; position: relative; min-width: 0; min-height: 0; }
-#map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
-
-/* Price markers */
-.pm {
-  background: #fff; border: 1.5px solid #bbb; border-radius: 7px;
-  padding: 4px 10px; font-family: var(--font); font-size: 11.5px; font-weight: 700;
-  color: #1a1a1a; box-shadow: 0 2px 8px rgba(0,0,0,.2); cursor: pointer;
-  white-space: nowrap; line-height: 1.2; user-select: none;
-  transition: background .15s, color .15s, transform .15s;
-}
-.pm:hover { background: #222; color: #fff; border-color: #222; }
-.pm.pm-active { background: var(--dark); color: #fff; border-color: var(--dark); transform: scale(1.12); }
-
-/* Leaflet popup overrides */
-.leaflet-popup-content-wrapper {
-  border-radius: 14px !important; padding: 0 !important;
-  overflow: hidden !important; box-shadow: 0 8px 32px rgba(0,0,0,.2) !important;
-}
-.leaflet-popup-content { margin: 0 !important; }
-.leaflet-popup-tip-container { display: none !important; }
-.leaflet-popup-close-button { top: 6px !important; right: 8px !important; font-size: 20px !important; color: #fff !important; z-index: 10; }
-
-.mpopup { width: 230px; font-family: var(--font); }
-.mpopup-img { width:100%; height:110px; display:flex; align-items:center; justify-content:center; font-size:44px; }
-.mpopup-body { padding: 10px 13px 13px; }
-.mpopup-name { font-size:13px; font-weight:700; margin-bottom:5px; color: var(--text); }
-.mpopup-stars { display:flex; align-items:center; gap:4px; margin-bottom:4px; }
-.mpopup-loc { font-size:11px; color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:3px; }
-.mpopup-loc i { color:var(--green); font-size:9px; }
-.mpopup-price { font-size:15px; font-weight:700; color:var(--green); margin-bottom:8px; }
-.mpopup-btn {
-  display:block; width:100%; padding:8px; background:var(--green); color:#fff;
-  border:none; border-radius:8px; font-size:12px; font-weight:600;
-  cursor:pointer; font-family:var(--font); text-align:center;
-}
-.mpopup-btn:hover { background:#155048; }
-
-@media (max-width: 768px) {
-  body { overflow: auto; }
-  .split { flex-direction: column; flex: none; min-height: 0; }
-  .panel-left { width:100%; border-right:none; border-bottom:1px solid var(--border); }
-  .cards-scroll { max-height: 50vh; }
-  .panel-right { height: 420px; flex: none; }
-  .header-nav, #nav-auth-buttons { display: none; }
-}
-</style>
-<script src="../js/global-nav.js" defer></script>
+        /* Leaflet Popup Aesthetics */
+        .leaflet-popup-content-wrapper {
+            border-radius: 24px !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            box-shadow: 0 24px 48px -12px rgba(139, 92, 246, 0.25) !important;
+            border: 2px solid #F5F1FF;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: 280px !important;
+        }
+        .leaflet-popup-tip-container {
+            display: none !important;
+        }
+        .leaflet-popup-close-button {
+            top: 12px !important;
+            right: 12px !important;
+            color: white !important;
+            font-size: 20px !important;
+            width: 28px !important;
+            height: 28px !important;
+            background: rgba(0,0,0,0.2) !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            line-height: 1 !important;
+            padding: 0 !important;
+            transition: all 0.2s !important;
+        }
+        .leaflet-popup-close-button:hover {
+            background: rgba(0,0,0,0.4) !important;
+        }
+        .leaflet-container a.leaflet-popup-close-button {
+            padding: 0 !important;
+        }
+    </style>
 </head>
 <body>
-
-<header class="site-header">
-  <a href="../index.html" class="logo" data-nav="logo" style="text-decoration:none;color:inherit">IELTS PRACTICE</a>
-  <nav class="header-nav">
-    <a href="../index.html">Home</a>
-    <a href="./exam-dates.html">Exam &amp; Mock Dates</a>
-    <a href="./education-centres.html" class="active">Education Centres</a>
-    <a href="../contact.html">Contact</a>
-  </nav>
-  <div id="nav-auth-buttons" class="nav-auth-index" style="display:flex;align-items:center;gap:8px"><a href="../login.html" class="link">Login</a><a href="../login/signup.html" class="link">Sign Up</a></div>
-</header>
-
-<div class="split">
-  <div class="panel-left">
-    <div class="panel-header">
-      <div class="result-lbl" id="resultLbl">8 centres found</div>
-      <div class="page-title">Education Centres</div>
-      <div class="search-wrap">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="search-input" id="searchInput" placeholder="Search by name, city or district…" oninput="applyFilters()">
-      </div>
-      <div class="pill-row">
-        <button class="pill active" data-t="all"      onclick="setType(this)">All</button>
-        <button class="pill"        data-t="Official" onclick="setType(this)"><i class="fa-solid fa-certificate"></i> Official</button>
-        <button class="pill"        data-t="Partner"  onclick="setType(this)"><i class="fa-solid fa-handshake"></i> Partner</button>
-        <button class="pill"        data-t="Online"   onclick="setType(this)"><i class="fa-solid fa-wifi"></i> Online</button>
-        <button class="pill" id="openPill"            onclick="toggleOpen(this)"><i class="fa-regular fa-clock"></i> Open Now</button>
-        <div class="pill-icon"><i class="fa-solid fa-sliders"></i></div>
-      </div>
+    <!-- Header -->
+    <div v-scope="{ ...{'activeItem':'centres','homeHref':'../index.html','coursesHref':'../courses.html','examHref':'./exam-dates.html','centresHref':'./education-centres.html','contactHref':'../contact.html','signupHref':'/signup.html','loginHref':'/login.html'}, $emit() {} }">
+        <nav class="flex items-center justify-between px-8 md:px-16 py-8 bg-white shadow-sm relative z-[1000]">
+            <div class="flex items-center gap-12">
+                <a href="../index.html" class="text-3xl font-black flex items-center uppercase tracking-tighter">
+                    <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                    <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                </a>
+                <div class="hidden lg:flex items-center gap-8 font-semibold text-gray-600">
+                    <a :href="homeHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'home' }">Home</a>
+                    <a :href="coursesHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'courses' }">Courses</a>
+                    <a :href="examHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'exam' }">Exam &amp; Mock dates</a>
+                    <a :href="centresHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'centres' }">Educational Centres</a>
+                    <a :href="contactHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'contact' }">Contact</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <a :href="signupHref" class="font-bold hover:text-[#FF6B35] transition-colors hidden sm:block">Sign up</a>
+                <a :href="loginHref" class="bg-[#FF6B35] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
+                    Login
+                </a>
+                <button class="lg:hidden text-2xl text-gray-700">
+                    <iconify-icon icon="ph:list-bold"></iconify-icon>
+                </button>
+            </div>
+        </nav>
     </div>
-    <div class="sort-bar">
-      <span class="sort-lbl" id="sortLbl">Showing all 8 centres</span>
-      <select class="sort-sel" id="sortSel" onchange="applyFilters()">
-        <option value="rating">⭐ Top Rated</option>
-        <option value="name">A–Z Name</option>
-        <option value="price">Price Low–High</option>
-        <option value="reviews">Most Reviews</option>
-      </select>
-    </div>
-    <div class="cards-scroll" id="cardsWrap"></div>
-    <div class="no-results" id="noResults">
-      <i class="fa-solid fa-building-circle-xmark"></i>
-      <strong>No centres found</strong>
-      <small>Try a different search or filter</small>
-    </div>
-  </div>
 
-  <div class="panel-right">
-    <div id="map"></div>
-  </div>
-</div>
+    <!-- Hero Strip -->
+    <section class="px-4 md:px-8 lg:px-16 pt-6 pb-6 shrink-0 relative z-10">
+        <div class="max-w-[1440px] mx-auto bg-gray-900 rounded-[32px] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative shadow-2xl">
+            <!-- Glows -->
+            <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-[#FF6B35] rounded-full mix-blend-screen filter blur-[80px] opacity-40"></div>
+            <div class="absolute right-20 top-0 w-64 h-64 bg-[#8B5CF6] rounded-full mix-blend-screen filter blur-[80px] opacity-40"></div>
+            
+            <div class="relative z-10 flex-1">
+                <h1 class="text-white text-3xl md:text-4xl font-black mb-2 flex items-center gap-3">
+                    Education Centres 
+                    <span class="px-3 py-1 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 text-xs tracking-widest uppercase font-bold text-purple-300">Map View</span>
+                </h1>
+                <p class="text-gray-400 font-medium text-lg">Find trusted IELTS preparation partners and official venues near you.</p>
+            </div>
+            
+            <div class="relative z-10 flex gap-4 shrink-0">
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-4">
+                    <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 text-xl">
+                        <iconify-icon icon="ph:buildings-fill"></iconify-icon>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-white leading-none">8</div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Total Centres</div>
+                    </div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-4 hidden sm:flex">
+                    <div class="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-400 text-xl">
+                        <iconify-icon icon="ph:map-trifold-fill"></iconify-icon>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-white leading-none">5</div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Active Cities</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<script>
-// ─── ALL JS IN ONE SCOPE — no duplicate declarations ───────────────────────
+    <!-- Main Split Layout -->
+    <section class="px-4 md:px-8 lg:px-16 pb-16 flex-1 flex flex-col">
+        <div class="max-w-[1440px] mx-auto w-full flex-1 flex flex-col lg:flex-row gap-6 min-h-[600px] h-[calc(100vh-280px)] scroll-reveal active relative z-0">
+            
+            <!-- Left Panel: List & Filters -->
+            <div class="w-full lg:w-[480px] xl:w-[540px] bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-2 border-purple-50 flex flex-col overflow-hidden shrink-0 z-10">
+                
+                <!-- Filter Header -->
+                <div class="p-6 border-b border-gray-100 space-y-5 bg-white">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-400 uppercase tracking-wider" id="resultLbl">8 centres found</span>
+                    </div>
+                    
+                    <!-- Search Bar -->
+                    <div class="relative">
+                        <iconify-icon icon="ph:magnifying-glass-bold" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></iconify-icon>
+                        <input type="text" id="searchInput" placeholder="Search by name, city or district..." 
+                               class="w-full bg-gray-50 border-2 border-transparent focus:border-purple-200 focus:bg-white rounded-2xl py-3 pl-12 pr-4 font-bold text-gray-700 outline-none transition-all placeholder:font-medium">
+                    </div>
 
-const CENTRES = [
-  { id:1, name:"British Council Tashkent",   type:"Official", city:"Tashkent",   district:"Yunusabad",     rating:4.9, reviews:312, students:"2,400+", courses:3, price:450000, open:true,  icon:"🏛️", bg:"#c7ede6", lat:41.3111, lng:69.2797 },
-  { id:2, name:"IDP Education Tashkent",     type:"Official", city:"Tashkent",   district:"Mirzo Ulugbek", rating:4.8, reviews:278, students:"1,900+", courses:2, price:420000, open:true,  icon:"🎓", bg:"#cfe2f3", lat:41.3205, lng:69.3120 },
-  { id:3, name:"IELTSPRACTICE Hub",          type:"Partner",  city:"Tashkent",   district:"Chilonzor",     rating:4.7, reviews:189, students:"950+",   courses:4, price:280000, open:true,  icon:"📚", bg:"#fde8cc", lat:41.2880, lng:69.2060 },
-  { id:4, name:"Global Education Samarkand", type:"Partner",  city:"Samarkand",  district:"Centre",        rating:4.6, reviews:145, students:"620+",   courses:2, price:320000, open:false, icon:"🕌", bg:"#ede0ff", lat:39.6542, lng:66.9758 },
-  { id:5, name:"Fergana Language Academy",   type:"Partner",  city:"Fergana",    district:"Mustaqillik",   rating:4.5, reviews:98,  students:"410+",   courses:2, price:150000, open:true,  icon:"✏️", bg:"#d0f0fb", lat:40.3864, lng:71.7864 },
-  { id:6, name:"Bukhara IELTS Centre",       type:"Partner",  city:"Bukhara",    district:"Old City",      rating:4.4, reviews:76,  students:"300+",   courses:2, price:200000, open:true,  icon:"🏰", bg:"#fde8cc", lat:39.7747, lng:64.4286 },
-  { id:7, name:"Online IELTS Pro",           type:"Online",   city:"Nationwide", district:"Remote",        rating:4.7, reviews:423, students:"5,000+", courses:5, price:180000, open:true,  icon:"💻", bg:"#dbeafe", lat:41.2600, lng:69.2200 },
-  { id:8, name:"Namangan Study Centre",      type:"Partner",  city:"Namangan",   district:"Central",       rating:4.3, reviews:54,  students:"220+",   courses:2, price:130000, open:false, icon:"🏫", bg:"#d1fae5", lat:40.9983, lng:71.6726 },
-];
+                    <!-- Pills -->
+                    <div class="flex flex-wrap gap-2">
+                        <button class="filter-pill active" data-filter="all">All</button>
+                        <button class="filter-pill inactive" data-filter="Official">
+                            <iconify-icon icon="ph:certificate-fill" class="text-purple-500"></iconify-icon> Official
+                        </button>
+                        <button class="filter-pill inactive" data-filter="Partner">
+                            <iconify-icon icon="ph:handshake-fill" class="text-orange-500"></iconify-icon> Partner
+                        </button>
+                        <button class="filter-pill inactive" data-filter="Online">
+                            <iconify-icon icon="ph:laptop-fill" class="text-blue-500"></iconify-icon> Online
+                        </button>
+                        <button class="filter-pill inactive" id="openToggle">
+                            <iconify-icon icon="ph:clock-fill" class="text-green-500"></iconify-icon> Open Now
+                        </button>
+                    </div>
+                </div>
 
-// State — all in one place
-var activeType = 'all';
-var onlyOpen   = false;
-var activeId   = null;
-var favs       = new Set();
-var leafMarkers = {};
-var mapInstance = null;
+                <!-- Sort Bar -->
+                <div class="px-6 py-3 bg-gray-50 flex justify-between items-center border-b border-gray-100">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" id="sortLbl">Showing all centres</span>
+                    <div class="relative">
+                        <select id="sortSel" class="bg-white border border-gray-200 rounded-xl py-1.5 pl-3 pr-8 text-xs font-bold text-gray-700 outline-none appearance-none cursor-pointer shadow-sm focus:border-purple-300">
+                            <option value="rating">⭐ Top Rated</option>
+                            <option value="name">A-Z Name</option>
+                            <option value="price">Price Low-High</option>
+                            <option value="reviews">Most Reviews</option>
+                        </select>
+                        <iconify-icon icon="ph:caret-down-bold" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></iconify-icon>
+                    </div>
+                </div>
 
-// ── STARS HTML ─────────────────────────────────────────────────────────────
-function starsHtml(r) {
-  var h = '<div class="stars">';
-  for (var i = 1; i <= 5; i++) {
-    if (i <= Math.floor(r))  h += '<i class="fa-solid fa-star sf"></i>';
-    else if (i - r < 1)      h += '<i class="fa-solid fa-star-half-stroke sf"></i>';
-    else                     h += '<i class="fa-regular fa-star se"></i>';
-  }
-  return h + '</div>';
-}
+                <!-- Cards Container -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-gray-50/50" id="cardsWrap">
+                    <!-- Cards dynamically injected here -->
+                </div>
 
-// ── RENDER CARDS ───────────────────────────────────────────────────────────
-function renderCards(list) {
-  var wrap  = document.getElementById('cardsWrap');
-  var noRes = document.getElementById('noResults');
+                <!-- Empty State -->
+                <div id="noResults" class="hidden flex-col items-center justify-center h-full p-8 text-center bg-gray-50/50">
+                    <div class="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center text-gray-300 text-4xl mb-4">
+                        <iconify-icon icon="ph:buildings-duotone"></iconify-icon>
+                    </div>
+                    <h4 class="text-xl font-black text-gray-900 mb-2">No centres found</h4>
+                    <p class="text-gray-500 font-medium text-sm">Try adjusting your search or filters to find what you're looking for.</p>
+                </div>
+            </div>
 
-  if (!list.length) {
-    wrap.innerHTML = '';
-    noRes.style.display = 'flex';
-    document.getElementById('sortLbl').textContent  = 'No centres found';
-    document.getElementById('resultLbl').textContent = '0 centres found';
-    return;
-  }
+            <!-- Right Panel: Map -->
+            <div class="flex-1 bg-gray-200 rounded-[32px] overflow-hidden border-2 border-purple-50 shadow-inner relative min-h-[400px] lg:min-h-0 z-0">
+                <div id="map" class="absolute inset-0"></div>
+                
+                <!-- Floating Map Controls (Optional aesthetic addition) -->
+                <div class="absolute bottom-6 left-6 z-[400] bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-white/50 hidden sm:block">
+                    <div class="flex items-center gap-3 text-xs font-bold text-gray-600">
+                        <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#8B5CF6]"></div> Official</span>
+                        <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#FF6B35]"></div> Partner</span>
+                        <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div> Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-  noRes.style.display = 'none';
-  document.getElementById('sortLbl').textContent  = 'Showing ' + list.length + ' centre' + (list.length !== 1 ? 's' : '');
-  document.getElementById('resultLbl').textContent = list.length + ' centre' + (list.length !== 1 ? 's' : '') + ' found';
+    <!-- Footer -->
+    <footer class="px-6 md:px-16 py-24 bg-white border-t border-purple-50 mt-auto">
+        <div class="max-w-[1360px] mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 items-start">
+                <div class="lg:col-span-5">
+                    <div class="text-3xl font-black flex items-center uppercase tracking-tighter mb-8">
+                        <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                        <span class="text-black/60 text-lg tracking-[0.2em] font-bold">PRACTICE</span>
+                    </div>
+                    <p class="text-gray-400 text-lg font-medium max-w-sm mb-10 leading-relaxed">
+                        Empowering students worldwide to achieve their dreams through innovative, technology-driven IELTS preparation tools.
+                    </p>
+                    <div class="flex gap-4">
+                        <a id="soc-1" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
+                        <a id="soc-2" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
+                        <a id="soc-3" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
+                        <a id="soc-4" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:linkedin-logo-bold"></iconify-icon></a>
+                    </div>
+                </div>
 
-  wrap.innerHTML = list.map(function(c, i) {
-    return '<div class="centre-card' + (activeId === c.id ? ' is-active' : '') + '" id="card-' + c.id + '" style="animation-delay:' + (i * 0.045) + 's" onclick="selectCentre(' + c.id + ')">' +
-      '<div class="card-thumb" style="background:' + c.bg + '">' + c.icon + '</div>' +
-      '<div class="card-body">' +
-        '<div class="card-tags"><span class="ctag ctag-' + c.type.toLowerCase() + '">' + c.type + '</span>' + (c.open ? '<span class="ctag ctag-open">Open</span>' : '') + '</div>' +
-        '<div class="card-name">' + c.name + '</div>' +
-        '<div class="card-stars">' + starsHtml(c.rating) + '<span class="rnum">' + c.rating + '</span><span class="rcnt">(' + c.reviews + ')</span></div>' +
-        '<div class="card-info"><span><i class="fa-solid fa-users"></i>' + c.students + ' students</span><span><i class="fa-solid fa-book-open"></i>' + c.courses + ' courses</span><span><i class="fa-solid fa-location-dot"></i>' + c.city + '</span></div>' +
-      '</div>' +
-      '<div class="card-price-badge"><div class="cprice-label">From</div><div class="cprice-val">' + Math.round(c.price/1000) + 'K</div><div class="cprice-unit">UZS/mo</div></div>' +
-      '<div class="fav-btn' + (favs.has(c.id) ? ' loved' : '') + '" id="fav-' + c.id + '" onclick="toggleFav(event,' + c.id + ')"><i class="fa-' + (favs.has(c.id) ? 'solid' : 'regular') + ' fa-heart"></i></div>' +
-    '</div>';
-  }).join('');
-}
+                <div class="lg:col-span-3 grid grid-cols-2 gap-10">
+                    <div>
+                        <h6 class="font-black uppercase text-xs tracking-widest text-gray-400 mb-8">Quick Links</h6>
+                        <ul class="space-y-4 font-bold text-gray-700">
+                            <li><a id="foot-1" href="../index.html" class="hover:text-purple-600 transition-colors">Home</a></li>
+                            <li><a id="foot-2" href="../courses.html" class="hover:text-purple-600 transition-colors">Courses</a></li>
+                            <li><a id="foot-3" href="./education-centres.html" class="hover:text-purple-600 transition-colors">Centers</a></li>
+                            <li><a id="foot-4" href="../dashboard.html" class="hover:text-purple-600 transition-colors">Mock Exams</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h6 class="font-black uppercase text-xs tracking-widest text-gray-400 mb-8">Support</h6>
+                        <ul class="space-y-4 font-bold text-gray-700">
+                            <li><a id="foot-5" href="#" class="hover:text-purple-600 transition-colors">Help Center</a></li>
+                            <li><a id="foot-6" href="#" class="hover:text-purple-600 transition-colors">FAQ</a></li>
+                            <li><a id="foot-7" href="#" class="hover:text-purple-600 transition-colors">Privacy</a></li>
+                            <li><a id="foot-8" href="#" class="hover:text-purple-600 transition-colors">Terms</a></li>
+                        </ul>
+                    </div>
+                </div>
 
-// ── FILTER + SORT ──────────────────────────────────────────────────────────
-function applyFilters() {
-  var q    = document.getElementById('searchInput').value.toLowerCase().trim();
-  var sort = document.getElementById('sortSel').value;
+                <div class="lg:col-span-4 bg-[#F5F1FF] p-8 rounded-[40px]">
+                    <h6 class="font-black uppercase text-xs tracking-widest text-purple-600 mb-6">Contact Us</h6>
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm"><iconify-icon icon="ph:envelope-bold"></iconify-icon></div>
+                            <div>
+                                <p class="text-xs font-bold text-gray-400 uppercase">Email</p>
+                                <p class="font-black">hello@ieltspractice.com</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-orange-600 shadow-sm"><iconify-icon icon="ph:phone-bold"></iconify-icon></div>
+                            <div>
+                                <p class="text-xs font-bold text-gray-400 uppercase">Phone</p>
+                                <p class="font-black">+1 (555) 888-9900</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-  var list = CENTRES.filter(function(c) {
-    if (activeType !== 'all' && c.type !== activeType) return false;
-    if (onlyOpen && !c.open) return false;
-    if (q && c.name.toLowerCase().indexOf(q) === -1 &&
-             c.city.toLowerCase().indexOf(q) === -1 &&
-             c.district.toLowerCase().indexOf(q) === -1) return false;
-    return true;
-  });
+            <div class="mt-24 pt-10 border-t border-purple-50 flex flex-col md:flex-row justify-between items-center gap-6 text-xs font-black text-gray-400 tracking-widest">
+                <div>© 2024 IELTSPRACTICE LEARNING PLATFORM</div>
+                <div class="flex gap-8">
+                    <a id="copy-1" href="#" class="hover:text-purple-600 transition-colors">PRIVACY POLICY</a>
+                    <a id="copy-2" href="#" class="hover:text-purple-600 transition-colors">TERMS OF SERVICE</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
-  if (sort === 'rating')  list.sort(function(a,b){ return b.rating  - a.rating; });
-  if (sort === 'name')    list.sort(function(a,b){ return a.name.localeCompare(b.name); });
-  if (sort === 'price')   list.sort(function(a,b){ return a.price   - b.price; });
-  if (sort === 'reviews') list.sort(function(a,b){ return b.reviews - a.reviews; });
+    <script>
+        // Animation Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('active');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
 
-  // sync marker visibility
-  CENTRES.forEach(function(c) {
-    var show = list.some(function(x){ return x.id === c.id; });
-    if (leafMarkers[c.id]) leafMarkers[c.id].el.style.display = show ? '' : 'none';
-  });
+        // Data Source
+        const CENTRES = [
+            { id: 1, name: "British Council Tashkent", type: "Official", city: "Tashkent", district: "Yunusabad", rating: 4.9, reviews: 312, students: "2,400+", courses: 3, price: 450000, open: true, icon: "🏛️", bg: "#F5F1FF", lat: 41.3111, lng: 69.2797 },
+            { id: 2, name: "IDP Education Tashkent", type: "Official", city: "Tashkent", district: "Mirzo Ulugbek", rating: 4.8, reviews: 278, students: "1,900+", courses: 2, price: 420000, open: true, icon: "🎓", bg: "#F5F1FF", lat: 41.3205, lng: 69.3120 },
+            { id: 3, name: "IELTSPRACTICE Hub", type: "Partner", city: "Tashkent", district: "Chilonzor", rating: 4.7, reviews: 189, students: "950+", courses: 4, price: 280000, open: true, icon: "📚", bg: "#FFF8F5", lat: 41.2880, lng: 69.2060 },
+            { id: 4, name: "Global Education Samarkand", type: "Partner", city: "Samarkand", district: "Centre", rating: 4.6, reviews: 145, students: "620+", courses: 2, price: 320000, open: false, icon: "🕌", bg: "#FFF8F5", lat: 39.6542, lng: 66.9758 },
+            { id: 5, name: "Fergana Language Academy", type: "Partner", city: "Fergana", district: "Mustaqillik", rating: 4.5, reviews: 98, students: "410+", courses: 2, price: 150000, open: true, icon: "✏️", bg: "#FFF8F5", lat: 40.3864, lng: 71.7864 },
+            { id: 6, name: "Bukhara IELTS Centre", type: "Partner", city: "Bukhara", district: "Old City", rating: 4.4, reviews: 76, students: "300+", courses: 2, price: 200000, open: true, icon: "🏰", bg: "#FFF8F5", lat: 39.7747, lng: 64.4286 },
+            { id: 7, name: "Online IELTS Pro", type: "Online", city: "Nationwide", district: "Remote", rating: 4.7, reviews: 423, students: "5,000+", courses: 5, price: 180000, open: true, icon: "💻", bg: "#EFF6FF", lat: 41.2600, lng: 69.2200 },
+            { id: 8, name: "Namangan Study Centre", type: "Partner", city: "Namangan", district: "Central", rating: 4.3, reviews: 54, students: "220+", courses: 2, price: 130000, open: false, icon: "🏫", bg: "#FFF8F5", lat: 40.9983, lng: 71.6726 },
+        ];
 
-  renderCards(list);
-}
+        // State
+        let activeType = 'all';
+        let onlyOpen = false;
+        let activeId = null;
+        let favs = new Set();
+        let leafMarkers = {};
+        let mapInstance = null;
 
-// ── SELECT CENTRE ──────────────────────────────────────────────────────────
-function selectCentre(id) {
-  activeId = id;
-  var c = null;
-  for (var i = 0; i < CENTRES.length; i++) { if (CENTRES[i].id === id) { c = CENTRES[i]; break; } }
-  if (!c) return;
+        // Helper Functions
+        function getBadgeClass(type) {
+            if(type === 'Official') return 'purple-badge';
+            if(type === 'Partner') return 'orange-badge';
+            if(type === 'Online') return 'blue-badge';
+            return 'bg-gray-100 text-gray-600';
+        }
 
-  document.querySelectorAll('.centre-card').forEach(function(el){ el.classList.remove('is-active'); });
-  var card = document.getElementById('card-' + id);
-  if (card) { card.classList.add('is-active'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+        function starsHtml(r) {
+            let h = '<div class="flex gap-0.5 text-orange-400">';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= Math.floor(r)) h += '<iconify-icon icon="ph:star-fill"></iconify-icon>';
+                else if (i - r < 1) h += '<iconify-icon icon="ph:star-half-fill"></iconify-icon>';
+                else h += '<iconify-icon icon="ph:star-fill" class="text-gray-200"></iconify-icon>';
+            }
+            return h + '</div>';
+        }
 
-  Object.keys(leafMarkers).forEach(function(mid) {
-    leafMarkers[mid].el.classList.toggle('pm-active', Number(mid) === id);
-  });
+        function toggleFav(e, id) {
+            e.stopPropagation();
+            if (favs.has(id)) favs.delete(id);
+            else favs.add(id);
+            
+            const btn = document.getElementById('fav-' + id);
+            if (btn) {
+                btn.classList.toggle('text-red-500', favs.has(id));
+                btn.classList.toggle('bg-red-50', favs.has(id));
+                btn.innerHTML = `<iconify-icon icon="${favs.has(id) ? 'ph:heart-fill' : 'ph:heart-bold'}"></iconify-icon>`;
+            }
+        }
 
-  if (mapInstance) {
-    mapInstance.flyTo([c.lat, c.lng], 13, { duration: 1.0 });
-    setTimeout(function(){ if (leafMarkers[id]) leafMarkers[id].marker.openPopup(); }, 1100);
-  }
-}
+        function selectCentre(id) {
+            activeId = id;
+            const c = CENTRES.find(x => x.id === id);
+            if (!c) return;
 
-// ── PILL CONTROLS ──────────────────────────────────────────────────────────
-function setType(btn) {
-  document.querySelectorAll('[data-t]').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  activeType = btn.dataset.t;
-  applyFilters();
-}
+            // Update Cards Styling
+            document.querySelectorAll('.centre-card').forEach(el => {
+                el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50/20');
+                el.classList.add('border-gray-100');
+            });
+            const card = document.getElementById('card-' + id);
+            if (card) {
+                card.classList.remove('border-gray-100');
+                card.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50/20');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
 
-function toggleOpen(btn) {
-  onlyOpen = !onlyOpen;
-  btn.classList.toggle('active', onlyOpen);
-  applyFilters();
-}
+            // Update Markers
+            Object.keys(leafMarkers).forEach(mid => {
+                leafMarkers[mid].el.classList.toggle('pm-active', Number(mid) === id);
+            });
 
-function toggleFav(e, id) {
-  e.stopPropagation();
-  if (favs.has(id)) favs.delete(id); else favs.add(id);
-  var btn = document.getElementById('fav-' + id);
-  if (!btn) return;
-  btn.classList.toggle('loved', favs.has(id));
-  btn.querySelector('i').className = favs.has(id) ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
-}
+            // Pan Map
+            if (mapInstance) {
+                mapInstance.flyTo([c.lat, c.lng], 13, { duration: 1.2 });
+                setTimeout(() => {
+                    if (leafMarkers[id]) leafMarkers[id].marker.openPopup();
+                }, 1200);
+            }
+        }
 
-// ── MAP INIT — runs after DOM is ready ─────────────────────────────────────
-function initMap() {
-  if (typeof L === 'undefined') {
-    document.querySelector('.panel-right').innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#6b7280;font-family:Poppins,sans-serif;gap:10px">' +
-      '<i class="fa-solid fa-map" style="font-size:48px;opacity:.2"></i>' +
-      '<p style="font-size:14px;font-weight:600">Map unavailable</p>' +
-      '<p style="font-size:12px">Network access required to load the map</p></div>';
-    return;
-  }
+        function renderCards(list) {
+            const wrap = document.getElementById('cardsWrap');
+            const noRes = document.getElementById('noResults');
+            const resultLbl = document.getElementById('resultLbl');
+            const sortLbl = document.getElementById('sortLbl');
 
-  var map = L.map('map', { center: [41.0, 64.5], zoom: 6, zoomControl: false });
-  mapInstance = map;
+            if (!list.length) {
+                wrap.innerHTML = '';
+                wrap.classList.add('hidden');
+                noRes.classList.remove('hidden');
+                noRes.classList.add('flex');
+                resultLbl.textContent = '0 centres found';
+                sortLbl.textContent = 'No centres found';
+                return;
+            }
 
-  L.control.zoom({ position: 'topright' }).addTo(map);
+            wrap.classList.remove('hidden');
+            noRes.classList.add('hidden');
+            noRes.classList.remove('flex');
+            resultLbl.textContent = `${list.length} centre${list.length !== 1 ? 's' : ''} found`;
+            sortLbl.textContent = `Showing ${list.length} centre${list.length !== 1 ? 's' : ''}`;
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(map);
+            wrap.innerHTML = list.map((c, i) => `
+                <div class="centre-card bg-white border-2 border-gray-100 hover:border-purple-200 rounded-[24px] p-4 flex gap-4 cursor-pointer transition-playful card-lift relative ${activeId === c.id ? 'ring-2 ring-purple-500 bg-purple-50/20 border-transparent' : ''}" 
+                     id="card-${c.id}" 
+                     style="animation: fadeUp 0.4s ease forwards ${i * 0.05}s" 
+                     onclick="selectCentre(${c.id})">
+                    
+                    <!-- Thumbnail -->
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-[20px] flex items-center justify-center text-4xl shrink-0 border border-black/5"
+                         style="background: ${c.bg}">${c.icon}</div>
+                    
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0 pr-8">
+                        <div class="flex flex-wrap gap-1.5 mb-2">
+                            <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${getBadgeClass(c.type)}">${c.type}</span>
+                            ${c.open ? `<span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg green-badge flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>Open</span>` : ''}
+                        </div>
+                        <h3 class="font-black text-gray-900 text-base sm:text-lg truncate mb-1">${c.name}</h3>
+                        <div class="flex items-center gap-1.5 text-sm mb-2.5">
+                            ${starsHtml(c.rating)} 
+                            <span class="font-black text-gray-900 text-xs">${c.rating}</span> 
+                            <span class="text-gray-400 font-bold text-[10px]">(${c.reviews})</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-[11px] text-gray-500 font-bold">
+                            <span class="flex items-center gap-1"><iconify-icon icon="ph:users-fill" class="text-purple-500 text-sm"></iconify-icon> ${c.students}</span>
+                            <span class="flex items-center gap-1"><iconify-icon icon="ph:map-pin-fill" class="text-orange-500 text-sm"></iconify-icon> ${c.city}</span>
+                        </div>
+                    </div>
 
-  // Build a marker for each centre
-  CENTRES.forEach(function(c) {
-    var el = document.createElement('div');
-    el.className = 'pm';
-    el.textContent = Math.round(c.price / 1000) + 'K';
-    el.addEventListener('click', function(){ selectCentre(c.id); });
+                    <!-- Price -->
+                    <div class="absolute bottom-4 right-4 text-right">
+                        <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">From</div>
+                        <div class="text-base sm:text-lg font-black text-[#111827] leading-none mt-0.5">${Math.round(c.price / 1000)}k <span class="text-[9px] text-gray-400">UZS</span></div>
+                    </div>
 
-    var icon = L.divIcon({ html: el, className: '', iconSize: [60, 28], iconAnchor: [30, 14] });
-    var marker = L.marker([c.lat, c.lng], { icon: icon }).addTo(map);
+                    <!-- Fav Button -->
+                    <button class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-colors z-10 ${favs.has(c.id) ? 'text-red-500 bg-red-50 border-red-100' : ''}" 
+                            id="fav-${c.id}"
+                            onclick="toggleFav(event, ${c.id})">
+                        <iconify-icon icon="${favs.has(c.id) ? 'ph:heart-fill' : 'ph:heart-bold'}"></iconify-icon>
+                    </button>
+                </div>
+            `).join('');
+        }
 
-    var popupHtml =
-      '<div class="mpopup">' +
-        '<div class="mpopup-img" style="background:' + c.bg + '">' + c.icon + '</div>' +
-        '<div class="mpopup-body">' +
-          '<div class="mpopup-name">' + c.name + '</div>' +
-          '<div class="mpopup-stars">' + starsHtml(c.rating) +
-            '<span style="font-size:11px;font-weight:700;margin-left:3px">' + c.rating + '</span>' +
-            '<span style="font-size:10px;color:#6b7280;margin-left:2px">(' + c.reviews + ')</span>' +
-          '</div>' +
-          '<div class="mpopup-loc"><i class="fa-solid fa-location-dot"></i> ' + c.city + ' · ' + c.district + '</div>' +
-          '<div class="mpopup-price">' + c.price.toLocaleString() + ' UZS<span style="font-size:10px;font-weight:400;color:#6b7280">/mo</span></div>' +
-          '<button class="mpopup-btn" onclick="selectCentre(' + c.id + ')">View Details</button>' +
-        '</div>' +
-      '</div>';
+        function applyFilters() {
+            const q = document.getElementById('searchInput').value.toLowerCase().trim();
+            const sort = document.getElementById('sortSel').value;
 
-    marker.bindPopup(popupHtml, { maxWidth: 260, minWidth: 230 });
-    leafMarkers[c.id] = { marker: marker, el: el };
-  });
+            let list = CENTRES.filter(c => {
+                if (activeType !== 'all' && c.type !== activeType) return false;
+                if (onlyOpen && !c.open) return false;
+                if (q && !c.name.toLowerCase().includes(q) && 
+                         !c.city.toLowerCase().includes(q) && 
+                         !c.district.toLowerCase().includes(q)) return false;
+                return true;
+            });
 
-  // Must call this AFTER the container has real pixel dimensions
-  setTimeout(function(){ map.invalidateSize(); }, 100);
-}
+            if (sort === 'rating') list.sort((a,b) => b.rating - a.rating);
+            if (sort === 'name') list.sort((a,b) => a.name.localeCompare(b.name));
+            if (sort === 'price') list.sort((a,b) => a.price - b.price);
+            if (sort === 'reviews') list.sort((a,b) => b.reviews - a.reviews);
 
-// ── BOOT ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  applyFilters();  // render cards first
-  initMap();       // then init map
-});
-</script>
+            // Sync map markers visibility
+            CENTRES.forEach(c => {
+                const show = list.some(x => x.id === c.id);
+                if (leafMarkers[c.id]) leafMarkers[c.id].el.style.display = show ? '' : 'none';
+            });
+
+            renderCards(list);
+        }
+
+        // Event Listeners Setup
+        function setupEvents() {
+            // Pills
+            document.querySelectorAll('.filter-pill[data-filter]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-pill[data-filter]').forEach(b => {
+                        b.classList.remove('active');
+                        b.classList.add('inactive');
+                    });
+                    e.currentTarget.classList.remove('inactive');
+                    e.currentTarget.classList.add('active');
+                    activeType = e.currentTarget.dataset.filter;
+                    applyFilters();
+                });
+            });
+
+            // Open Toggle
+            const openBtn = document.getElementById('openToggle');
+            openBtn.addEventListener('click', () => {
+                onlyOpen = !onlyOpen;
+                if(onlyOpen) {
+                    openBtn.classList.remove('inactive');
+                    openBtn.classList.add('active');
+                } else {
+                    openBtn.classList.remove('active');
+                    openBtn.classList.add('inactive');
+                }
+                applyFilters();
+            });
+
+            // Search & Sort
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('sortSel').addEventListener('change', applyFilters);
+        }
+
+        // Initialize Map
+        function initMap() {
+            if (typeof L === 'undefined') return;
+
+            mapInstance = L.map('map', {
+                center: [40.5, 66.5], // Center of Uzbekistan roughly
+                zoom: 6,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+
+            // Modern light basemap
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19
+            }).addTo(mapInstance);
+
+            CENTRES.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'map-marker';
+                el.innerHTML = `${Math.round(c.price / 1000)}k`;
+                el.onclick = () => selectCentre(c.id);
+
+                const icon = L.divIcon({
+                    html: el,
+                    className: '',
+                    iconSize: [50, 32],
+                    iconAnchor: [25, 32], // Anchor at bottom center
+                    popupAnchor: [0, -36] // Popup above marker
+                });
+
+                const marker = L.marker([c.lat, c.lng], { icon }).addTo(mapInstance);
+
+                const popupHtml = `
+                    <div class="font-['Satoshi'] w-[280px]">
+                        <div class="h-[140px] flex items-center justify-center text-6xl relative"
+                             style="background: ${c.bg}">
+                             <div class="absolute top-4 left-4">
+                                <span class="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${getBadgeClass(c.type)}">${c.type}</span>
+                             </div>
+                             ${c.icon}
+                        </div>
+                        <div class="p-5 bg-white">
+                            <h3 class="font-black text-gray-900 text-lg mb-1 truncate">${c.name}</h3>
+                            <div class="flex items-center gap-1.5 text-sm mb-3">
+                                ${starsHtml(c.rating)} 
+                                <span class="font-black text-gray-900 text-xs">${c.rating}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 font-bold mb-4">
+                                <iconify-icon icon="ph:map-pin-fill" class="text-orange-500 text-sm"></iconify-icon>
+                                ${c.city}, ${c.district}
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Starting from</div>
+                                    <div class="text-lg font-black text-purple-600 leading-none mt-0.5">${Math.round(c.price/1000)}k <span class="text-[9px] text-gray-400">UZS</span></div>
+                                </div>
+                                <button class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-600 transition-colors" onclick="selectCentre(${c.id})">
+                                    Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml);
+                leafMarkers[c.id] = { marker, el };
+            });
+
+            // Fit bounds after a slight delay to ensure container is ready
+            setTimeout(() => {
+                mapInstance.invalidateSize();
+                const bounds = L.latLngBounds(CENTRES.map(c => [c.lat, c.lng]));
+                mapInstance.fitBounds(bounds, { padding: [50, 50] });
+            }, 200);
+        }
+
+        // Add missing keyframe animation dynamically
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes fadeUp {
+                from { opacity: 0; transform: translateY(15px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEvents();
+            applyFilters();
+            initMap();
+        });
+    </script>
 </body>
 </html>

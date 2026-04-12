@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,27 +10,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
 enum Role {
   STUDENT
   ADMIN
   CEO
   CENTRE
   TEACHER
-}
-
-enum PartnerStatus {
-  PENDING
-  APPROVED
-}
-
-// New enums for CEO Mission Control
-enum AdminRole {
-  ADMIN
   GRADER
   SUPPORT
   CONTENT
   ANALYST
   MANAGER
+}
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum TaskLabel {
@@ -50,7 +53,6 @@ enum DeviceType {
   TABLET
 }
 
-// New enums for Admin Portal v2
 enum TestType {
   READING
   LISTENING
@@ -84,72 +86,343 @@ enum ReportStatus {
   WONT_FIX
 }
 
+enum GroupLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum GroupStatus {
+  OPEN
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// ─────────────────────────────────────────────────────────────
+// Core Identity
+// ─────────────────────────────────────────────────────────────
+
 model User {
-  id                 Int              @id @default(autoincrement())
-  full_name          String
-  email              String           @unique
-  password            String
+  id                  Int       @id @default(autoincrement())
+  full_name           String
+  email               String    @unique
+  username            String?   @unique
+  password            String?
   country             String?
   phone               String?
   test_type           String?
-  role                Role             @default(STUDENT)
-  is_verified         Boolean          @default(false)
-  is_onboarded       Boolean          @default(false)
-  target_band         Float?           @default(8)
-  current_band        Float            @default(5)
-  study_hours         Float            @default(0)
-  tasks_done          Int              @default(0)
-  weekly_goal_percent Float            @default(0)
-  exam_date          DateTime?
+  role                Role      @default(STUDENT)
+  is_verified         Boolean   @default(false)
+  is_onboarded        Boolean   @default(false)
+  target_band         Float?    @default(8.0)
+  current_band        Float     @default(5.0)
+  study_hours         Float     @default(0)
+  tasks_done          Int       @default(0)
+  weekly_goal_percent Float     @default(0)
+  exam_date           DateTime?
   exam_date_text      String?
   target_band_range   String?
-  study_commitment   String?
+  study_commitment    String?
   referral_source     String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  isActive            Boolean   @default(true)
+  lastSeenAt          DateTime?
 
+  // Onboarding fields
+  isExamDateUnsure    Boolean   @default(true)
+  sourceOfExposure    String?   
+  onboardingComplete  Boolean   @default(false)
+
+  // Relations mapped by Role
+  centreId Int?
+  centre   EducationCentre? @relation(fields: [centreId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Student Relations
   typingResults  TypingResult[]
   studyStreaks   StudyStreak[]
   weeklyProgress WeeklyProgress[]
-  reports       Report[]         @relation("reports")
-  lessons      Lesson[]         @relation("lessons")
-  materials    Material[]       @relation("materials")
-  followers    Follow[]         @relation("followers")
-  following    Follow[]         @relation("following")
+  reports        Report[]           @relation("ReportsSubmitted")
+  mockResults    MockResult[]
+  aiChats        AiChatSession[]
+  applications   GroupApplication[]
+  testSubmissions TestSubmission[]
+  userProgress  UserProgress[]
+
+  // NextAuth Relations
+  accounts      Account[]
+  sessions      Session[]
+
+  // Teacher Relations
+  lessons      Lesson[]     @relation("TeacherLessons")
+  materials    Material[]   @relation("TeacherMaterials")
+  followers    Follow[]     @relation("Followers")
+  following    Follow[]     @relation("Following")
+  taughtGroups StudyGroup[] @relation("TeacherGroups")
+
+  // Admin Relations
+  devices             Device[]
+  tasksAssigned       AdminTask[]
+  createdTests        PracticeTest[]       @relation("TestsCreated")
+  resolvedReports     Report[]             @relation("ReportsResolved")
+  loginLogs           LoginLog[]
+  practiceTestResults PracticeTestResult[]
+  testUnlocks         TestUnlock[]
+  progressSnapshots   ProgressSnapshot[]
+  passwordResets      PasswordResetToken[]
+
+  @@map("users")
 }
 
-model StudyStreak {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date       DateTime @db.Date
-  isCompleted Boolean @default(false)
+model Account {
+  id                String  @id @default(cuid())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
-  @@unique([userId, date])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
-model WeeklyProgress {
-  id                  Int     @id @default(autoincrement())
-  userId              Int
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  weekStartDate       DateTime @db.Date
-  perfectScoresCount  Int      @default(0)
-  progressPercentage  Float    @default(0)
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, weekStartDate])
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Education Centre Operations
+// ─────────────────────────────────────────────────────────────
+
+model EducationCentre {
+  id           Int     @id @default(autoincrement())
+  name         String
+  code         String  @unique
+  city         String
+  district     String?
+  address      String?
+  contactEmail String?
+  contactPhone String?
+  websiteUrl   String?
+
+  totalStudents  Int     @default(0)
+  activeStudents Int     @default(0)
+  rating         Float?  @default(0.0)
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff        User[]
+  mockSessions MockSession[]
+  studyGroups  StudyGroup[]
+  inquiries    Inquiry[]
+
+  @@index([city])
+  @@index([code])
+  @@map("centres")
 }
 
 model PartnerRequest {
-  id          Int            @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   centre_name String
   ceo_name    String
-  email       String         @unique
+  email       String        @unique
   phone       String
   location    String
-  status      PartnerStatus  @default(PENDING)
+  status      PartnerStatus @default(PENDING)
   password    String
-  createdAt   DateTime       @default(now())
+  createdAt   DateTime      @default(now())
 }
+
+model MockSession {
+  id       Int             @id @default(autoincrement())
+  centreId Int
+  centre   EducationCentre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  dateTime DateTime
+  type     String          @default("Academic") 
+  format   String          @default("Paper-Based") 
+  location String          @default("TBD")
+  capacity Int             @default(30)
+  price    Float           @default(0)
+  notes    String?         @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  results MockResult[]
+}
+
+model MockResult {
+  id        Int          @id @default(autoincrement())
+  studentId Int
+  student   User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sessionId Int?
+  session   MockSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  listening Float?
+  reading   Float?
+  writing   Float?
+  speaking  Float?
+  overall   Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StudyGroup {
+  id        Int             @id @default(autoincrement())
+  centreId  Int
+  centre    EducationCentre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  teacherId Int?
+  teacher   User?           @relation("TeacherGroups", fields: [teacherId], references: [id])
+
+  name        String
+  level       String      @default("All levels")
+  schedule    String      @default("TBD")
+  startDate   DateTime?
+  endDate     DateTime?
+  capacity    Int         @default(15)
+  status      GroupStatus @default(OPEN)
+  description String?     @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications GroupApplication[]
+}
+
+model GroupApplication {
+  id        Int               @id @default(autoincrement())
+  studentId Int
+  student   User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  groupId   Int
+  group     StudyGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  status    ApplicationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, groupId])
+}
+
+model Inquiry {
+  id           Int             @id @default(autoincrement())
+  centreId     Int
+  centre       EducationCentre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  studentName  String
+  studentEmail String
+  message      String          @db.Text
+  isRead       Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────
+// Admin & CEO
+// ─────────────────────────────────────────────────────────────
+
+model AdminTask {
+  id      Int  @id @default(autoincrement())
+  adminId Int
+  admin   User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  title        String
+  notes        String?      @db.Text
+  label        TaskLabel    @default(CUSTOMER_SERVICE)
+  priority     TaskPriority @default(MEDIUM)
+  isDone       Boolean      @default(false)
+  doneAt       DateTime?
+  assignedDate DateTime     @default(now()) @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([adminId])
+  @@index([isDone])
+}
+
+model Device {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceType DeviceType @default(DESKTOP)
+  deviceName String
+  browser    String
+  os         String?
+
+  ipAddress String?
+  location  String?
+  latitude  Float?
+  longitude Float?
+
+  userAgent    String?  @db.Text
+  isActive     Boolean  @default(true)
+  lastActiveAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model StrategicGoal {
+  id       Int          @id @default(autoincrement())
+  title    String
+  priority TaskPriority @default(MEDIUM)
+  column   String       @default("TODO")
+  dueDate  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  icon      String   @default("🔔")
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model LoginLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ipAddress  String?
+  deviceInfo String?
+  userAgent  String?  @db.Text
+  success    Boolean
+  reason     String?
+  timestamp  DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Student Practice & Records
+// ─────────────────────────────────────────────────────────────
 
 model TypingResult {
   id              Int      @id @default(autoincrement())
@@ -161,207 +434,67 @@ model TypingResult {
   durationMinutes Int?     @default(2)
 }
 
-model VerificationCode {
-  id        Int      @id @default(autoincrement())
-  email     String
-  code      String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-}
-
-model ExamDate {
-  id    Int      @id @default(autoincrement())
-  date  DateTime
-  label String?
-}
-
-// ─────────────────────────────────────────────────────────────
-// CEO Mission Control Models
-// ─────────────────────────────────────────────────────────────
-
-model Admin {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  phone       String?
-  passwordHash String      // bcrypt hash — never store plaintext
-  role        AdminRole    @default(GRADER)
-  isActive    Boolean      @default(true)
-  lastSeenAt  DateTime?
-
-  devices     Device[]
-  tasks       AdminTask[]
-  createdTests    PracticeTest[]  @relation("CreatedTests")
-  resolvedReports Report[]        @relation("resolvedReports")
-
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-}
-
-model Device {
-  id           Int          @id @default(autoincrement())
-
-  // Linked to an admin (nullable if this is CEO's device)
-  adminId      Int?
-  admin        Admin?       @relation(fields: [adminId], references: [id], onDelete: Cascade)
-
-  deviceType   DeviceType   @default(DESKTOP)
-  deviceName   String       // e.g. "MacBook Pro 16""
-  browser      String       // e.g. "Chrome 122"
-  os           String?      // e.g. "Ubuntu 22.04"
-
-  ipAddress    String?
-  location     String?      // e.g. "Tashkent, UZ"  (from IP geo-lookup)
-  latitude     Float?
-  longitude    Float?
-
-  userAgent    String?      @db.Text
-  isActive     Boolean      @default(true)   // currently logged-in session
-  lastActiveAt DateTime     @default(now())
-
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  @@index([adminId])
-  @@index([isActive])
-}
-
-model AdminTask {
-  id          Int           @id @default(autoincrement())
-
-  adminId     Int
-  admin       Admin         @relation(fields: [adminId], references: [id], onDelete: Cascade)
-
-  title       String
-  notes       String?       @db.Text
-  label       TaskLabel     @default(CUSTOMER_SERVICE)
-  priority    TaskPriority  @default(MEDIUM)
-  isDone      Boolean       @default(false)
-  doneAt      DateTime?
-
-  // Date this task was assigned (for "today's tasks" queries)
-  assignedDate DateTime     @default(now()) @db.Date
-
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@index([adminId])
-  @@index([assignedDate])
-  @@index([isDone])
-}
-
-model EducationalCentre {
-  id              Int       @id @default(autoincrement())
-  name            String
-  city            String
-  district        String?
-  address         String?
-  contactEmail    String?
-  contactPhone    String?
-  websiteUrl      String?
-
-  // Performance metrics (can be computed or manually updated)
-  totalStudents   Int       @default(0)
-  activeStudents  Int       @default(0)
-  rating          Float?    @default(0.0)  // 0.0–5.0
-
-  isActive        Boolean   @default(true)
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([city])
-  @@index([isActive])
-}
-
-model StrategicGoal {
+model StudyStreak {
   id          Int      @id @default(autoincrement())
-  title       String
-  priority    TaskPriority @default(MEDIUM)
-  column      String   @default("TODO")   // TODO | IN_PROGRESS | DONE
-  dueDate     DateTime?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  isCompleted Boolean  @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  @@unique([userId, date])
 }
 
-model Notification {
-  id        Int      @id @default(autoincrement())
-  icon      String   @default("🔔")
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+model WeeklyProgress {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStartDate      DateTime @db.Date
+  perfectScoresCount Int      @default(0)
+  progressPercentage Float    @default(0)
+
+  @@unique([userId, weekStartDate])
 }
 
-// ─────────────────────────────────────────────────────────────
-// Education Centre Management Models
-// ─────────────────────────────────────────────────────────────
+model AiChatSession {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic        String   @default("General")
+  messageCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-model EducationCentre {
-  id       Int    @id @default(autoincrement())
-  name     String
-  location String
-  code     String @unique
-  isActive Boolean @default(true)
-  users    CentreUser[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([code])
-}
-
-model CentreUser {
-  id           Int            @id @default(autoincrement())
-  email        String          @unique
-  passwordHash String         // bcrypt hash — never store plaintext
-  fullName     String
-  role         CentreRole      @default(CENTRE_ADMIN)
-  centreId     Int
-  centre       EducationCentre @relation(fields: [centreId], references: [id], onDelete: Cascade)
-  lastLoginAt  DateTime?
-  isActive     Boolean         @default(true)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([email])
-  @@index([centreId])
-}
-
-enum CentreRole {
-  CENTRE_ADMIN
-  CENTRE_STAFF
-  CENTRE_TEACHER
+  history Json?
 }
 
 // ─────────────────────────────────────────────────────────────
-// Admin Portal v2 Models
+// Testing & Content Generation
 // ─────────────────────────────────────────────────────────────
 
 model PracticeTest {
-  id            Int           @id @default(autoincrement())
-  title         String
-  testType      TestType
-  practiceMode  PracticeMode  @default(FULL)
-  focusArea     String?
-  durationMins  Int           @default(60)
-  instructions  String?       @db.Text
-  passage       String?       @db.Text
-  audioUrl      String?
-  isPublished   Boolean       @default(false)
-  isArchived    Boolean       @default(false)
-  createdById   Int
-  createdBy     Admin         @relation("CreatedTests", fields: [createdById], references: [id])
-  questions     Question[]
-  reports       Report[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id           Int          @id @default(autoincrement())
+  title        String
+  testType     TestType
+  practiceMode PracticeMode @default(FULL)
+  focusArea    String?
+  durationMins Int          @default(60)
+  instructions String?      @db.Text
+  passage      String?      @db.Text
+  audioUrl     String?
+  isPublished  Boolean      @default(false)
+  isArchived   Boolean      @default(false)
+
+  createdById Int
+  createdBy   User @relation("TestsCreated", fields: [createdById], references: [id])
+
+  questions Question[]
+  reports   Report[]
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  practiceTestResults PracticeTestResult[]
 
   @@index([testType])
-  @@index([isPublished])
-  @@index([createdById])
-  @@index([practiceMode])
 }
 
 model Question {
@@ -373,86 +506,225 @@ model Question {
   options       Json?
   correctAnswer String
   orderIndex    Int          @default(0)
-  reports       Report[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
 
-  @@index([testId])
-  @@index([type])
+  reports Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Report {
-  id             Int          @id @default(autoincrement())
-  studentId      Int
-  student        User         @relation("reports", fields: [studentId], references: [id])
-  testId         Int
-  test           PracticeTest @relation(fields: [testId], references: [id])
-  questionId     Int?
-  question       Question?    @relation(fields: [questionId], references: [id])
-  type           ReportType   @default(CONTENT_ERROR)
-  status         ReportStatus @default(OPEN)
-  description    String       @db.Text
-  resolvedById   Int?
-  resolvedBy     Admin?       @relation("resolvedReports", fields: [resolvedById], references: [id])
-  resolutionNote String?      @db.Text
-  resolvedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id          Int          @id @default(autoincrement())
+  studentId   Int
+  student     User         @relation("ReportsSubmitted", fields: [studentId], references: [id])
+  testId      Int
+  test        PracticeTest @relation(fields: [testId], references: [id])
+  questionId  Int?
+  question    Question?    @relation(fields: [questionId], references: [id])
+  type        ReportType   @default(CONTENT_ERROR)
+  status      ReportStatus @default(OPEN)
+  description String       @db.Text
 
-  @@index([studentId])
-  @@index([testId])
-  @@index([status])
-  @@index([type])
+  resolvedById   Int?
+  resolvedBy     User?     @relation("ReportsResolved", fields: [resolvedById], references: [id])
+  resolutionNote String?   @db.Text
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─────────────────────────────────────────────────────────────
-// Teacher System Models
+// Test Progression System
+// ─────────────────────────────────────────────────────────────
+
+model PracticeTestResult {
+  id     Int          @id @default(autoincrement())
+  userId Int
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testId Int
+  test   PracticeTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  testIdentifier  String  @db.Text 
+  testCategory    String 
+  testSubcategory String? 
+  setNumber       Int 
+
+  score            Float  @default(0) 
+  bandScore        Float? 
+  correctAnswers   Int    @default(0)
+  totalQuestions   Int    @default(0)
+  timeSpentSeconds Int    @default(0)
+
+  answers Json? 
+
+  isCompleted Boolean   @default(false)
+  isUnlocked  Boolean   @default(true) 
+  completedAt DateTime?
+
+  aiAnalysis   String? @db.Text 
+  progressNote String? @db.Text 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, testIdentifier])
+  @@index([userId])
+  @@index([testCategory])
+  @@index([testIdentifier])
+}
+
+model TestUnlock {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category       String 
+  subcategory    String? 
+  maxUnlockedSet Int     @default(1) 
+
+  minScoreRequired Float @default(70.0) 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, category, subcategory])
+}
+
+model ProgressSnapshot {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  listeningAvg Float? @default(0)
+  readingAvg   Float? @default(0)
+  writingAvg   Float? @default(0)
+  speakingAvg  Float? @default(0)
+  overallAvg   Float? @default(0)
+
+  estimatedBand Float? @default(5.0)
+  targetBand    Float? @default(8.0)
+
+  testsCompleted Int     @default(0)
+  currentStreak  Int     @default(0)
+  bestStreak     Int     @default(0)
+  weakAreas      String? @db.Text 
+  strongAreas    String? @db.Text 
+
+  isMakingProgress Boolean @default(true)
+  aiConclusion     String? @db.Text 
+  recommendation   String? @db.Text 
+
+  snapshotDate DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([snapshotDate])
+}
+
+model TestSubmission {
+  id          String   @id @default(cuid())
+  userId      Int
+  testId      String
+  testType    TestType
+  answers     Json     
+  score       Float
+  bandScore   Float?   
+  timeSpent   Int      
+  submittedAt DateTime @default(now())
+  gradedAt    DateTime?
+  feedback    Json?    
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("test_submissions")
+}
+
+model UserProgress {
+  id            String   @id @default(cuid())
+  userId        Int
+  testType      TestType
+  latestScore   Float
+  testsCompleted Int      @default(0)
+  lastTestDate  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, testType])
+  @@map("user_progress")
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  type        String   @default("GENERAL") 
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Teacher Operations
 // ─────────────────────────────────────────────────────────────
 
 model Lesson {
-  id          Int       @id @default(autoincrement())
-  title       String
-  zoomLink    String
-  startTime   DateTime
-  status      String    @default("SCHEDULED") // SCHEDULED, LIVE, COMPLETED, CANCELLED
-  teacherId   Int
-  teacher     User       @relation("lessons", fields: [teacherId], references: [id], onDelete: Cascade)
-  materials   Material[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@index([teacherId])
-  @@index([startTime])
-  @@index([status])
+  id        Int        @id @default(autoincrement())
+  title     String
+  zoomLink  String
+  startTime DateTime
+  status    String     @default("SCHEDULED")
+  teacherId Int
+  teacher   User       @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
+  materials Material[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Material {
-  id          Int       @id @default(autoincrement())
-  fileName    String
-  fileUrl     String
-  fileType    String    // PDF, DOCX, PPTX, etc.
-  teacherId   Int
-  teacher     User       @relation("materials", fields: [teacherId], references: [id], onDelete: Cascade)
-  lesson      Lesson?    @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  lessonId    Int?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@index([teacherId])
-  @@index([lessonId])
-  @@index([fileType])
+  id        Int      @id @default(autoincrement())
+  fileName  String
+  fileUrl   String
+  fileType  String
+  teacherId Int
+  teacher   User     @relation("TeacherMaterials", fields: [teacherId], references: [id], onDelete: Cascade)
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  lessonId  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Follow {
-  id          Int       @id @default(autoincrement())
-  studentId   Int
-  student     User       @relation("following", fields: [studentId], references: [id], onDelete: Cascade)
-  teacherId   Int
-  teacher     User       @relation("followers", fields: [teacherId], references: [id], onDelete: Cascade)
-  createdAt   DateTime   @default(now())
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   User     @relation("Following", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId Int
+  teacher   User     @relation("Followers", fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@unique([studentId, teacherId])
-  @@index([studentId])
-  @@index([teacherId])
 }
 
+// Utilities
+model VerificationCode {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

@@ -1,234 +1,40 @@
+// ═══════════════════════════════════════════════════════════════
+// Student Routes - IELTSPRACTICE
+// Complete CRUD operations for students
+// ═══════════════════════════════════════════════════════════════
+
 const express = require('express');
-const { getMyTypingStats, addTypingResult, getLeaderboard } = require('../controllers/studentController');
+// Legacy typing imports removed inline since they no longer exist in studentController
 const { verifyToken, checkRole } = require('../middleware/auth');
-const { verifyStudentAuth } = require('./studentAuth');
-const { PrismaClient } = require('@prisma/client');
+const { requireAuth } = require('../middleware/unified-auth');
+const prisma = require('../models/prisma');
+const studentCtrl = require('../controllers/studentController');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-// Existing typing routes
-router.get('/me/typing-stats', verifyToken, checkRole('STUDENT'), getMyTypingStats);
-router.post('/me/typing-stats', verifyToken, checkRole('STUDENT'), addTypingResult);
-router.get('/leaderboard', verifyToken, checkRole('STUDENT', 'ADMIN', 'CEO'), getLeaderboard);
+// ─── LEGACY TYPING ROUTES (kept for backward compatibility) ───
+// router.get('/me/typing-stats', verifyToken, checkRole('STUDENT'), getMyTypingStats);
+// router.post('/me/typing-stats', verifyToken, checkRole('STUDENT'), addTypingResult);
+// router.get('/leaderboard', verifyToken, checkRole('STUDENT', 'ADMIN', 'CEO'), getLeaderboard);
 
-// ─── STUDENT PROFILE ROUTES ─────────────────────────────────────────────────────
-
-/**
- * GET /api/student/profile
- * Fetch student profile information
- */
-router.get('/profile', verifyStudentAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    // Fetch comprehensive student profile
-    const student = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        role: 'STUDENT',
-        is_verified: true
-      },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        phone: true,
-        country: true,
-        test_type: true,
-        target_band: true,
-        current_band: true,
-        study_hours: true,
-        tasks_done: true,
-        weekly_goal_percent: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        error: 'Student profile not found',
-        code: 'PROFILE_NOT_FOUND'
-      });
-    }
-
-    // Format the response data
-    const profileData = {
-      id: student.id,
-      fullName: student.full_name || '',
-      email: student.email || '',
-      phone: student.phone || '',
-      country: student.country || '',
-      testType: student.test_type || '',
-      targetBand: student.target_band || 7.0,
-      currentBand: student.current_band || 5.0,
-      studyHours: student.study_hours || 0,
-      tasksDone: student.tasks_done || 0,
-      weeklyGoalPercent: student.weekly_goal_percent || 0,
-      memberSince: student.createdAt,
-      lastUpdated: student.updatedAt
-    };
-
-    res.json({
-      success: true,
-      message: 'Student profile retrieved successfully',
-      data: {
-        profile: profileData
-      }
-    });
-
-  } catch (error) {
-    console.error('Student profile fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      code: 'SERVER_ERROR'
-    });
-  }
-});
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD & STATS
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * GET /api/student/dashboard-stats
- * Fetch dashboard statistics for student
+ * Get comprehensive dashboard statistics
  */
-router.get('/dashboard-stats', verifyStudentAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    // Fetch student data for dashboard
-    const student = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        role: 'STUDENT',
-        is_verified: true
-      },
-      select: {
-        id: true,
-        full_name: true,
-        target_band: true,
-        current_band: true,
-        study_hours: true,
-        tasks_done: true,
-        weekly_goal_percent: true,
-        createdAt: true
-      }
-    });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        error: 'Student data not found',
-        code: 'STUDENT_NOT_FOUND'
-      });
-    }
-
-    // Calculate additional stats
-    const bandProgress = student.target_band > 0 
-      ? ((student.current_band / student.target_band) * 100).toFixed(1)
-      : 0;
-
-    const statsData = {
-      fullName: student.full_name,
-      targetBand: student.target_band || 7.0,
-      currentBand: student.current_band || 5.0,
-      bandProgress: parseFloat(bandProgress),
-      studyHours: student.study_hours || 0,
-      tasksDone: student.tasks_done || 0,
-      weeklyGoalPercent: student.weekly_goal_percent || 0,
-      memberSince: student.createdAt
-    };
-
-    res.json({
-      success: true,
-      message: 'Dashboard stats retrieved successfully',
-      data: {
-        stats: statsData
-      }
-    });
-
-  } catch (error) {
-    console.error('Dashboard stats fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      code: 'SERVER_ERROR'
-    });
-  }
-});
-
-/**
- * PUT /api/student/profile
- * Update student profile information
- */
-router.put('/profile', verifyStudentAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { phone, testType, targetBand } = req.body;
-
-    // Update only allowed fields
-    const updateData = {};
-    if (phone !== undefined) updateData.phone = phone;
-    if (testType !== undefined) updateData.test_type = testType;
-    if (targetBand !== undefined) updateData.target_band = parseFloat(targetBand);
-
-    const updatedStudent = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...updateData,
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        phone: true,
-        test_type: true,
-        target_band: true,
-        current_band: true,
-        study_hours: true,
-        updatedAt: true
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: {
-        profile: {
-          id: updatedStudent.id,
-          fullName: updatedStudent.full_name,
-          email: updatedStudent.email,
-          phone: updatedStudent.phone || '',
-          testType: updatedStudent.test_type || '',
-          targetBand: updatedStudent.target_band,
-          currentBand: updatedStudent.current_band,
-          studyHours: updatedStudent.study_hours,
-          lastUpdated: updatedStudent.updatedAt
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Profile update error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      code: 'SERVER_ERROR'
-    });
-  }
-});
+router.get('/dashboard-stats', requireAuth('STUDENT'), studentCtrl.getDashboardStats);
 
 /**
  * GET /api/student/dashboard-data
- * Fetch all dashboard data for student in one call
+ * Get all dashboard data in one call
  */
-router.get('/dashboard-data', verifyStudentAuth, async (req, res) => {
+router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
   try {
     const userId = req.user.id;
-    
-    // Fetch comprehensive student data
+
     const student = await prisma.user.findFirst({
       where: {
         id: userId,
@@ -266,8 +72,7 @@ router.get('/dashboard-data', verifyStudentAuth, async (req, res) => {
       });
     }
 
-    // Calculate additional metrics
-    const bandProgress = student.target_band > 0 
+    const bandProgress = student.target_band > 0
       ? ((student.current_band / student.target_band) * 100).toFixed(1)
       : 0;
 
@@ -310,123 +115,42 @@ router.get('/dashboard-data', verifyStudentAuth, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// PROFILE CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/profile
+ * Fetch student profile information
+ */
+router.get('/profile', requireAuth('STUDENT'), studentCtrl.getStudentProfile);
+
+/**
+ * PUT /api/student/profile
+ * Update student profile information
+ */
+router.put('/profile', requireAuth('STUDENT'), studentCtrl.updateStudentProfile);
+
+/**
+ * PATCH /api/student/profile/password
+ * Update student password
+ */
+router.patch('/profile/password', requireAuth('STUDENT'), studentCtrl.updateStudentPassword);
+
 /**
  * POST /api/student/onboarding
  * Save onboarding data for new student
  */
-router.post('/onboarding', verifyStudentAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const {
-      examDate,
-      examDateText,
-      testType,
-      targetBandRange,
-      studyCommitment,
-      referralSource
-    } = req.body;
-
-    // Update user with onboarding data
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        is_onboarded: true,
-        exam_date: examDate ? new Date(examDate) : null,
-        exam_date_text: examDateText || null,
-        test_type: testType || null,
-        target_band_range: targetBandRange || null,
-        study_commitment: studyCommitment || null,
-        referral_source: referralSource || null,
-        updatedAt: new Date()
-      }
-    });
-
-    // Fetch complete updated profile
-    const profile = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        role: 'STUDENT',
-        is_verified: true
-      },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        phone: true,
-        country: true,
-        test_type: true,
-        target_band: true,
-        current_band: true,
-        study_hours: true,
-        tasks_done: true,
-        weekly_goal_percent: true,
-        is_onboarded: true,
-        exam_date: true,
-        exam_date_text: true,
-        target_band_range: true,
-        study_commitment: true,
-        referral_source: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        error: 'Student profile not found',
-        code: 'PROFILE_NOT_FOUND'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Onboarding completed successfully',
-      data: {
-        id: profile.id,
-        fullName: profile.full_name || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        country: profile.country || '',
-        testType: profile.test_type || '',
-        targetBand: profile.target_band || 7.0,
-        currentBand: profile.current_band || 5.0,
-        bandProgress: profile.target_band > 0 
-          ? ((profile.current_band / profile.target_band) * 100).toFixed(1)
-          : 0,
-        studyHours: profile.study_hours || 0,
-        tasksDone: profile.tasks_done || 0,
-        weeklyGoalPercent: profile.weekly_goal_percent || 0,
-        isOnboarded: profile.is_onboarded,
-        examDate: profile.exam_date,
-        examDateText: profile.exam_date_text,
-        targetBandRange: profile.target_band_range,
-        studyCommitment: profile.study_commitment,
-        referralSource: profile.referral_source,
-        memberSince: profile.createdAt,
-        lastUpdated: profile.updatedAt
-      }
-    });
-
-  } catch (error) {
-    console.error('Onboarding save error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      code: 'SERVER_ERROR'
-    });
-  }
-});
+router.post('/onboarding', requireAuth('STUDENT'), studentCtrl.completeOnboarding);
 
 /**
  * POST /api/student/reset-onboarding
  * Reset onboarding status for testing
  */
-router.post('/reset-onboarding', verifyStudentAuth, async (req, res) => {
+router.post('/reset-onboarding', requireAuth('STUDENT'), async (req, res) => {
   try {
     const userId = req.user.id;
-    
-    // Reset user onboarding status
+
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -454,5 +178,376 @@ router.post('/reset-onboarding', verifyStudentAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+// ═══════════════════════════════════════════════════════════════
+// TYPING PRACTICE CRUD
+// ═══════════════════════════════════════════════════════════════
 
+/**
+ * GET /api/student/typing
+ * Get typing history with pagination
+ * Query: ?page=1&limit=20&from=2024-01-01&to=2024-12-31
+ */
+router.get('/typing', requireAuth('STUDENT'), studentCtrl.getTypingHistory);
+
+/**
+ * POST /api/student/typing
+ * Save typing result
+ * Body: { wpm, accuracy, durationMinutes? }
+ */
+router.post('/typing', requireAuth('STUDENT'), studentCtrl.saveTypingResult);
+
+// ═══════════════════════════════════════════════════════════════
+// STUDY STREAK CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/streak
+ * Get study streak info
+ */
+router.get('/streak', requireAuth('STUDENT'), studentCtrl.getStudyStreak);
+
+/**
+ * POST /api/student/streak
+ * Mark today's study as complete
+ */
+router.post('/streak', requireAuth('STUDENT'), studentCtrl.markStudyComplete);
+
+// ═══════════════════════════════════════════════════════════════
+// WEEKLY PROGRESS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/weekly-progress
+ * Get weekly progress history
+ */
+router.get('/weekly-progress', requireAuth('STUDENT'), studentCtrl.getWeeklyProgress);
+
+/**
+ * PUT /api/student/weekly-progress
+ * Update weekly progress for current week
+ * Body: { perfectScoresCount, progressPercentage }
+ */
+router.put('/weekly-progress', requireAuth('STUDENT'), studentCtrl.updateWeeklyProgress);
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK TEST RESULTS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/mock-results
+ * Get mock test results with pagination
+ * Query: ?page=1&limit=10
+ */
+router.get('/mock-results', requireAuth('STUDENT'), studentCtrl.getMockResults);
+
+/**
+ * POST /api/student/mock-results
+ * Save mock test result
+ * Body: { sessionId?, listening, reading, writing, speaking, overall }
+ */
+router.post('/mock-results', requireAuth('STUDENT'), studentCtrl.saveMockResult);
+
+// ═══════════════════════════════════════════════════════════════
+// AI CHAT SESSIONS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/ai-chats
+ * Get AI chat session history
+ * Query: ?page=1&limit=10
+ */
+router.get('/ai-chats', requireAuth('STUDENT'), studentCtrl.getAiChats);
+
+/**
+ * POST /api/student/ai-chats
+ * Create new AI chat session
+ * Body: { topic? }
+ */
+router.post('/ai-chats', requireAuth('STUDENT'), studentCtrl.createAiChat);
+
+/**
+ * PUT /api/student/ai-chats/:id
+ * Update AI chat session
+ * Body: { messageCount?, history? }
+ */
+router.put('/ai-chats/:id', requireAuth('STUDENT'), studentCtrl.updateAiChat);
+
+/**
+ * DELETE /api/student/ai-chats/:id
+ * Delete AI chat session
+ */
+router.delete('/ai-chats/:id', requireAuth('STUDENT'), studentCtrl.deleteAiChat);
+
+// ═══════════════════════════════════════════════════════════════
+// STUDY GROUP APPLICATIONS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/applications
+ * Get student's group applications
+ */
+router.get('/applications', requireAuth('STUDENT'), studentCtrl.getApplications);
+
+/**
+ * POST /api/student/applications
+ * Apply to a study group
+ * Body: { groupId }
+ */
+router.post('/applications', requireAuth('STUDENT'), studentCtrl.createApplication);
+
+/**
+ * DELETE /api/student/applications/:id
+ * Withdraw application
+ */
+router.delete('/applications/:id', requireAuth('STUDENT'), studentCtrl.deleteApplication);
+
+// ═══════════════════════════════════════════════════════════════
+// REPORTS CRUD (Student submitting reports)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/student/reports
+ * Get student's submitted reports
+ */
+router.get('/reports', requireAuth('STUDENT'), studentCtrl.getReports);
+
+/**
+ * POST /api/student/reports
+ * Submit a report/issue
+ * Body: { testId, questionId?, type, description }
+ */
+router.post('/reports', requireAuth('STUDENT'), studentCtrl.createReport);
+
+// ═══════════════════════════════════════════════════════════════
+// TEST PROGRESSION SYSTEM - Save results & unlock levels
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/student/test-results
+ * Save a practice test result
+ * Body: { testIdentifier, testCategory, testSubcategory?, setNumber, score, bandScore?, correctAnswers, totalQuestions, timeSpentSeconds, answers?, isCompleted }
+ */
+router.post('/test-results', requireAuth('STUDENT'), studentCtrl.saveTestResult);
+
+/**
+ * GET /api/student/test-results
+ * Get all test results with optional filtering
+ * Query: ?category=Listening&subcategory=Full
+ */
+router.get('/test-results', requireAuth('STUDENT'), studentCtrl.getTestResults);
+
+/**
+ * GET /api/student/test-results/:id
+ * Get single test result by ID
+ */
+router.get('/test-results/:id', requireAuth('STUDENT'), studentCtrl.getTestResult);
+
+/**
+ * GET /api/student/test-unlocks
+ * Get unlocked levels
+ * Query: ?category=Listening
+ */
+router.get('/test-unlocks', requireAuth('STUDENT'), studentCtrl.getTestUnlocks);
+
+/**
+ * GET /api/student/test-unlocks/check/:category/:subcategory?/:setNumber
+ * Check if a specific level is unlocked
+ * Example: /api/student/test-unlocks/check/Listening/Full/5
+ */
+router.get('/test-unlocks/check/:category/:subcategory?/:setNumber', requireAuth('STUDENT'), studentCtrl.checkLevelUnlock);
+
+/**
+ * POST /api/student/progress-snapshot
+ * Create or update progress snapshot with AI analysis
+ * Body: { aiConclusion?, recommendation?, weakAreas?, strongAreas? }
+ */
+router.post('/progress-snapshot', requireAuth('STUDENT'), studentCtrl.createProgressSnapshot);
+
+/**
+ * GET /api/student/progress-snapshot
+ * Get latest progress snapshot
+ */
+router.get('/progress-snapshot', requireAuth('STUDENT'), studentCtrl.getProgressSnapshot);
+
+/**
+ * GET /api/student/progress/ai-analysis
+ * Get AI-powered progress analysis
+ */
+router.get('/progress/ai-analysis', requireAuth('STUDENT'), studentCtrl.getAIProgressAnalysis);
+
+// ═══════════════════════════════════════════════════════════════
+// AI CHAT - Ollama Integration
+// ═══════════════════════════════════════════════════════════════
+
+const { processAIChat, generateAIFeedback } = require('../services/ollamaService');
+
+/**
+ * POST /api/student/ai-chat
+ * Send message to AI tutor and get response
+ * Body: { message, chatHistoryId? }
+ */
+router.post('/ai-chat', requireAuth('STUDENT'), async (req, res) => {
+  try {
+    const { message, chatHistoryId } = req.body;
+    const userId = req.user.id;
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message cannot be empty',
+        code: 'INVALID_MESSAGE'
+      });
+    }
+
+    // Get chat history if provided
+    let chatHistory = [];
+    if (chatHistoryId) {
+      try {
+        const existingChat = await prisma.aiChatSession.findUnique({
+          where: { id: chatHistoryId },
+          select: { history: true }
+        });
+        if (existingChat && existingChat.history) {
+          chatHistory = typeof existingChat.history === 'string' 
+            ? JSON.parse(existingChat.history) 
+            : existingChat.history;
+        }
+      } catch (error) {
+        console.warn('Failed to load chat history:', error);
+      }
+    }
+
+    // Process message with Ollama
+    const result = await processAIChat(message, chatHistory);
+
+    if (result.success) {
+      // Save or update chat session in database
+      try {
+        let session;
+        
+        if (chatHistoryId) {
+          // Update existing session
+          const updatedHistory = [
+            ...(chatHistory || []),
+            { role: 'student', content: message },
+            { role: 'tutor', content: result.reply }
+          ];
+
+          session = await prisma.aiChatSession.update({
+            where: { id: chatHistoryId },
+            data: {
+              history: JSON.stringify(updatedHistory),
+              messageCount: { increment: 2 },
+              lastMessageAt: new Date()
+            },
+            select: { id: true, messageCount: true }
+          });
+        } else {
+          // Create new session
+          const initialHistory = [
+            { role: 'student', content: message },
+            { role: 'tutor', content: result.reply }
+          ];
+
+          session = await prisma.aiChatSession.create({
+            data: {
+              userId: userId,
+              history: JSON.stringify(initialHistory),
+              messageCount: 2,
+              model: result.model || 'ollama',
+              lastMessageAt: new Date()
+            },
+            select: { id: true, messageCount: true }
+          });
+        }
+
+        res.json({
+          success: true,
+          reply: result.reply,
+          chatId: session.id,
+          messageCount: session.messageCount,
+          timestamp: result.timestamp
+        });
+      } catch (dbError) {
+        console.error('Error saving chat session:', dbError);
+        // Still return the response even if db save fails
+        res.json({
+          success: true,
+          reply: result.reply,
+          warning: 'Response retrieved but not saved to history',
+          timestamp: result.timestamp
+        });
+      }
+    } else {
+      res.status(503).json({
+        success: false,
+        error: result.reply || 'AI service unavailable',
+        code: 'AI_SERVICE_ERROR'
+      });
+    }
+  } catch (error) {
+    console.error('AI chat error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      code: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * GET /api/student/ai-chat/history/:chatId
+ * Get chat history
+ */
+router.get('/ai-chat/history/:chatId', requireAuth('STUDENT'), async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.user.id;
+
+    const chat = await prisma.aiChatSession.findFirst({
+      where: {
+        id: chatId,
+        userId: userId
+      },
+      select: {
+        id: true,
+        history: true,
+        messageCount: true,
+        createdAt: true,
+        lastMessageAt: true
+      }
+    });
+
+    if (!chat) {
+      return res.status(404).json({
+        success: false,
+        error: 'Chat history not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    const history = typeof chat.history === 'string' 
+      ? JSON.parse(chat.history) 
+      : chat.history;
+
+    res.json({
+      success: true,
+      data: {
+        chatId: chat.id,
+        messages: history || [],
+        messageCount: chat.messageCount,
+        createdAt: chat.createdAt,
+        lastMessageAt: chat.lastMessageAt
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      code: 'SERVER_ERROR'
+    });
+  }
+});
+
+module.exports = router;

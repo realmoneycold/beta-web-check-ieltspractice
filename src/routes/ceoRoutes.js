@@ -12,8 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../models/prisma');
 const UAParser = require('ua-parser-js');   // npm i ua-parser-js
 // const geoip = require('geoip-lite');      // npm i geoip-lite (optional)
 

@@ -85,13 +85,13 @@
   function routeByRole(role) {
     switch ((role || '').toLowerCase()) {
       case 'ceo':
-        return 'ceo.html';
+        return '/portalceo.html';
       case 'admin':
-        return 'admin-dashboard.html';
+        return '/admin/admin.html';
       case 'centre':
         return 'education-centre.html';
       default:
-        return 'dashboard.html';
+        return '/dashboard.html';
     }
   }
 
@@ -132,7 +132,7 @@
     }
 
     // Protected pages require token validation
-    const protectedPages = ['dashboard.html', 'ceo.html', 'education-centre.html', 'centre.html', 'admin-dashboard.html', 'admin.html'];
+    const protectedPages = ['dashboard.html', 'ceo.html', 'portalceo.html', 'education-centre.html', 'centre.html', 'admin-dashboard.html', 'admin.html'];
     if (protectedPages.includes(current)) {
       if (!token) {
         clearAuthAndRedirect();
@@ -153,6 +153,7 @@
       // Page-specific role checks
       switch (current) {
         case 'ceo.html':
+        case 'portalceo.html':
           if (userRole !== 'ceo') {
             console.warn('Access denied: CEO page requires CEO role');
             redirect(routeByRole(userRole));

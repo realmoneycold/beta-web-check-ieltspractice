@@ -1,9 +1,15 @@
+<!-- ================================================================
+     DEPRECATED: This file (login/login.html) is no longer the primary login page.
+     Use /login.html (root) instead.
+     Server route GET /login.html → serves /login.html (root).
+     This file is kept for reference only and will be removed in a future version.
+     ================================================================ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign In — IELTSPRACTICE</title>
+  <title>Student Login — IELTSPRACTICE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -460,8 +466,6 @@
     .btn-social svg { width: 20px; height: 20px; flex-shrink: 0; }
 
     /* Google brand colours */
-    .btn-google { }
-    .btn-telegram { }
 
     /* ─── Footer link ─────────────────────────────────── */
     .form-footer {
@@ -721,21 +725,8 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   }
 
-  // ─── Smart Auth Router ───────────────────────────────────────
-  const ROLE_ROUTES = [
-    { keyword: 'ceo',    role: 'ceo',     redirect: 'ceo.html'       },
-    { keyword: 'admin',  role: 'admin',   redirect: 'admin.html'     },
-    { keyword: 'centre', role: 'centre',  redirect: 'centre.html'    },
-  ];
-  const DEFAULT = { role: 'student', redirect: 'dashboard.html' };
-
-  function resolveRole(email) {
-    const lower = email.toLowerCase();
-    for (const entry of ROLE_ROUTES) {
-      if (lower.includes(entry.keyword)) return entry;
-    }
-    return DEFAULT;
-  }
+  // ─── Student Login Only ───────────────────────────────────────
+  const STUDENT_REDIRECT = 'dashboard.html';
 
   // ─── Loading state ───────────────────────────────────────────
   const submitBtn = document.getElementById('submitBtn');
@@ -782,15 +773,16 @@
     setLoading(true);
 
     try {
-      // Call real student authentication API
-      const response = await fetch('/api/auth/student/login', {
+      // Call unified authentication API
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           email,
-          password
+          password,
+          role: 'STUDENT'
         })
       });
 
@@ -804,10 +796,10 @@
       }
 
       // Success - store JWT and user data
-      if (data.data && data.data.token) {
-        localStorage.setItem('student_token', data.data.token);
-        localStorage.setItem('student_user', JSON.stringify(data.data.user));
-        localStorage.setItem('userRole', 'STUDENT');
+      if (data.token) {
+        localStorage.setItem('student_token', data.token);
+        localStorage.setItem('student_user', JSON.stringify(data.user));
+        localStorage.setItem('userRole', data.role || 'STUDENT');
         localStorage.setItem('userEmail', email);
 
         showToast('✓ Login successful! Redirecting to dashboard...', 2000);

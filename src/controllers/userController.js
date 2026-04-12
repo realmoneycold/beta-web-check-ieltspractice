@@ -193,10 +193,179 @@ async function getStudyStreak(req, res) {
   }
 }
 
+async function getUserProfile(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Parse names
+    const nameParts = user.full_name ? user.full_name.trim().split(' ') : ['User'];
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+    // Fetch related progression snapshots
+    const snapshot = await prisma.progressSnapshot.findFirst({
+        where: { userId },
+        orderBy: { id: 'desc' }
+    });
+
+    const practiceResults = await prisma.practiceTestResult.findMany({
+        where: { userId }
+    });
+
+    let L=0, lC=0, R=0, rC=0, W=0, wC=0, S=0, sC=0;
+    practiceResults.forEach(r => {
+        if(r.testCategory === 'Listening') { L += r.score; lC++; }
+        else if(r.testCategory === 'Reading') { R += r.score; rC++; }
+        else if(r.testCategory === 'Writing') { W += r.score; wC++; }
+        else if(r.testCategory === 'Speaking') { S += r.score; sC++; }
+    });
+
+    const calculateAvg = (total, count) => count > 0 ? (total / count) : 0;
+
+    const globalRanking = await prisma.user.count({
+        where: { current_band: { gt: user.current_band } }
+    }) + 1;
+
+    res.status(200).json({
+        success: true,
+        data: {
+             firstName,
+             lastName,
+             email: user.email,
+             targetBand: user.target_band,
+             onboardingComplete: user.onboardingComplete || false,
+             isExamDateUnsure: user.isExamDateUnsure || true,
+             sourceOfExposure: user.sourceOfExposure || null,
+             examDate: user.exam_date || null,
+             scores: {
+                 listening: snapshot?.listeningAvg || (calculateAvg(L, lC)*0.09) || 5.0,
+                 reading: snapshot?.readingAvg || (calculateAvg(R, rC)*0.09) || 5.0,
+                 writing: snapshot?.writingAvg || (calculateAvg(W, wC)*0.09) || 5.0,
+                 speaking: snapshot?.speakingAvg || (calculateAvg(S, sC)*0.09) || 5.0,
+             },
+             progressPercentages: {
+                 listening: calculateAvg(L, lC),
+                 reading: calculateAvg(R, rC),
+                 writing: calculateAvg(W, wC),
+                 speaking: calculateAvg(S, sC),
+             },
+             totalSessions: practiceResults.length || user.tasks_done || 0,
+             studyHours: user.study_hours || 0,
+             currentStreak: snapshot?.currentStreak || 0,
+             globalRanking,
+        }
+    });
+
+  } catch (err) {
+    console.error('Get user profile error:', err);
+    return res.status(500).json({ success: false, message: "Database error" });
+  }
+}
+
+async function saveOnboardingData(req, res) {
+  try {
+    // FIX 1: Coerce userId to Int — JWT payloads store ids as strings
+    const userId = parseInt(req.user.id, 10);
+    if (isNaN(userId)) {
+      console.error('[onboarding] Invalid userId in JWT payload:', req.user);
+      return res.status(401).json({ success: false, message: 'Invalid user token' });
+    }
+
+    const { examDate, isExamDateUnsure, targetBand, sourceOfExposure } = req.body;
+
+    console.log('[onboarding] Request body:', { examDate, isExamDateUnsure, targetBand, sourceOfExposure });
+    console.log('[onboarding] userId:', userId);
+
+    // Validation
+    if (!targetBand || !sourceOfExposure) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target band and source are required'
+      });
+    }
+
+    // Validate target band is between 5.5 and 9.0
+    const band = parseFloat(targetBand);
+    if (isNaN(band) || band < 5.5 || band > 9.0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target band must be between 5.5 and 9.0'
+      });
+    }
+
+    // Validate source
+    const validSources = ['Friend', 'Social Media', 'Presentations', 'Other'];
+    if (!validSources.includes(sourceOfExposure)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid source selection'
+      });
+    }
+
+    // FIX 2: Safe examDate parsing — guards against empty string / undefined
+    let parsedExamDate = null;
+    if (!isExamDateUnsure && examDate && String(examDate).trim() !== '') {
+      const d = new Date(examDate);
+      if (isNaN(d.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid exam date format' });
+      }
+      parsedExamDate = d;
+    }
+
+    // FIX 3: Update user — also sets is_onboarded which aligns with schema
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        exam_date: parsedExamDate,
+        isExamDateUnsure: isExamDateUnsure || false,
+        target_band: band,
+        sourceOfExposure,
+        onboardingComplete: true,
+        is_onboarded: true,  // keep in sync with schema's is_onboarded field
+      }
+    });
+
+    console.log('[onboarding] User updated successfully:', updatedUser.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Onboarding data saved successfully',
+      data: {
+        exam_date: updatedUser.exam_date,
+        target_band: updatedUser.target_band,
+        sourceOfExposure: updatedUser.sourceOfExposure,
+        onboardingComplete: updatedUser.onboardingComplete
+      }
+    });
+
+  } catch (error) {
+    // FIX 4: Detailed error logging — logs full Prisma error code/meta
+    console.error('[onboarding] Error saving onboarding data:');
+    console.error('  Message:', error.message);
+    console.error('  Code:', error.code);       // e.g. P2025 = record not found
+    console.error('  Meta:', error.meta);        // Prisma error details
+    console.error('  Stack:', error.stack);
+    res.status(500).json({ success: false, message: 'Server error', detail: error.message });
+  }
+}
+
 module.exports = {
   getProfile,
+  getUserProfile,
   getPerformanceHistory,
   getPracticeStats,
   getNextExamDate,
   getStudyStreak,
+  saveOnboardingData,
 };

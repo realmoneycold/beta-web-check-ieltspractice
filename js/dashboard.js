@@ -114,6 +114,15 @@ function initTypingDojo() {
 }
 
 async function loadData() {
+  // Update target band from onboarding if set
+  const userTargetBand = localStorage.getItem('userTargetBand');
+  if (userTargetBand) {
+    const targetBandElement = document.getElementById('targetBand');
+    if (targetBandElement) {
+      targetBandElement.textContent = userTargetBand;
+    }
+  }
+
   const ids = ['stat-wpm', 'stat-streak', 'stat-mocks', 'stat-band'];
   ids.forEach((id) => {
     const el = document.getElementById(id);

@@ -3,38 +3,28 @@
 //
 // Mount in app.js:
 //   const adminRoutes = require('./routes/admin');
-//   app.use('/api/admin', adminRoutes);   // JWT auth applied inside
+//   app.use('/api/admin', adminRoutes);
 //
-// Install dependencies:
-//   npm install @google/generative-ai jsonwebtoken bcryptjs
-//
-// Required environment variables:
-//   GEMINI_API_KEY=your_key_here
-//   JWT_SECRET=your_jwt_secret
+// All routes are protected by JWT authentication requiring ADMIN or CEO role
 // ═════════════════════════════════════════════════════════════════════════
 
 'use strict';
 
 const express = require('express');
-const router  = express.Router();
-const jwt     = require('jsonwebtoken');
-const bcrypt  = require('bcryptjs');
-const { PrismaClient } = require('@prisma/client');
+const router = express.Router();
+const jwt = require('jsonwebtoken');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const prisma = require('../models/prisma');
+const adminCtrl = require('../controllers/adminController');
 
-const prisma = new PrismaClient();
-
-// Initialise Gemini AI
-const genAI       = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialise Gemini AI for AI-powered features
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-
-// ─── MIDDLEWARE: requireStaff ─────────────────────────────────────────────────
-// Validates Bearer JWT and checks role is ADMIN or CEO.
-// Sets req.user = { id, email, role, name } on success.
-// ALL /api/admin/* routes are protected by this middleware.
+// ─── MIDDLEWARE: requireStaff ───────────────────────────────────────────────
+// Validates Bearer JWT and checks role is ADMIN or CEO
 function requireStaff(req, res, next) {
-  const auth  = req.headers.authorization || '';
+  const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
 
   if (!token) {
@@ -45,7 +35,10 @@ function requireStaff(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!['ADMIN', 'CEO'].includes(decoded.role)) {
-      return res.status(403).json({ success: false, error: 'Insufficient permissions — ADMIN or CEO role required' });
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions — ADMIN or CEO role required'
+      });
     }
 
     req.user = decoded;
@@ -55,18 +48,84 @@ function requireStaff(req, res, next) {
       return res.status(401).json({ success: false, error: 'Token expired' });
     } else if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({ success: false, error: 'Invalid token' });
-    } else {
-      return res.status(500).json({ success: false, error: 'Authentication error' });
     }
+    return res.status(500).json({ success: false, error: 'Authentication error' });
   }
 }
 
 // Apply middleware to all admin routes
 router.use(requireStaff);
 
-// ─────────────────────────────────────────────────────────────
-// ██  AI INTEGRATION  ██
-// ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD & ANALYTICS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/stats
+ * Get dashboard statistics for current admin
+ */
+router.get('/stats', adminCtrl.getDashboardStats);
+
+/**
+ * GET /api/admin/analytics/signups
+ * Signup trends for Growth chart
+ * Query: ?period=daily|weekly|monthly
+ */
+router.get('/analytics/signups', async (req, res) => {
+  try {
+    const { period = 'monthly' } = req.query;
+
+    let trunc;
+    if (period === 'daily') trunc = 'day';
+    else if (period === 'weekly') trunc = 'week';
+    else trunc = 'month';
+
+    const rows = await prisma.$queryRaw`
+      SELECT
+        DATE_TRUNC(${trunc}::text, "createdAt") AS period,
+        COUNT(*) AS count
+      FROM "User"
+      GROUP BY 1
+      ORDER BY 1 ASC
+      LIMIT 24
+    `;
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ period: r.period, count: Number(r.count) }))
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/analytics/regions
+ * User count grouped by city/region
+ */
+router.get('/analytics/regions', async (req, res) => {
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT city, COUNT(*) AS count
+      FROM "User"
+      WHERE city IS NOT NULL
+      GROUP BY city
+      ORDER BY count DESC
+      LIMIT 10
+    `;
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ city: r.city, count: Number(r.count) }))
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// AI INTEGRATION
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * POST /api/admin/ai-parse
@@ -106,13 +165,13 @@ Expected format:
 
     const result = await geminiModel.generateContent(prompt);
     const response = result.response.text();
-    
+
     // Clean up response and parse JSON
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       return res.status(500).json({ success: false, error: 'Failed to parse AI response' });
     }
-    
+
     const questions = JSON.parse(jsonMatch[0]);
     res.json({ success: true, data: questions });
   } catch (err) {
@@ -121,207 +180,166 @@ Expected format:
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-// ██  TASKS MANAGEMENT  ██
-// ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// USER MANAGEMENT CRUD
+// ═══════════════════════════════════════════════════════════════
 
 /**
- * GET /api/admin/tasks
- * Fetch tasks for the logged-in admin
+ * GET    /api/admin/users              - List all users with pagination
+ * POST   /api/admin/users              - Create new user
  */
-router.get('/tasks', async (req, res) => {
-  try {
-    const tasks = await prisma.adminTask.findMany({
-      where: { adminId: req.user.id },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json({ success: true, data: tasks });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// ██  PRACTICE TESTS  ██
-// ─────────────────────────────────────────────────────────────
+router.route('/users')
+  .get(adminCtrl.getAllUsers)
+  .post(adminCtrl.createUser);
 
 /**
- * POST /api/admin/tests
- * Save a full practice test with nested questions in one transaction
+ * GET    /api/admin/users/:id          - Get single user
+ * PUT    /api/admin/users/:id          - Update user
+ * DELETE /api/admin/users/:id          - Delete user
  */
-router.post('/tests', async (req, res) => {
-  const { 
-    title, 
-    testType, 
-    practiceMode, 
-    focusArea, 
-    durationMins, 
-    instructions, 
-    passage, 
-    audioUrl, 
-    questions 
-  } = req.body;
-
-  if (!title || !testType || !questions || !Array.isArray(questions)) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'title, testType, and questions array are required' 
-    });
-  }
-
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the practice test
-      const test = await tx.practiceTest.create({
-        data: {
-          title,
-          testType: testType.toUpperCase(),
-          practiceMode: practiceMode?.toUpperCase() || 'FULL',
-          focusArea,
-          durationMins: durationMins || 60,
-          instructions,
-          passage,
-          audioUrl,
-          createdById: req.user.id
-        }
-      });
-
-      // Create all questions for this test
-      const questionData = questions.map((q, index) => ({
-        testId: test.id,
-        questionText: q.questionText,
-        type: q.type?.toUpperCase() || 'MULTIPLE_CHOICE',
-        options: q.options || null,
-        correctAnswer: q.correctAnswer,
-        orderIndex: index
-      }));
-
-      await tx.question.createMany({
-        data: questionData
-      });
-
-      return test;
-    });
-
-    res.status(201).json({ success: true, data: result });
-  } catch (err) {
-    console.error('Test Creation Error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+router.route('/users/:id')
+  .get(adminCtrl.getUserById)
+  .put(adminCtrl.updateUser)
+  .delete(adminCtrl.deleteUser);
 
 /**
- * GET /api/admin/tests
- * List all practice tests created by this admin
+ * PATCH /api/admin/users/:id/reset-password
+ * Admin reset password for a user
  */
-router.get('/tests', async (req, res) => {
-  try {
-    const tests = await prisma.practiceTest.findMany({
-      where: { createdById: req.user.id },
-      include: {
-        questions: {
-          orderBy: { orderIndex: 'asc' }
-        },
-        _count: {
-          select: { questions: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+router.patch('/users/:id/reset-password', adminCtrl.resetUserPassword);
 
-    res.json({ success: true, data: tests });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// ██  REPORTS MANAGEMENT  ██
-// ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// EDUCATION CENTRES CRUD
+// ═══════════════════════════════════════════════════════════════
 
 /**
- * GET /api/admin/reports
- * Fetch system and student-reported issues
+ * GET    /api/admin/centres            - List all education centres
+ * POST   /api/admin/centres            - Create new centre
  */
-router.get('/reports', async (req, res) => {
-  try {
-    const reports = await prisma.report.findMany({
-      include: {
-        student: {
-          select: { id: true, full_name: true, email: true }
-        },
-        test: {
-          select: { id: true, title: true }
-        },
-        question: {
-          select: { id: true, questionText: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    res.json({ success: true, data: reports });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+router.route('/centres')
+  .get(adminCtrl.getAllCentres)
+  .post(adminCtrl.createCentre);
 
 /**
- * PATCH /api/admin/reports/:id/resolve
- * Mark a report as resolved
+ * GET    /api/admin/centres/:id        - Get single centre
+ * PUT    /api/admin/centres/:id        - Update centre
+ * DELETE /api/admin/centres/:id        - Delete centre
  */
-router.patch('/reports/:id/resolve', async (req, res) => {
-  const { resolutionNote } = req.body;
-  const reportId = parseInt(req.params.id);
+router.route('/centres/:id')
+  .get(adminCtrl.getCentreById)
+  .put(adminCtrl.updateCentre)
+  .delete(adminCtrl.deleteCentre);
 
-  try {
-    const report = await prisma.report.update({
-      where: { id: reportId },
-      data: {
-        status: 'RESOLVED',
-        resolvedById: req.user.id,
-        resolutionNote,
-        resolvedAt: new Date()
-      }
-    });
-
-    res.json({ success: true, data: report });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// ██  PROFILE MANAGEMENT  ██
-// ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// PRACTICE TESTS CRUD
+// ═══════════════════════════════════════════════════════════════
 
 /**
- * PATCH /api/admin/profile
- * Update name, password, and profile image
+ * GET    /api/admin/tests              - List all practice tests
+ * POST   /api/admin/tests              - Create new test with questions
  */
-router.patch('/profile', async (req, res) => {
-  const { name, password, profileImage } = req.body;
-  const updateData = {};
+router.route('/tests')
+  .get(adminCtrl.getAllTests)
+  .post(adminCtrl.createTest);
 
-  try {
-    if (name) updateData.name = name;
-    if (password) {
-      updateData.passwordHash = await bcrypt.hash(password, 12);
-    }
-    if (profileImage) updateData.profileImage = profileImage;
+/**
+ * GET    /api/admin/tests/:id          - Get single test with questions
+ * PUT    /api/admin/tests/:id          - Update test
+ * DELETE /api/admin/tests/:id          - Delete test
+ */
+router.route('/tests/:id')
+  .get(adminCtrl.getTestById)
+  .put(adminCtrl.updateTest)
+  .delete(adminCtrl.deleteTest);
 
-    const admin = await prisma.admin.update({
-      where: { id: req.user.id },
-      data: updateData
-    });
+// ═══════════════════════════════════════════════════════════════
+// QUESTIONS CRUD (nested under tests)
+// ═══════════════════════════════════════════════════════════════
 
-    // Remove sensitive data from response
-    const { passwordHash, ...safeAdmin } = admin;
-    res.json({ success: true, data: safeAdmin });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+/**
+ * GET    /api/admin/tests/:testId/questions     - List questions for a test
+ * POST   /api/admin/tests/:testId/questions     - Add question to test
+ */
+router.route('/tests/:testId/questions')
+  .get(adminCtrl.getQuestionsByTest)
+  .post(adminCtrl.createQuestion);
+
+/**
+ * GET    /api/admin/questions/:id      - Get single question
+ * PUT    /api/admin/questions/:id      - Update question
+ * DELETE /api/admin/questions/:id      - Delete question
+ */
+router.route('/questions/:id')
+  .get((req, res) => res.status(501).json({ error: 'Use /tests/:testId/questions instead' }))
+  .put(adminCtrl.updateQuestion)
+  .delete(adminCtrl.deleteQuestion);
+
+// ═══════════════════════════════════════════════════════════════
+// REPORTS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET    /api/admin/reports            - List all reports
+ */
+router.route('/reports')
+  .get(adminCtrl.getAllReports);
+
+/**
+ * GET    /api/admin/reports/:id        - Get single report
+ * DELETE /api/admin/reports/:id        - Delete report
+ */
+router.route('/reports/:id')
+  .get(adminCtrl.getReportById)
+  .delete(adminCtrl.deleteReport);
+
+/**
+ * PATCH /api/admin/reports/:id/resolve - Resolve a report
+ * PATCH /api/admin/reports/:id/status  - Update report status
+ */
+router.patch('/reports/:id/resolve', adminCtrl.resolveReport);
+router.patch('/reports/:id/status', adminCtrl.updateReportStatus);
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN TASKS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET    /api/admin/tasks              - Get tasks for current admin
+ * POST   /api/admin/tasks              - Create new task
+ */
+router.route('/tasks')
+  .get(adminCtrl.getAdminTasks)
+  .post(adminCtrl.createAdminTask);
+
+/**
+ * PATCH /api/admin/tasks/:id/toggle    - Toggle task completion
+ * DELETE /api/admin/tasks/:id          - Delete task
+ */
+router.patch('/tasks/:id/toggle', adminCtrl.toggleTask);
+router.delete('/tasks/:id', adminCtrl.deleteAdminTask);
+
+// ═══════════════════════════════════════════════════════════════
+// STRATEGIC GOALS CRUD
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET    /api/admin/goals              - List all strategic goals (kanban)
+ * POST   /api/admin/goals              - Create new goal
+ */
+router.route('/goals')
+  .get(adminCtrl.getAllGoals)
+  .post(adminCtrl.createGoal);
+
+/**
+ * PATCH /api/admin/goals/:id           - Update goal (move column, etc)
+ * DELETE /api/admin/goals/:id          - Delete goal
+ */
+router.patch('/goals/:id', adminCtrl.updateGoal);
+router.delete('/goals/:id', adminCtrl.deleteGoal);
+
+// ═══════════════════════════════════════════════════════════════
+// PROFILE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * GET /api/admin/profile
@@ -329,11 +347,11 @@ router.patch('/profile', async (req, res) => {
  */
 router.get('/profile', async (req, res) => {
   try {
-    const admin = await prisma.admin.findUnique({
+    const admin = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
-        name: true,
+        full_name: true,
         email: true,
         phone: true,
         role: true,
@@ -349,52 +367,30 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-// ██  STATISTICS & DASHBOARD  ██
-// ─────────────────────────────────────────────────────────────
-
 /**
- * GET /api/admin/stats
- * Get dashboard statistics for current admin
+ * PATCH /api/admin/profile
+ * Update admin profile (name, phone, password)
  */
-router.get('/stats', async (req, res) => {
-  try {
-    const [testStats, reportStats, taskStats] = await Promise.all([
-      // Test statistics
-      prisma.practiceTest.aggregate({
-        where: { createdById: req.user.id },
-        _count: { id: true },
-        _sum: { durationMins: true }
-      }),
-      // Report statistics
-      prisma.report.groupBy({
-        by: ['status'],
-        _count: { id: true }
-      }),
-      // Task statistics
-      prisma.adminTask.aggregate({
-        where: { adminId: req.user.id },
-        _count: { id: true },
-        where: { isDone: true }
-      })
-    ]);
+router.patch('/profile', async (req, res) => {
+  const { full_name, phone, password } = req.body;
+  const updateData = {};
 
-    res.json({ 
-      success: true, 
-      data: {
-        tests: {
-          total: testStats._count.id || 0,
-          totalMinutes: testStats._sum.durationMins || 0
-        },
-        reports: reportStats.reduce((acc, curr) => {
-          acc[curr.status] = curr._count.id;
-          return acc;
-        }, {}),
-        tasks: {
-          completed: taskStats._count.id || 0
-        }
-      }
+  try {
+    if (full_name) updateData.full_name = full_name;
+    if (phone) updateData.phone = phone;
+    if (password && password.length >= 8) {
+      const bcrypt = require('bcryptjs');
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const admin = await prisma.user.update({
+      where: { id: req.user.id },
+      data: updateData
     });
+
+    // Remove sensitive data from response
+    const { password: _, ...safeAdmin } = admin;
+    res.json({ success: true, data: safeAdmin });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

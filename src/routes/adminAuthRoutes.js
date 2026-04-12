@@ -10,31 +10,20 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../models/prisma');
 
 // ─── RATE LIMITING & BRUTE-FORCE PROTECTION ─────────────────────────────────────
-// Development-friendly settings with whitelist
-const DEV_WHITELIST_IPS = ['::1', '127.0.0.1', 'localhost']; // Local development IPs
-
 const loginLimiter = rateLimit({
-  windowMs: 2 * 60 * 1000, // 2 minutes (reduced from 15 minutes for development)
-  max: 20, // Increased from 5 to 20 attempts for development
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 5,  // 5 attempts per 15 minutes
   message: {
     success: false,
-    error: 'Too many login attempts. Please try again in 2 minutes.',
-    code: 'RATE_LIMIT_EXCEEDED',
-    retryAfter: 120 // 2 minutes in seconds
+    error: 'Too many login attempts. Please try again later.',
+    code: 'RATE_LIMIT_EXCEEDED'
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful requests
-  // Skip rate limiting for whitelisted IPs (development only)
-  skip: (req) => {
-    const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
-    return DEV_WHITELIST_IPS.includes(clientIP);
-  }
+  skipSuccessfulRequests: true
 });
 
 // ─── ADMIN LOGIN ENDPOINT ─────────────────────────────────────────────────────────
@@ -61,13 +50,16 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   try {
     // Step 1: Verify admin exists
-    const admin = await prisma.admin.findUnique({
-      where: { email: email.toLowerCase().trim() },
+    const admin = await prisma.user.findFirst({
+      where: { 
+        email: email.toLowerCase().trim(),
+        role: { in: ['ADMIN', 'CEO'] }
+      },
       select: {
         id: true,
-        name: true,
+        full_name: true,
         email: true,
-        passwordHash: true,
+        password: true,
         role: true,
         isActive: true,
         lastSeenAt: true
@@ -95,7 +87,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     // Step 2: Verify password
-    const isPasswordValid = await bcrypt.compare(password, admin.passwordHash);
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
     
     if (!isPasswordValid) {
       // Log failed attempt - invalid password
@@ -121,7 +113,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     );
 
     // Step 4: Update admin last login and last seen
-    await prisma.admin.update({
+    await prisma.user.update({
       where: { id: admin.id },
       data: {
         lastSeenAt: new Date()
@@ -139,7 +131,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         token,
         admin: {
           id: admin.id,
-          name: admin.name,
+          name: admin.full_name,
           email: admin.email,
           role: admin.role,
           lastSeenAt: admin.lastSeenAt
@@ -187,22 +179,21 @@ function extractDeviceInfo(userAgent) {
 /**
  * Log login attempt (temporary implementation without LoginLog model)
  */
-async function logLoginAttempt(adminId, ipAddress, deviceInfo, userAgent, success, reason) {
+async function logLoginAttempt(userId, ipAddress, deviceInfo, userAgent, success, reason) {
   try {
-    // For now, just console log - will implement with LoginLog model later
-    console.log(`Login Attempt: ${success ? 'SUCCESS' : 'FAILED'} | Admin: ${adminId || 'N/A'} | IP: ${ipAddress} | Device: ${deviceInfo} | Reason: ${reason}`);
+    console.log(`Login Attempt: ${success ? 'SUCCESS' : 'FAILED'} | User: ${userId || 'N/A'} | IP: ${ipAddress} | Device: ${deviceInfo} | Reason: ${reason}`);
     
-    // TODO: Implement actual database logging when LoginLog model is added
-    // await prisma.loginLog.create({
-    //   data: {
-    //     adminId,
-    //     ipAddress,
-    //     deviceInfo,
-    //     userAgent,
-    //     success,
-    //     timestamp: new Date()
-    //   }
-    // });
+    await prisma.loginLog.create({
+      data: {
+        userId,
+        ipAddress,
+        deviceInfo,
+        userAgent,
+        success,
+        reason,
+        timestamp: new Date()
+      }
+    });
   } catch (error) {
     console.error('Failed to log login attempt:', error);
   }
@@ -216,7 +207,7 @@ async function logLoginAttempt(adminId, ipAddress, deviceInfo, userAgent, succes
 router.post('/seed', async (req, res) => {
   try {
     // Check if any admin exists
-    const adminCount = await prisma.admin.count();
+    const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
     
     if (adminCount > 0) {
       return res.json({
@@ -230,11 +221,11 @@ router.post('/seed', async (req, res) => {
     const defaultPassword = 'Admin123!@#'; // Strong default password
     const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
-    const admin = await prisma.admin.create({
+    const admin = await prisma.user.create({
       data: {
-        name: 'Default Admin',
+        full_name: 'Default Admin',
         email: 'admin@ieltspractice.com',
-        passwordHash: hashedPassword,
+        password: hashedPassword,
         role: 'ADMIN',
         isActive: true
       }
@@ -251,7 +242,7 @@ router.post('/seed', async (req, res) => {
       data: {
         admin: {
           id: admin.id,
-          name: admin.name,
+          name: admin.full_name,
           email: admin.email,
           role: admin.role
         },
@@ -301,11 +292,11 @@ router.get('/verify', async (req, res) => {
     }
 
     // Get fresh admin data
-    const admin = await prisma.admin.findUnique({
-      where: { id: decoded.id },
+    const adminRecord = await prisma.user.findFirst({
+      where: { id: decoded.id, role: { in: ['ADMIN', 'CEO'] } },
       select: {
         id: true,
-        name: true,
+        full_name: true,
         email: true,
         role: true,
         isActive: true,
@@ -313,6 +304,9 @@ router.get('/verify', async (req, res) => {
         createdAt: true
       }
     });
+    
+    // Map full_name to name for frontend compatibility
+    const admin = adminRecord ? { ...adminRecord, name: adminRecord.full_name } : null;
 
     if (!admin || !admin.isActive) {
       return res.status(403).json({
@@ -372,10 +366,20 @@ router.post('/reset-password', async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     
-    const admin = await prisma.admin.update({
-      where: { email: email.toLowerCase().trim() },
-      data: { passwordHash: hashedPassword }
+    const existingAdmin = await prisma.user.findFirst({
+      where: { email: email.toLowerCase().trim(), role: { in: ['ADMIN', 'CEO'] } }
     });
+    
+    if (!existingAdmin) {
+      throw new Error('Admin not found');
+    }
+
+    const admin = await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: { password: hashedPassword }
+    });
+    admin.name = admin.full_name; // for the success response
+
     
     console.log(`🔑 Password reset for admin: ${admin.email}`);
     

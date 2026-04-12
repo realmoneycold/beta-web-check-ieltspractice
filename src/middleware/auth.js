@@ -1,10 +1,21 @@
 const jwt = require('jsonwebtoken');
 
-function verifyToken(req, res, next) {
+// Extract token from Authorization header or cookie fallback
+function extractToken(req) {
+  // From Authorization: Bearer <token>
   const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : null;
+  if (authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  // From cookie (browser sessions)
+  if (req.cookies && req.cookies.authToken) {
+    return req.cookies.authToken;
+  }
+  return null;
+}
+
+function verifyToken(req, res, next) {
+  const token = extractToken(req);
 
   if (!token) {
     return res.status(401).json({ message: 'Authorization token missing' });
@@ -34,7 +45,7 @@ function checkRole(...allowedRoles) {
 }
 
 module.exports = {
+  extractToken,
   verifyToken,
   checkRole,
 };
-
