@@ -82,6 +82,48 @@
     window.location.replace(to);
   }
 
+  // ─── Inactivity Timeout Handling ──────────────────────────────
+  const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+  function updateLastActivity() {
+    if (localStorage.getItem('token') || localStorage.getItem('authToken')) {
+      localStorage.setItem('lastActivity', Date.now().toString());
+    }
+  }
+
+  function checkInactivity() {
+    const lastActivity = localStorage.getItem('lastActivity');
+    const hasToken = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    if (hasToken && lastActivity) {
+      const inactiveTime = Date.now() - parseInt(lastActivity, 10);
+      if (inactiveTime > INACTIVITY_LIMIT) {
+        console.warn('Session expired due to inactivity (30m). Redirecting to login...');
+        clearAuthAndRedirect();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Setup activity listeners
+  ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, updateLastActivity, { passive: true });
+  });
+  
+  // Initial activity update
+  updateLastActivity();
+
+  // Helper to sanitize HTML to prevent XSS (client-side safety)
+  window.sanitizeHTML = function(str) {
+    if (!str) return '';
+    const temp = document.createElement('div');
+    temp.textContent = str;
+    return temp.innerHTML;
+  };
+
+  // Periodic check
+  setInterval(checkInactivity, 60000); // Check every minute
+
   function routeByRole(role) {
     switch ((role || '').toLowerCase()) {
       case 'ceo':
@@ -96,14 +138,26 @@
   }
 
   /**
-   * Global apiFetch - attaches Bearer token and handles 401
+   * Global apiFetch - attaches Bearer token, handles 401, and implements retry logic
    * @param {string} endpoint - e.g. '/api/user/profile'
    * @param {RequestInit} options - fetch options (method, body, headers, etc.)
+   * @param {number} retries - number of retries for failed calls (default: 2)
    * @returns {Promise<Response>}
    */
-  window.apiFetch = function apiFetch(endpoint, options) {
+  window.apiFetch = function apiFetch(endpoint, options, retries = 2) {
     const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     const headers = new Headers(options?.headers || {});
+    
+    // Add CSRF token from cookie if available
+    const csrfToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('XSRF-TOKEN='))
+      ?.split('=')[1];
+    
+    if (csrfToken) {
+      headers.set('X-XSRF-TOKEN', csrfToken);
+    }
+
     if (token) {
       headers.set('Authorization', 'Bearer ' + token);
     }
@@ -117,11 +171,29 @@
         clearAuthAndRedirect();
         return Promise.reject(new Error('Unauthorized'));
       }
+      
+      // Retry on 5xx errors if retries are left
+      if (res.status >= 500 && retries > 0) {
+        console.warn(`API call failed with status ${res.status}, retrying... (${retries} left)`);
+        return new Promise(resolve => setTimeout(resolve, 1000))
+          .then(() => apiFetch(endpoint, options, retries - 1));
+      }
+      
       return res;
+    }).catch(function (error) {
+      // Retry on network errors if retries are left
+      if (retries > 0 && !error.message.includes('Unauthorized')) {
+        console.warn(`API call failed with network error, retrying... (${retries} left)`, error);
+        return new Promise(resolve => setTimeout(resolve, 1000))
+          .then(() => apiFetch(endpoint, options, retries - 1));
+      }
+      throw error;
     });
   };
 
   function guard() {
+    if (checkInactivity()) return; // Stop if already redirected due to inactivity
+
     const current = fileName().toLowerCase();
     const { token, role } = readUserState();
 

@@ -11,6 +11,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const prisma = require('../models/prisma');
+const { validate } = require('../middleware/validation');
 
 // ─── RATE LIMITING ─────────────────────────────────────────────────────────────────────
 const studentLoginLimiter = rateLimit({
@@ -38,7 +39,7 @@ function validateEmail(email) {
  * POST /api/auth/student/login
  * Authenticate student accounts
  */
-router.post('/login', studentLoginLimiter, async (req, res) => {
+router.post('/login', studentLoginLimiter, validate('login'), async (req, res) => {
   const { email, password } = req.body;
   const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
 

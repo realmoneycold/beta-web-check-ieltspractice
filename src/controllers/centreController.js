@@ -210,7 +210,7 @@ async function createMockSession(req, res) {
     const session = await prisma.mockSession.create({
       data: {
         centreId,
-        dateTime: new Date(dateTime),
+        dateTime: new Date(new Date(dateTime).toISOString()),
         type,
         format,
         location: location || 'TBD',
@@ -256,7 +256,7 @@ async function updateMockSession(req, res) {
     }
 
     const updateData = {};
-    if (dateTime !== undefined) updateData.dateTime = new Date(dateTime);
+    if (dateTime !== undefined) updateData.dateTime = new Date(new Date(dateTime).toISOString());
     if (type !== undefined) updateData.type = type;
     if (format !== undefined) updateData.format = format;
     if (location !== undefined) updateData.location = location;
@@ -1079,6 +1079,69 @@ async function getDashboardStats(req, res) {
   }
 }
 
+// GET /api/centres/locations - Get all education centres with geolocation
+async function getCentresWithLocations(req, res) {
+  try {
+    const centres = await prisma.educationCentre.findMany({
+      where: {
+        latitude: { not: null },
+        longitude: { not: null },
+        isActive: true
+      },
+      select: {
+        id: true,
+        name: true,
+        latitude: true,
+        longitude: true,
+        city: true,
+        address: true,
+        phone: true,
+        website: true,
+        rating: true
+      }
+    });
+
+    res.json({
+      success: true,
+      data: centres
+    });
+  } catch (error) {
+    console.error('Get centres with locations error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch centres with locations',
+      code: 'CENTRES_LOCATIONS_ERROR'
+    });
+  }
+}
+
+// GET /api/public/centres - Get simple list of active education centres
+async function getEducationCentres(req, res) {
+  try {
+    const centres = await prisma.educationCentre.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        rating: true
+      }
+    });
+
+    res.json({
+      success: true,
+      data: centres
+    });
+  } catch (error) {
+    console.error('Get education centres error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch education centres',
+      code: 'CENTRES_LIST_ERROR'
+    });
+  }
+}
+
 module.exports = {
   // Profile CRUD
   getCentreProfile,
@@ -1107,5 +1170,7 @@ module.exports = {
   markInquiryRead,
   deleteInquiry,
   // Dashboard
-  getDashboardStats
+  getDashboardStats,
+  getCentresWithLocations,
+  getEducationCentres
 };

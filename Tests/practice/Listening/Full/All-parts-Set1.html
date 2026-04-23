@@ -3007,7 +3007,7 @@ The reality is that unhappy workers are unlikely to work well together and there
                 // Check for radio button questions first (questions 15-16, 17-20, etc.)
                 if (radioInput || groupCheckboxAnswered) {
                     isAnswered = true;
-                    if (qNum >= 15 && qNum <= 20) {
+                    if (qNum >= 15 && qNum <= 20 && radioInput) {
                         console.log(`Question ${qNum} radio detected as answered: ${radioInput.value}`);
                     }
                 // Check for checkbox questions with multiple answer requirements
@@ -4783,6 +4783,77 @@ The reality is that unhappy workers are unlikely to work well together and there
                 progressBar.style.pointerEvents = 'none';
             });
         })();
+    </script>
+
+    <!-- Score Tracking -->
+    <script src="../../js/scoreCalculator.js"></script>
+    <script>
+        // Store test start time
+        window.testStartTime = Date.now();
+        
+        // Override checkAnswers to save score
+        const originalCheckAnswers = checkAnswers;
+        checkAnswers = async function() {
+            // Call original function first (this calculates and displays the score)
+            const result = originalCheckAnswers();
+            
+            // Wait a brief moment for DOM to update
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Extract score from the DOM - try multiple methods
+            let correctCount = 0;
+            const scoreSummary = document.getElementById('score-summary');
+            
+            if (scoreSummary && scoreSummary.textContent) {
+                const text = scoreSummary.textContent;
+                console.log('[ScoreCalc] Score summary text:', text);
+                
+                // Try multiple patterns to extract score
+                const patterns = [
+                    /scored\s+(\d+)\s+out\s+of/i,  // "scored X out of"
+                    /(\d+)\s*\/\s*40/,              // "X/40"
+                    /score[^\d]*(\d+)/i,            // "score: X"
+                    /(\d+)\s*points?/i              // "X points"
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        correctCount = parseInt(match[1], 10);
+                        console.log('[ScoreCalc] Extracted score using pattern:', pattern, '->', correctCount);
+                        break;
+                    }
+                }
+                
+                if (correctCount === 0) {
+                    console.warn('[ScoreCalc] Could not extract score from:', text);
+                }
+            } else {
+                console.warn('[ScoreCalc] score-summary element not found or empty');
+            }
+            
+            const totalQuestions = 40; // Standard IELTS Listening has 40 questions
+            
+            // Save with extracted score
+            console.log('[ScoreCalc] Saving test with score:', correctCount, '/', totalQuestions);
+            const saveResult = await window.saveTestWithScore({
+                testType: 'LISTENING',
+                testId: 'Listening-Set1',
+                testName: 'Listening Test - Set 1',
+                skillArea: 'LISTENING_COMPREHENSION',
+                correct: correctCount,
+                total: totalQuestions,
+                timeSpent: Math.floor((Date.now() - window.testStartTime) / 1000)
+            });
+            
+            if (saveResult.success) {
+                console.log('[ScoreCalc] Score saved successfully!');
+            } else {
+                console.error('[ScoreCalc] Failed to save score:', saveResult);
+            }
+            
+            return result;
+        };
     </script>
 </body>
 </html>

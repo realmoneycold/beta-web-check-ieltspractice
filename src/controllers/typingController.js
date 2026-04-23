@@ -181,7 +181,7 @@ async function submitTypingResult(req, res) {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-    const { wpm, accuracy, durationMinutes } = req.body;
+    const { wpm, accuracy, durationMinutes, difficulty } = req.body;
 
     if (typeof wpm !== 'number' || typeof accuracy !== 'number') {
       return res.status(400).json({ success: false, message: 'wpm and accuracy are required numbers' });
@@ -193,12 +193,19 @@ async function submitTypingResult(req, res) {
       return res.status(400).json({ success: false, message: 'accuracy must be between 0 and 100' });
     }
 
+    // Validate difficulty
+    const validDifficulties = ['beginner', 'intermediate', 'advanced'];
+    const normalizedDifficulty = difficulty && validDifficulties.includes(difficulty.toLowerCase())
+      ? difficulty.toLowerCase()
+      : 'intermediate';
+
     const result = await prisma.typingResult.create({
       data: {
         userId,
         wpm: parseFloat(wpm),
         accuracy: parseFloat(accuracy),
         durationMinutes: durationMinutes ? parseInt(durationMinutes) : 2,
+        difficulty: normalizedDifficulty,
       },
     });
 
@@ -222,7 +229,114 @@ async function submitTypingResult(req, res) {
   }
 }
 
+// ─── GET PRACTICE TEXTS ──────────────────────────────────────────────────
+// GET /api/typing/practice-texts
+async function getPracticeTexts(req, res) {
+  try {
+    const { difficulty, category, limit = 10 } = req.query;
+
+    const where = { isActive: true };
+    if (difficulty) where.difficulty = difficulty.toUpperCase();
+    if (category) where.category = category.toUpperCase();
+
+    const texts = await prisma.typingPracticeText.findMany({
+      where,
+      take: parseInt(limit) || 10,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: texts,
+    });
+  } catch (err) {
+    console.error('Get practice texts error:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+}
+
+// ─── GET RANDOM PRACTICE TEXT ──────────────────────────────────────────────
+// GET /api/typing/practice-text
+async function getRandomTypingText(req, res) {
+  try {
+    const { difficulty } = req.query;
+
+    const where = { isActive: true };
+    if (difficulty) {
+      where.difficulty = difficulty.toLowerCase();
+    }
+
+    const count = await prisma.typingPracticeText.count({ where });
+    if (count === 0) {
+      return res.status(404).json({ success: false, message: 'No practice texts found' });
+    }
+
+    const random = Math.floor(Math.random() * count);
+    const text = await prisma.typingPracticeText.findFirst({
+      where,
+      skip: random,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: text,
+      content: text.content // Added for simpler frontend access as per prompt
+    });
+  } catch (err) {
+    console.error('Get random typing text error:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+}
+
+// ─── GET USER TYPING HISTORY ─────────────────────────────────────────────
+// GET /api/typing/my-history
+async function getUserTypingHistory(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const limit = parseInt(req.query.limit) || 50;
+
+    const results = await prisma.typingResult.findMany({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      take: limit,
+    });
+
+    // Get user's best WPM for comparison
+    const bestWpm = results.length > 0 ? Math.max(...results.map(r => r.wpm)) : 0;
+
+    const formattedResults = results.map((result, index) => ({
+      id: result.id,
+      date: result.date,
+      wpm: result.wpm,
+      accuracy: result.accuracy,
+      durationMinutes: result.durationMinutes,
+      difficulty: result.difficulty || 'intermediate',
+      isPersonalBest: result.wpm === bestWpm,
+      rank: index + 1,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        history: formattedResults,
+        totalSessions: results.length,
+        bestWpm,
+        averageWpm: results.length > 0 ? Math.round(results.reduce((sum, r) => sum + r.wpm, 0) / results.length) : 0,
+        averageAccuracy: results.length > 0 ? parseFloat((results.reduce((sum, r) => sum + r.accuracy, 0) / results.length).toFixed(1)) : 0,
+      },
+    });
+  } catch (err) {
+    console.error('Get user typing history error:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+}
+
 module.exports = {
   getLeaderboard,
   submitTypingResult,
+  getPracticeTexts,
+  getRandomTypingText,
+  getUserTypingHistory,
 };

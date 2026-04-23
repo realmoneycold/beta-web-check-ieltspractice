@@ -4,14 +4,23 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
+// IMMEDIATE EXPORT - Ensure DashboardAPI is available ASAP
+// ═══════════════════════════════════════════════════════════════
+
+// Create DashboardAPI object immediately so it's available even if script errors later
+window.DashboardAPI = window.DashboardAPI || {};
+
+// ═══════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
 const API_BASE = '/api';
 
-// Get auth token from localStorage
+// Get auth token from localStorage - check all possible keys
 function getAuthToken() {
-  return localStorage.getItem('authToken') || localStorage.getItem('token');
+  return localStorage.getItem('authToken') || 
+         localStorage.getItem('token') || 
+         localStorage.getItem('ielts_token');
 }
 
 // Get user role from localStorage
@@ -42,6 +51,7 @@ async function handleResponse(response) {
     if (response.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('token');
+      localStorage.removeItem('ielts_token');
       window.location.href = '/login.html';
       throw new Error('Session expired. Please login again.');
     }
@@ -79,11 +89,14 @@ async function apiRequest(endpoint, options = {}) {
 
 /**
  * Get comprehensive dashboard data
+ * @param {boolean} forceRefresh - If true, bypass browser cache
  * @returns {Promise<Object>} Full dashboard data
  */
-async function getFullDashboardData() {
-  return apiRequest('/student/dashboard/full', {
+async function getFullDashboardData(forceRefresh = false) {
+  const cacheBuster = forceRefresh ? `?_t=${Date.now()}` : '';
+  return apiRequest(`/student/dashboard-data${cacheBuster}`, {
     method: 'GET',
+    headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : {}
   });
 }
 
@@ -523,6 +536,89 @@ async function deleteApplication(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// AI (WRITING ASSESSMENT & MENTORING) ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Assess IELTS writing sample via AI
+ * @param {string} writing - Student's writing text
+ * @param {string} taskType - 'Task1' or 'Task2'
+ * @returns {Promise<Object>} Assessment with band scores and feedback
+ */
+async function assessWriting(writing, taskType = 'Task2') {
+  return apiRequest('/ai/assess-writing', {
+    method: 'POST',
+    body: JSON.stringify({ writing, taskType }),
+  });
+}
+
+/**
+ * Get AI mentoring response on a question
+ * @param {string} question - Student's question about IELTS
+ * @returns {Promise<Object>} Mentoring response
+ */
+async function getAIMentoring(question) {
+  console.log('🚀 [DashboardAPI] Sending AI mentoring request:', { question: question.substring(0, 50) + '...' });
+  try {
+    const response = await apiRequest('/ai/mentor', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    });
+    console.log('✅ [DashboardAPI] AI mentoring response received:', response);
+    return response;
+  } catch (error) {
+    console.error('❌ [DashboardAPI] AI mentoring request failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get personalized writing improvement tips
+ * @param {string[]} weakAreas - Areas to improve (e.g., ['grammar', 'vocabulary'])
+ * @returns {Promise<Object>} Personalized tips
+ */
+async function getWritingImprovementTips(weakAreas = []) {
+  const params = weakAreas.length > 0 ? `?weakAreas=${weakAreas.join(',')}` : '';
+  return apiRequest(`/ai/tips${params}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Get AI chat history
+ * @param {Object} params - Query params (page, limit)
+ * @returns {Promise<Object>} Chat sessions and pagination
+ */
+async function getAIChatHistory(params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  return apiRequest(`/ai/chat-history${queryString ? '?' + queryString : ''}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Get writing assessment history
+ * @param {Object} params - Query params (page, limit)
+ * @returns {Promise<Object>} Assessment records and pagination
+ */
+async function getWritingAssessmentHistory(params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  return apiRequest(`/ai/assessments${queryString ? '?' + queryString : ''}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Check if AI features are available
+ * @returns {Promise<Object>} Availability status
+ */
+async function checkAIAvailability() {
+  return apiRequest('/ai/status', {
+    method: 'GET',
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // REPORTS ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -552,7 +648,8 @@ async function createReport(data) {
 // EXPORT API
 // ═══════════════════════════════════════════════════════════════
 
-window.DashboardAPI = {
+// Populate the DashboardAPI object with all API methods
+Object.assign(window.DashboardAPI, {
   // Config
   getAuthToken,
   getUserRole,
@@ -614,10 +711,20 @@ window.DashboardAPI = {
   createApplication,
   deleteApplication,
 
+  // AI & Mentoring
+  assessWriting,
+  getAIMentoring,
+  getWritingImprovementTips,
+  getAIChatHistory,
+  getWritingAssessmentHistory,
+  checkAIAvailability,
+
   // Reports
   getReports,
   createReport,
-};
+});
+
+console.log('[DashboardAPI] API methods exported. Available methods:', Object.keys(window.DashboardAPI));
 
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD INITIALIZATION HELPER
@@ -626,54 +733,81 @@ window.DashboardAPI = {
 /**
  * Initialize dashboard with data from API
  * Call this when dashboard view is loaded
+ * @param {boolean} forceRefresh - If true, bypass all caches
  */
-async function initializeDashboard() {
-  try {
-    console.log('Initializing dashboard...');
-
-    // Show loading state
-    const loadingEl = document.getElementById('dashboard-loading');
-    if (loadingEl) loadingEl.style.display = 'flex';
-
-    // Fetch all dashboard data
-    const dashboardData = await getFullDashboardData();
-
-    console.log('Dashboard data loaded:', dashboardData);
-
-    // Hide loading
-    if (loadingEl) loadingEl.style.display = 'none';
-
-    return dashboardData;
-  } catch (error) {
-    console.error('Failed to initialize dashboard:', error);
-
-    // Show error state
-    const errorEl = document.getElementById('dashboard-error');
-    if (errorEl) {
-      errorEl.style.display = 'flex';
-      errorEl.textContent = error.message;
-    }
-
-    throw error;
+async function initializeDashboard(forceRefresh = false) {
+  // If already initializing and not forcing refresh, return the same promise
+  if (window.lastDashboardResult && !window.dashboardError && !forceRefresh) {
+    return window.lastDashboardResult;
   }
+
+  window.lastDashboardResult = (async () => {
+    try {
+      console.log('Initializing dashboard... (forceRefresh:', forceRefresh, ')');
+
+      // Show loading state
+      const loadingEl = document.getElementById('dashboard-loading');
+      if (loadingEl) loadingEl.style.display = 'flex';
+
+      // Fetch all dashboard data with cache busting if forceRefresh
+      const dashboardData = await getFullDashboardData(forceRefresh);
+
+      console.log('Dashboard data loaded:', dashboardData);
+
+      if (loadingEl) {
+          console.log('Hiding dashboard loading overlay');
+          loadingEl.style.display = 'none';
+      }
+
+      return dashboardData;
+    } catch (error) {
+      console.error('Failed to initialize dashboard:', error);
+      window.dashboardError = true;
+
+      // Show error state
+      const errorEl = document.getElementById('dashboard-error');
+      if (errorEl) {
+        errorEl.style.display = 'flex';
+        errorEl.textContent = error.message;
+      }
+
+      throw error;
+    }
+  })();
+
+  return window.lastDashboardResult;
 }
 
 // Export initialization helper
 window.initializeDashboard = initializeDashboard;
 
+// Function to clear dashboard cache (for forcing fresh data load)
+window.clearDashboardCache = function() {
+  window.lastDashboardResult = null;
+  window.dashboardError = false;
+  console.log('[DashboardAPI] Cache cleared');
+};
+
 // Auto-initialize if on dashboard page
+// NOTE: Delay check to ensure DashboardAPI is fully populated first
 if (window.location.pathname.includes('dashboard.html') || window.location.pathname === '/dashboard') {
   document.addEventListener('DOMContentLoaded', () => {
-    // Check if user is authenticated
-    const token = getAuthToken();
-    if (!token) {
-      console.warn('No auth token found, redirecting to login...');
-      window.location.href = '/login.html';
-      return;
-    }
+    console.log('[DashboardAPI] DOMContentLoaded - Checking auth...');
 
-    // Initialize dashboard
-    initializeDashboard().catch(console.error);
+    // Small delay to ensure all scripts have initialized
+    setTimeout(() => {
+      // Check if user is authenticated
+      const token = getAuthToken();
+      if (!token) {
+        console.warn('[DashboardAPI] No auth token found, redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+
+      console.log('[DashboardAPI] Token found, dashboard will be initialized by Vue app...');
+      // NOTE: Auto-initialization disabled - Vue app calls loadProfile(true) which handles this
+      // initializeDashboard().catch(console.error);
+    }, 100);
   });
 }
 

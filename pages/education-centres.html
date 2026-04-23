@@ -79,6 +79,7 @@
         .orange-badge { background-color: #FFF8F5; color: #FF6B35; }
         .blue-badge { background-color: #EFF6FF; color: #3B82F6; }
         .green-badge { background-color: #F0FDF4; color: #22C55E; }
+        .academy-badge { background-color: #FEF3C7; color: #D97706; }
 
         /* Custom scrollbar for list */
         .custom-scrollbar::-webkit-scrollbar {
@@ -257,7 +258,7 @@
                         <iconify-icon icon="ph:buildings-fill"></iconify-icon>
                     </div>
                     <div>
-                        <div class="text-2xl font-black text-white leading-none">8</div>
+                        <div class="text-2xl font-black text-white leading-none">18</div>
                         <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Total Centres</div>
                     </div>
                 </div>
@@ -266,7 +267,7 @@
                         <iconify-icon icon="ph:map-trifold-fill"></iconify-icon>
                     </div>
                     <div>
-                        <div class="text-2xl font-black text-white leading-none">5</div>
+                        <div class="text-2xl font-black text-white leading-none">6</div>
                         <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Active Cities</div>
                     </div>
                 </div>
@@ -276,7 +277,7 @@
 
     <!-- Main Split Layout -->
     <section class="px-4 md:px-8 lg:px-16 pb-16 flex-1 flex flex-col">
-        <div class="max-w-[1440px] mx-auto w-full flex-1 flex flex-col lg:flex-row gap-6 min-h-[600px] h-[calc(100vh-280px)] scroll-reveal active relative z-0">
+        <div class="max-w-[1440px] mx-auto w-full flex-1 flex flex-col lg:flex-row gap-6 min-h-[500px] h-[calc(100vh-200px)] max-h-[700px] scroll-reveal active relative z-0">
             
             <!-- Left Panel: List & Filters -->
             <div class="w-full lg:w-[480px] xl:w-[540px] bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-2 border-purple-50 flex flex-col overflow-hidden shrink-0 z-10">
@@ -303,6 +304,9 @@
                         <button class="filter-pill inactive" data-filter="Partner">
                             <iconify-icon icon="ph:handshake-fill" class="text-orange-500"></iconify-icon> Partner
                         </button>
+                        <button class="filter-pill inactive" data-filter="Academy">
+                            <iconify-icon icon="ph:star-fill" class="text-amber-500"></iconify-icon> Academy
+                        </button>
                         <button class="filter-pill inactive" data-filter="Online">
                             <iconify-icon icon="ph:laptop-fill" class="text-blue-500"></iconify-icon> Online
                         </button>
@@ -327,7 +331,7 @@
                 </div>
 
                 <!-- Cards Container -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-gray-50/50" id="cardsWrap">
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-gray-50/50 max-h-[400px]" id="cardsWrap">
                     <!-- Cards dynamically injected here -->
                 </div>
 
@@ -342,7 +346,7 @@
             </div>
 
             <!-- Right Panel: Map -->
-            <div class="flex-1 bg-gray-200 rounded-[32px] overflow-hidden border-2 border-purple-50 shadow-inner relative min-h-[400px] lg:min-h-0 z-0">
+            <div class="flex-1 bg-gray-200 rounded-[32px] overflow-hidden border-2 border-purple-50 shadow-inner relative min-h-[350px] lg:min-h-[350px] max-h-[700px] z-0">
                 <div id="map" class="absolute inset-0"></div>
                 
                 <!-- Floating Map Controls (Optional aesthetic addition) -->
@@ -350,6 +354,7 @@
                     <div class="flex items-center gap-3 text-xs font-bold text-gray-600">
                         <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#8B5CF6]"></div> Official</span>
                         <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#FF6B35]"></div> Partner</span>
+                        <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#D97706]"></div> Academy</span>
                         <span class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div> Online</span>
                     </div>
                 </div>
@@ -448,6 +453,17 @@
             { id: 6, name: "Bukhara IELTS Centre", type: "Partner", city: "Bukhara", district: "Old City", rating: 4.4, reviews: 76, students: "300+", courses: 2, price: 200000, open: true, icon: "🏰", bg: "#FFF8F5", lat: 39.7747, lng: 64.4286 },
             { id: 7, name: "Online IELTS Pro", type: "Online", city: "Nationwide", district: "Remote", rating: 4.7, reviews: 423, students: "5,000+", courses: 5, price: 180000, open: true, icon: "💻", bg: "#EFF6FF", lat: 41.2600, lng: 69.2200 },
             { id: 8, name: "Namangan Study Centre", type: "Partner", city: "Namangan", district: "Central", rating: 4.3, reviews: 54, students: "220+", courses: 2, price: 130000, open: false, icon: "🏫", bg: "#FFF8F5", lat: 40.9983, lng: 71.6726 },
+            // Termez Educational Centers
+            { id: 9, name: "Winners Academy (Main)", type: "Academy", city: "Termez", district: "At-Termizi St", rating: 5.0, reviews: 128, students: "850+", courses: 4, price: 220000, open: true, icon: "🏆", bg: "#FEF3C7", lat: 37.2214, lng: 67.2780 },
+            { id: 10, name: "Imperial Academy", type: "Academy", city: "Termez", district: "Barkamol Avlod", rating: 5.0, reviews: 96, students: "720+", courses: 3, price: 240000, open: true, icon: "👑", bg: "#FEF3C7", lat: 37.2230, lng: 67.2810 },
+            { id: 11, name: "London Academy", type: "Academy", city: "Termez", district: "Islam Karimov", rating: 5.0, reviews: 142, students: "1,100+", courses: 5, price: 260000, open: true, icon: "🇬🇧", bg: "#FEF3C7", lat: 37.2195, lng: 67.2850 },
+            { id: 12, name: "Oxbridge", type: "Academy", city: "Termez", district: "Ibn Sino", rating: 5.0, reviews: 88, students: "680+", courses: 3, price: 250000, open: true, icon: "🎓", bg: "#FEF3C7", lat: 37.2180, lng: 67.2750 },
+            { id: 13, name: "Level Up", type: "Academy", city: "Termez", district: "At-Termiziy St", rating: 5.0, reviews: 115, students: "900+", courses: 4, price: 200000, open: true, icon: "⬆️", bg: "#FEF3C7", lat: 37.2240, lng: 67.2790 },
+            { id: 14, name: "Ziyo Termiz", type: "Academy", city: "Termez", district: "Alisher Navoi", rating: 4.0, reviews: 67, students: "540+", courses: 3, price: 180000, open: true, icon: "💡", bg: "#FEF3C7", lat: 37.2200, lng: 67.2820 },
+            { id: 15, name: "WebForte Academy", type: "Academy", city: "Termez", district: "Islam Karimov", rating: 4.0, reviews: 74, students: "420+", courses: 2, price: 280000, open: true, icon: "💻", bg: "#FEF3C7", lat: 37.2170, lng: 67.2860 },
+            { id: 16, name: "Seul School", type: "Academy", city: "Termez", district: "Alisher Navoi", rating: 5.0, reviews: 52, students: "380+", courses: 2, price: 230000, open: true, icon: "🇰🇷", bg: "#FEF3C7", lat: 37.2225, lng: 67.2840 },
+            { id: 17, name: "Harvard Private School", type: "Academy", city: "Termez", district: "Islam Karimov", rating: 4.0, reviews: 43, students: "290+", courses: 2, price: 300000, open: true, icon: "🎓", bg: "#FEF3C7", lat: 37.2185, lng: 67.2800 },
+            { id: 18, name: "Bilimdon Study", type: "Academy", city: "Termez", district: "5th Micro-district", rating: 4.0, reviews: 38, students: "250+", courses: 2, price: 160000, open: true, icon: "📖", bg: "#FEF3C7", lat: 37.2250, lng: 67.2760 },
         ];
 
         // State
@@ -463,6 +479,7 @@
             if(type === 'Official') return 'purple-badge';
             if(type === 'Partner') return 'orange-badge';
             if(type === 'Online') return 'blue-badge';
+            if(type === 'Academy') return 'academy-badge';
             return 'bg-gray-100 text-gray-600';
         }
 

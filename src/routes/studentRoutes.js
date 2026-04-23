@@ -44,6 +44,7 @@ router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
       select: {
         id: true,
         full_name: true,
+        username: true,
         email: true,
         phone: true,
         country: true,
@@ -71,6 +72,9 @@ router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
         code: 'STUDENT_NOT_FOUND'
       });
     }
+    
+    // DEBUG: Log what we found in the database
+    console.log(`[dashboard-data] User ${userId} - exam_date: ${student.exam_date}, target_band: ${student.target_band}`);
 
     const bandProgress = student.target_band > 0
       ? ((student.current_band / student.target_band) * 100).toFixed(1)
@@ -79,6 +83,7 @@ router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
     const dashboardData = {
       id: student.id,
       fullName: student.full_name || '',
+      username: student.username || '',
       email: student.email || '',
       phone: student.phone || '',
       country: student.country || '',
@@ -98,6 +103,12 @@ router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
       memberSince: student.createdAt,
       lastUpdated: student.updatedAt
     };
+
+    // DEBUG: Log the exact response being sent
+    console.log(`[dashboard-data] RESPONSE for User ${userId}:`, JSON.stringify({
+      examDate: dashboardData.examDate,
+      targetBand: dashboardData.targetBand
+    }));
 
     res.json({
       success: true,

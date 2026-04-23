@@ -78,10 +78,6 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Database
-*.sqlite
-*.sqlite3
-
 # Backup files
 *.backup
 *.bak

@@ -56,28 +56,28 @@ async function getFullDashboardData(req, res) {
       }),
 
       // 2. Typing Statistics
-      prisma.typingResult.findMany({
+      prisma.typingResult ? prisma.typingResult.findMany({
         where: { userId },
         orderBy: { date: 'desc' },
         take: 10
-      }),
+      }) : Promise.resolve([]),
 
       // 3. Study Streak
-      prisma.studyStreak.findMany({
+      prisma.studyStreak ? prisma.studyStreak.findMany({
         where: { userId },
         orderBy: { date: 'desc' },
         take: 30
-      }),
+      }) : Promise.resolve([]),
 
       // 4. Weekly Progress
-      prisma.weeklyProgress.findMany({
+      prisma.weeklyProgress ? prisma.weeklyProgress.findMany({
         where: { userId },
         orderBy: { weekStartDate: 'desc' },
         take: 8
-      }),
+      }) : Promise.resolve([]),
 
       // 5. Mock Results
-      prisma.mockResult.findMany({
+      prisma.mockResult ? prisma.mockResult.findMany({
         where: { studentId: userId },
         include: {
           session: {
@@ -91,20 +91,20 @@ async function getFullDashboardData(req, res) {
         },
         orderBy: { createdAt: 'desc' },
         take: 5
-      }),
+      }) : Promise.resolve([]),
 
       // 6. Practice Test Results with category breakdown
-      prisma.practiceTestResult.findMany({
+      prisma.practiceTestResult ? prisma.practiceTestResult.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 50
-      }),
+      }) : Promise.resolve([]),
 
       // 7. Progress Snapshot
-      prisma.progressSnapshot.findFirst({
+      prisma.progressSnapshot ? prisma.progressSnapshot.findFirst({
         where: { userId },
         orderBy: { snapshotDate: 'desc' }
-      }),
+      }) : Promise.resolve(null),
 
       // 8. Leaderboard (top 10 students by current_band)
       prisma.user.findMany({
@@ -127,11 +127,10 @@ async function getFullDashboardData(req, res) {
           id: true,
           name: true,
           city: true,
-          district: true,
           address: true,
-          contactEmail: true,
-          contactPhone: true,
-          websiteUrl: true,
+          email: true,
+          phone: true,
+          website: true,
           rating: true,
           totalStudents: true,
           activeStudents: true
@@ -140,6 +139,13 @@ async function getFullDashboardData(req, res) {
         take: 20
       })
     ]);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
 
     // Calculate derived statistics
     const typingStatsCalculated = typingStats.length > 0 ? {
@@ -245,14 +251,15 @@ async function getFullDashboardData(req, res) {
       id: c.id,
       name: c.name,
       city: c.city,
+      district: '',
       type: 'Official',
       rating: c.rating || 0,
-      address: c.address,
-      contactEmail: c.contactEmail,
-      contactPhone: c.contactPhone,
-      websiteUrl: c.websiteUrl,
-      totalStudents: c.totalStudents,
-      activeStudents: c.activeStudents,
+      address: c.address || '',
+      contactEmail: c.email || '',
+      contactPhone: c.phone || '',
+      websiteUrl: c.website || '',
+      totalStudents: c.totalStudents || 0,
+      activeStudents: c.activeStudents || 0,
       isOpen: true
     }));
 

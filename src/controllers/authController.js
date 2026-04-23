@@ -27,9 +27,13 @@ async function signup(req, res) {
     }
 
     if (!full_name || !email || !password) {
+      const missing = [];
+      if (!full_name) missing.push('Full Name');
+      if (!email) missing.push('Email');
+      if (!password) missing.push('Password');
       return res.status(400).json({
         success: false,
-        message: 'firstName, lastName (or full_name), email and password are required',
+        message: `Please provide all required fields: ${missing.join(', ')}`,
       });
     }
 
@@ -39,7 +43,10 @@ async function signup(req, res) {
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Email is already registered' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'This email address is already registered. Please sign in or use a different email.' 
+      });
     }
 
     const hashed = await bcrypt.hash(password, 12);
@@ -54,7 +61,21 @@ async function signup(req, res) {
     const userRole = requestedRole === 'TEACHER' ? 'TEACHER' : 'STUDENT';
 
     // Build a safe username if not provided
-    const safeUsername = (username || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
+    const usernameRegex = /^[a-z0-9]{3,20}$/;
+    let safeUsername = (username || '').toLowerCase().trim();
+    
+    if (safeUsername) {
+      if (!usernameRegex.test(safeUsername)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Username can only contain lowercase letters and numbers (a-z, 0-9) and must be 3-20 characters' 
+        });
+      }
+    } else {
+      // Fallback for legacy or if not provided - though frontend should require it
+      safeUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+      if (safeUsername.length < 3) safeUsername = `user${Math.floor(1000 + Math.random() * 9000)}`;
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -209,17 +230,20 @@ async function resendVerification(req, res) {
 async function login(req, res) {
   try {
     const { email, password, role } = req.body || {};
+    console.log('Login attempt for:', email);
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'email and password are required' });
     }
 
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    console.log('User found:', !!user);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     if (!user.is_verified) {
+      console.log('User not verified');
       return res.status(403).json({
         success: false,
         message: 'Email not verified. Please check your inbox for the verification code.',
@@ -230,22 +254,26 @@ async function login(req, res) {
 
     // Role check only when a specific portal sends role (optional)
     if (role && role.toUpperCase() !== user.role) {
+      console.log('Role mismatch:', role, 'vs', user.role);
       return res.status(403).json({ success: false, message: 'Invalid role for this portal' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isMatch);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
+    console.log('Generating JWT with secret length:', process.env.JWT_SECRET?.length);
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }  // 24 hours per spec
     );
+    console.log('JWT generated successfully');
 
     // Update last seen
-    prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
+    prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch((e) => console.error('LastSeen update error:', e));
 
     return res.json({
       success: true,
@@ -262,8 +290,8 @@ async function login(req, res) {
       },
     });
   } catch (err) {
-    console.error('Login error', err);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('Login error details:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
   }
 }
 
@@ -367,19 +395,28 @@ async function resetPassword(req, res) {
 async function checkUsername(req, res) {
   try {
     const username = (req.query.username || '').toLowerCase().trim();
+    const usernameRegex = /^[a-z0-9]{3,20}$/;
 
-    if (!username || username.length < 3) {
+    if (!username) {
       return res.status(400).json({
         success: false,
         available: false,
-        message: 'Username must be at least 3 characters'
+        message: 'Username is required'
+      });
+    }
+
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({
+        success: false,
+        available: false,
+        message: 'Username can only contain lowercase letters and numbers (a-z, 0-9) and must be 3-20 characters'
       });
     }
 
     const existing = await prisma.user.findUnique({ where: { username } });
 
     if (existing) {
-      return res.json({ success: true, available: false, message: 'This username is already taken' });
+      return res.json({ success: true, available: false, message: 'Username already taken' });
     }
 
     return res.json({ success: true, available: true, message: 'Username is available' });

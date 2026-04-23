@@ -19,7 +19,7 @@ const logger = {
 /**
  * Check if Ollama service is available
  */
-export const isOllamaAvailable = async () => {
+const isOllamaAvailable = async () => {
   if (!OLLAMA_ENABLED) {
     return false;
   }
@@ -39,7 +39,7 @@ export const isOllamaAvailable = async () => {
  * Generate AI response for student feedback
  * Provides IELTS-specific constructive feedback
  */
-export const generateAIFeedback = async (prompt, context = {}) => {
+const generateAIFeedback = async (prompt, context = {}) => {
   if (!OLLAMA_ENABLED) {
     return {
       success: false,
@@ -102,7 +102,7 @@ Context: ${JSON.stringify(context)}`;
  * Process chat session with Ollama
  * Maintains conversation history for contextual responses
  */
-export const processAIChat = async (userMessage, chatHistory = []) => {
+const processAIChat = async (userMessage, chatHistory = []) => {
   if (!OLLAMA_ENABLED) {
     return {
       success: false,
@@ -164,7 +164,7 @@ export const processAIChat = async (userMessage, chatHistory = []) => {
  * Initialize Ollama service on app startup
  * Logs connection status for debugging
  */
-export const initializeOllamaService = async () => {
+const initializeOllamaService = async () => {
   if (!OLLAMA_ENABLED) {
     logger.info('Ollama service disabled (OLLAMA_ENABLED=false)');
     return;

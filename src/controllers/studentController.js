@@ -1,5 +1,85 @@
 const prisma = require('../models/prisma');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+
+// ═══════════════════════════════════════════════════════════════
+// IELTS LEADERBOARD
+// ═══════════════════════════════════════════════════════════════
+
+// GET /api/ielts/leaderboard - Get IELTS band score leaderboard
+async function getIELTSLeaderboard(req, res) {
+  try {
+    let { limit = 100 } = req.query;
+    limit = parseInt(limit) || 100;
+    if (limit > 200) limit = 200;
+    
+    const userId = req.user?.id;
+    
+    // Get all students with valid band scores, ordered by current_band desc
+    const students = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT',
+        current_band: { gt: 0 }
+      },
+      select: {
+        id: true,
+        full_name: true,
+        username: true,
+        country: true,
+        current_band: true,
+        target_band: true,
+        tasks_done: true,
+      },
+      orderBy: [
+        { current_band: 'desc' },
+        { tasks_done: 'desc' }
+      ],
+      take: limit
+    });
+    
+    // Transform to leaderboard format
+    const leaderboard = students.map((student, index) => ({
+      rank: index + 1,
+      userId: student.id,
+      name: student.full_name || student.username || 'Anonymous',
+      username: student.username,
+      country: student.country || 'Unknown',
+      band: student.current_band.toFixed(1),
+      bandScore: student.current_band,
+      targetBand: student.target_band,
+      tasksCompleted: student.tasks_done || 0,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.username || student.id || index}`
+    }));
+    
+    // Find current user's rank if they're in the list
+    let userRank = null;
+    if (userId) {
+      const userIndex = students.findIndex(s => s.id === userId);
+      if (userIndex !== -1) {
+        const user = students[userIndex];
+        userRank = {
+          rank: userIndex + 1,
+          band: user.current_band.toFixed(1),
+          bandScore: user.current_band,
+          tasksCompleted: user.tasks_done || 0,
+          totalUsers: students.length
+        };
+      }
+    }
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        leaderboard,
+        userRank,
+        totalUsers: students.length
+      }
+    });
+    
+  } catch (err) {
+    console.error('Get IELTS leaderboard error:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // STUDENT PROFILE CRUD
@@ -15,6 +95,7 @@ async function getStudentProfile(req, res) {
       select: {
         id: true,
         full_name: true,
+        username: true,
         email: true,
         phone: true,
         country: true,
@@ -54,6 +135,7 @@ async function getStudentProfile(req, res) {
 
     res.json({
       success: true,
+      message: 'Student profile fetched successfully',
       data: student
     });
   } catch (error) {
@@ -71,16 +153,44 @@ async function updateStudentProfile(req, res) {
   try {
     const studentId = req.user.id;
     const {
-      phone, test_type, target_band, country,
-      exam_date_text, target_band_range, study_commitment, referral_source
+      full_name, username, phone, test_type, target_band, country,
+      exam_date, exam_date_text, target_band_range, study_commitment, referral_source
     } = req.body;
+    
+    // DEBUG: Log what we received
+    console.log(`[updateStudentProfile] User ${studentId} - Received:`, {
+      exam_date, exam_date_text, target_band, test_type
+    });
 
     const updateData = {};
+    if (full_name !== undefined) {
+      updateData.full_name = full_name;
+      updateData.name = full_name; // Compatibility field
+    }
+    if (username !== undefined) updateData.username = username;
     if (phone !== undefined) updateData.phone = phone;
     if (test_type !== undefined) updateData.test_type = test_type;
-    if (target_band !== undefined) updateData.target_band = parseFloat(target_band);
+    
+    if (target_band !== undefined) {
+      const band = parseFloat(target_band);
+      updateData.target_band = band;
+      updateData.targetBand = band; // Compatibility field
+    }
+    
     if (country !== undefined) updateData.country = country;
-    if (exam_date_text !== undefined) updateData.exam_date_text = exam_date_text;
+    
+    if (exam_date !== undefined || exam_date_text !== undefined) {
+      const dateVal = exam_date || exam_date_text;
+      if (dateVal) {
+        const parsedDate = new Date(dateVal);
+        if (!isNaN(parsedDate.getTime())) {
+          updateData.exam_date = parsedDate;
+          updateData.examDate = parsedDate; // Compatibility field
+        }
+      }
+      updateData.exam_date_text = dateVal;
+    }
+    
     if (target_band_range !== undefined) updateData.target_band_range = target_band_range;
     if (study_commitment !== undefined) updateData.study_commitment = study_commitment;
     if (referral_source !== undefined) updateData.referral_source = referral_source;
@@ -91,16 +201,27 @@ async function updateStudentProfile(req, res) {
       select: {
         id: true,
         full_name: true,
+        username: true,
         email: true,
         phone: true,
         country: true,
         test_type: true,
         target_band: true,
         current_band: true,
+        exam_date: true,
+        exam_date_text: true,
         study_hours: true,
         tasks_done: true,
         updatedAt: true
       }
+    });
+
+    // DEBUG: Log what we saved
+    console.log(`[updateStudentProfile] User ${studentId} - Saved:`, {
+      exam_date: student.exam_date,
+      exam_date_text: student.exam_date_text,
+      target_band: student.target_band,
+      test_type: student.test_type
     });
 
     res.json({
@@ -185,7 +306,7 @@ async function completeOnboarding(req, res) {
 
     const updateData = {
       is_onboarded: true,
-      exam_date: examDate ? new Date(examDate) : null,
+      exam_date: examDate ? new Date(new Date(examDate).toISOString()) : null,
       exam_date_text: examDateText || null,
       test_type: testType || null,
       target_band_range: targetBandRange || null,
@@ -1698,5 +1819,7 @@ module.exports = {
   checkLevelUnlock,
   createProgressSnapshot,
   getProgressSnapshot,
-  getAIProgressAnalysis
+  getAIProgressAnalysis,
+  // Leaderboard
+  getIELTSLeaderboard
 };

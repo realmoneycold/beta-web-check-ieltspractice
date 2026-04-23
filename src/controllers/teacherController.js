@@ -1,5 +1,5 @@
 const prisma = require('../models/prisma');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // ═══════════════════════════════════════════════════════════════
 // TEACHER PROFILE CRUD
@@ -269,7 +269,7 @@ async function createLesson(req, res) {
       data: {
         title,
         zoomLink,
-        startTime: new Date(startTime),
+        startTime: new Date(new Date(startTime).toISOString()),
         teacherId,
         status: status || 'SCHEDULED'
       }
@@ -313,7 +313,7 @@ async function updateLesson(req, res) {
     const updateData = {};
     if (title !== undefined) updateData.title = title;
     if (zoomLink !== undefined) updateData.zoomLink = zoomLink;
-    if (startTime !== undefined) updateData.startTime = new Date(startTime);
+    if (startTime !== undefined) updateData.startTime = new Date(new Date(startTime).toISOString());
     if (status !== undefined) updateData.status = status;
 
     const lesson = await prisma.lesson.update({
@@ -944,7 +944,7 @@ async function createAssignment(req, res) {
       data: {
         title: title.trim(),
         zoomLink: zoomLink || `https://zoom.us/j/assignment-${Date.now()}`,
-        startTime: new Date(startTime),
+        startTime: new Date(new Date(startTime).toISOString()),
         status: 'SCHEDULED',
         teacherId
       }

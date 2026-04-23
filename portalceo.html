@@ -2,6 +2,18 @@
 <html lang="en">
 
 <head>
+  <script>
+  window.addEventListener('error', function(event) {
+    console.error('Page error:', event.error);
+    document.body.innerHTML = `
+      <div style="padding: 40px; text-align: center; font-family: Arial;">
+        <h1>❌ Something went wrong</h1>
+        <p>The page encountered an error.</p>
+        <button onclick="location.reload()" style="padding: 10px 20px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer;">Refresh Page</button>
+      </div>
+    `;
+  });
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mission Control | IELTS Practice</title>
@@ -1578,6 +1590,7 @@
 
   <!-- ═══════════════════ SCRIPTS ═══════════════════ -->
   <script>
+    try {
     /* ══════════════════════════════════════════════════════
        STATE & MOCK DATA
     ══════════════════════════════════════════════════════ */
@@ -2686,6 +2699,9 @@
     ══════════════════════════════════════════════════════ */
     updateNotifBadge();
     navigate('dashboard', false);
+    } catch (error) {
+      console.error('Portal CEO initialization error:', error);
+    }
   </script>
 </body>
 

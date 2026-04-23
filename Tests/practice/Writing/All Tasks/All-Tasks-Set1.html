@@ -1293,5 +1293,35 @@
 
     })();
     </script>
+
+    <!-- Test Tracking -->
+    <script src="../js/testTracker.js"></script>
+    <script>
+        async function saveTestCompletion() {
+            await window.saveTestCompletion({
+                testType: 'WRITING',
+                testId: 'All-Tasks-Set1',
+                testName: 'Full Writing Test - Set 1',
+                skillArea: 'WRITING_FULL_TEST',
+                maxScore: 9.0,
+                answersTotal: 2
+            });
+        }
+    </script>
+
+    <!-- AI Writing Checker -->
+    <script src="../js/aiWritingChecker.js"></script>
+    <script>
+        // Initialize AI Writing Checker when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiWritingChecker) {
+                window.aiWritingChecker.init({
+                    textareaId: 'writingTextarea',
+                    submitButtonId: 'deliver-button',
+                    taskType: 'Task2'  // Uses Task2 for full test Task 2 evaluation
+                });
+            }
+        });
+    </script>
 </body>
 </html>

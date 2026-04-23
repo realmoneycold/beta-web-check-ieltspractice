@@ -11,18 +11,19 @@
 
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const prisma = require('../models/prisma');
 const UAParser = require('ua-parser-js');   // npm i ua-parser-js
+const { getUTCNow } = require('../services/dateService');
 // const geoip = require('geoip-lite');      // npm i geoip-lite (optional)
 
 // ─────────────────────────────────────────────────────────────
 // HELPER: today's date range (UTC)
 // ─────────────────────────────────────────────────────────────
 function todayRange() {
-  const start = new Date();
+  const start = getUTCNow();
   start.setUTCHours(0, 0, 0, 0);
-  const end = new Date();
+  const end = getUTCNow();
   end.setUTCHours(23, 59, 59, 999);
   return { start, end };
 }
@@ -186,7 +187,7 @@ router.post('/devices/register', async (req, res) => {
         // Otherwise use create + findFirst logic
         id: 0 // fallback — see note below
       },
-      update: { lastActiveAt: new Date(), isActive: true, browser, userAgent },
+      update: { lastActiveAt: getUTCNow(), isActive: true, browser, userAgent },
       create: { adminId: parseInt(adminId), deviceName, browser, os, deviceType, ipAddress, location, userAgent },
     });
     res.json({ success: true, data: device });
@@ -226,9 +227,9 @@ router.get('/tasks', async (req, res) => {
   const where = {};
   if (adminId) where.adminId = parseInt(adminId);
   if (date) {
-    const d = new Date(date);
+    const d = getUTCNow(date);
     d.setUTCHours(0, 0, 0, 0);
-    const end = new Date(d);
+    const end = getUTCNow(d);
     end.setUTCHours(23, 59, 59, 999);
     where.assignedDate = { gte: d, lte: end };
   }
@@ -300,7 +301,7 @@ router.patch('/tasks/:id/toggle', async (req, res) => {
     if (!current) return res.status(404).json({ success: false, error: 'Task not found' });
     const task = await prisma.adminTask.update({
       where: { id },
-      data: { isDone: !current.isDone, doneAt: !current.isDone ? new Date() : null },
+      data: { isDone: !current.isDone, doneAt: !current.isDone ? getUTCNow() : null },
     });
     res.json({ success: true, data: task });
   } catch (err) {
@@ -419,7 +420,7 @@ router.get('/analytics/overview', async (req, res) => {
   try {
     const [totalUsers, onlineUsers, totalCentres] = await Promise.all([
       prisma.user.count(),
-      prisma.user.count({ where: { updatedAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } } }), // active in last 5 min
+      prisma.user.count({ where: { updatedAt: { gte: new Date(getUTCNow() - 5 * 60 * 1000) } } }), // active in last 5 min
       prisma.educationalCentre.count({ where: { isActive: true } }),
     ]);
     res.json({ success: true, data: { totalUsers, onlineUsers, totalCentres } });
@@ -508,7 +509,7 @@ router.post('/goals', async (req, res) => {
   if (!title) return res.status(400).json({ success: false, error: 'title is required' });
   try {
     const goal = await prisma.strategicGoal.create({
-      data: { title, priority: priority?.toUpperCase() || 'MEDIUM', column: column || 'TODO', dueDate: dueDate ? new Date(dueDate) : null },
+      data: { title, priority: priority?.toUpperCase() || 'MEDIUM', column: column || 'TODO', dueDate: dueDate ? getUTCNow(dueDate) : null },
     });
     res.status(201).json({ success: true, data: goal });
   } catch (err) {

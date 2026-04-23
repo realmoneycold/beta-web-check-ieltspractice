@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaking Part 2 - Set 22 - A Special Day</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f7f8fa; line-height: 1.5; font-size: 16px; color: #222; }
+        body::after { content: "IELTSPRACTICE"; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-20deg); font-size: 72px; font-weight: 800; opacity: 0.025; pointer-events: none; z-index: 0; }
+        .pretest-overlay { position: fixed; inset: 0; background: rgba(15, 15, 30, 0.75); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .pretest-box { background: #fff; border: 2px solid #1a1a2e; border-radius: 16px; padding: 36px 32px; max-width: 520px; text-align: center; position: relative; z-index: 1; }
+        .pretest-title { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 18px; }
+        .pretest-desc { font-size: 15px; color: #ccc; margin-bottom: 22px; }
+        .pretest-btn-group { display: flex; gap: 12px; justify-content: center; position: relative; z-index: 1; }
+        .pretest-btn { flex: 1; min-width: 140px; padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; position: relative; z-index: 10; border: 2px solid transparent; transition: all 0.2s; }
+        .pretest-btn.btn-exam { background: #dc3545; color: #fff; }
+        .pretest-btn.btn-practice { background: #fff; color: #1a1a2e; border-color: #1a1a2e; }
+        .top-bar { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 18px; font-weight: 800; color: #1a1a2e; letter-spacing: -0.5px; }
+        .timer-container { display: flex; align-items: center; gap: 12px; }
+        .timer-display { font-size: 20px; font-weight: 600; color: #1a1a2e; font-family: 'Courier New', monospace; }
+        .timer-display.urgent { color: #dc3545; font-weight: 700; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .timer-controls { display: flex; gap: 6px; }
+        .timer-controls button { width: 32px; height: 32px; border: none; background: #f0f0f0; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .timer-controls button:hover { background: #e0e0e0; }
+        .back-btn { background: #f0f0f0; border: 1.5px solid #ccc; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; color: #444; cursor: pointer; }
+        .main-container { max-width: 800px; margin: 24px auto; padding: 0 16px 40px; position: relative; z-index: 1; }
+        .content-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 20px; }
+        .card-header { background: #1a1a2e; color: #fff; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .card-part-title { font-size: 19px; font-weight: 600; }
+        .card-body { padding: 24px; }
+        .card-footer { padding: 16px 24px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spawn { 0% { opacity: 0; transform: translateY(20px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        /* Cue Card Styling */
+        .cue-card { background: linear-gradient(135deg, #f9f6ee 0%, #fff 100%); border: 2px solid #d4b483; border-radius: 12px; padding: 28px 24px; margin-bottom: 24px; animation: spawn 0.5s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .cue-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #c8932a; margin-bottom: 12px; }
+        .cue-task { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 20px; line-height: 1.5; }
+        .cue-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .cue-list li { font-size: 15px; color: #333; display: flex; align-items: flex-start; gap: 10px; animation: fadeIn 0.4s ease forwards; opacity: 0; }
+        .cue-list li:nth-child(1) { animation-delay: 0.1s; }
+        .cue-list li:nth-child(2) { animation-delay: 0.2s; }
+        .cue-list li:nth-child(3) { animation-delay: 0.3s; }
+        .cue-list li:nth-child(4) { animation-delay: 0.4s; }
+        .cue-list li::before { content: "•"; color: #c8932a; font-size: 20px; line-height: 1; flex-shrink: 0; }
+        
+        /* Prep Timer Section */
+        .prep-section { background: #fff3e0; border: 2px solid #ffb74d; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px; animation: fadeIn 0.4s ease 0.5s both; }
+        .prep-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #e65100; margin-bottom: 12px; }
+        .prep-timer { font-size: 48px; font-weight: 800; color: #e65100; font-family: 'Courier New', monospace; margin-bottom: 16px; }
+        .prep-btn { background: #e65100; color: #fff; border: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .prep-btn:hover { background: #bf360c; }
+        .prep-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .prep-section.hidden { display: none; }
+        
+        /* Record Section */
+        .record-section { display: none; flex-direction: column; align-items: center; gap: 14px; padding: 24px; border-top: 1px solid #f0f0f0; animation: fadeIn 0.4s ease; }
+        .record-section.visible { display: flex; }
+        .record-btn { width: 72px; height: 72px; border-radius: 50%; border: none; background: #e53935; color: #fff; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 16px rgba(229,57,53,0.35); }
+        .record-btn.recording { background: #c62828; animation: pulse-ring 1.4s ease infinite; }
+        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(229,57,53,0.55); } 70% { box-shadow: 0 0 0 18px rgba(229,57,53,0); } 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); } }
+        .record-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        .waveform { display: none; align-items: center; gap: 3px; height: 32px; margin-bottom: 8px; }
+        .waveform.visible { display: flex; }
+        .waveform-bar { width: 4px; background: #e53935; border-radius: 2px; }
+        .stop-icon { display: none; }
+        .record-btn.recording .rec-icon { display: none; }
+        .record-btn.recording .stop-icon { display: block; }
+        
+        .nav-btn { padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; border: none; }
+        .nav-btn.next { background: #1a1a2e; color: #fff; }
+        .nav-btn.next:hover { background: #2d2d4e; }
+        
+        .highlight { background: #ffeb3b; border-radius: 2px; }
+        @media (max-width: 600px) { .main-container { padding: 0 12px 30px; } .card-body { padding: 16px; } .prep-timer { font-size: 36px; } }
+    </style>
+</head>
+<body>
+    <div id="pretest-overlay" class="pretest-overlay">
+        <div class="pretest-box">
+            <div class="pretest-title">Choose Your Test Mode</div>
+            <p class="pretest-desc">Are you taking this as a <strong>real exam</strong> or just for <strong>practice</strong>?</p>
+            <div class="pretest-btn-group">
+                <button class="pretest-btn btn-exam" id="btn-exam-mode">Yes — Real Exam Mode</button>
+                <button class="pretest-btn btn-practice" id="btn-practice-mode">No — Practice Mode</button>
+            </div>
+        </div>
+    </div>
+    <header class="top-bar">
+        <div class="logo">IELTSPRACTICE</div>
+        <div class="timer-container">
+            <span class="timer-display" id="timer-display">03:00</span>
+            <div class="timer-controls">
+                <button id="timer-toggle-btn" title="Pause/Resume">⏸</button>
+                <button id="timer-reset-btn" title="Reset">↻</button>
+            </div>
+            <button class="back-btn" onclick="if(confirm('Quit?'))window.location.href='../index.html'">← Back</button>
+        </div>
+    </header>
+    <div class="main-container">
+        <div class="content-card">
+            <div class="card-header">
+                <div class="card-part-title">Part 2 — Individual Long Turn</div>
+            </div>
+            <div class="card-body">
+                <!-- Cue Card -->
+                <div class="cue-card">
+                    <div class="cue-header">Cue Card</div>
+                    <p class="cue-task">Describe a special day that made you happy.</p>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 12px; font-weight: 600;">You should say:</p>
+                    <ul class="cue-list">
+                        <li>when it was</li>
+<li>who you were with</li>
+<li>what you did</li>
+<li>and explain why it was a special day.</li>
+                    </ul>
+                </div>
+                
+                <!-- Preparation Timer -->
+                <div class="prep-section" id="prep-section">
+                    <div class="prep-label">Preparation Time</div>
+                    <div class="prep-timer" id="prep-timer">01:00</div>
+                    <button class="prep-btn" id="prep-btn" onclick="startPrep()">⏵ Start Preparation</button>
+                </div>
+                
+                <!-- Recording Section -->
+                <div class="record-section" id="record-section">
+                    <div class="waveform" id="waveform-p2">
+                        <div class="waveform-bar" style="height:8px"></div><div class="waveform-bar" style="height:14px"></div>
+                        <div class="waveform-bar" style="height:20px"></div><div class="waveform-bar" style="height:26px"></div>
+                        <div class="waveform-bar" style="height:22px"></div><div class="waveform-bar" style="height:16px"></div>
+                        <div class="waveform-bar" style="height:28px"></div><div class="waveform-bar" style="height:20px"></div>
+                    </div>
+                    <button class="record-btn" id="record-btn-p2" onclick="toggleRecord('p2')">
+                        <span class="rec-icon">🎙</span><span class="stop-icon">⏹</span>
+                    </button>
+                    <span class="record-label" id="record-label-p2">Tap to Record Your Answer (1-2 minutes)</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div></div>
+                <button class="nav-btn next" onclick="if(confirm('Finish Part 2?'))window.location.href='../index.html'">✓ Finish Part 2</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function(){
+        // Global timer (3 min for Part 2)
+        let isExamMode = false;
+        let timerSeconds = 3 * 60;
+        let timerInterval = null;
+        let timerRunning = false;
+        
+        // Prep timer (1 min)
+        let prepSeconds = 60;
+        let prepInterval = null;
+        let prepRunning = false;
+        
+        // Recording
+        let recState = {'p2': false};
+        
+        // Elements
+        const timerDisplay = document.getElementById('timer-display');
+        const timerToggleBtn = document.getElementById('timer-toggle-btn');
+        const timerResetBtn = document.getElementById('timer-reset-btn');
+        const prepSection = document.getElementById('prep-section');
+        const prepTimer = document.getElementById('prep-timer');
+        const prepBtn = document.getElementById('prep-btn');
+        const recordSection = document.getElementById('record-section');
+        
+        // Global timer functions
+        function renderTimer() {
+            const m = Math.floor(timerSeconds / 60);
+            const s = timerSeconds % 60;
+            timerDisplay.textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+            if (timerSeconds <= 60) timerDisplay.classList.add('urgent');
+        }
+        
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerRunning = true;
+            timerToggleBtn.textContent = '⏸';
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                renderTimer();
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerRunning = false;
+                    timerDisplay.textContent = '00:00';
+                    if (isExamMode) alert('⏰ Part 2 time is up!');
+                }
+            }, 1000);
+        }
+        
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerRunning = false;
+            timerToggleBtn.textContent = '▶';
+        }
+        
+        timerToggleBtn.addEventListener('click', () => {
+            if (isExamMode) return;
+            timerRunning ? pauseTimer() : startTimer();
+        });
+        
+        timerResetBtn.addEventListener('click', () => {
+            if (isExamMode) return;
+            pauseTimer();
+            timerSeconds = 3 * 60;
+            renderTimer();
+            timerDisplay.classList.remove('urgent');
+            timerToggleBtn.textContent = '▶';
+        });
+        
+        // Prep timer
+        window.startPrep = function() {
+            if (prepRunning) return;
+            prepRunning = true;
+            prepBtn.disabled = true;
+            prepBtn.textContent = 'Preparing...';
+            prepInterval = setInterval(() => {
+                prepSeconds--;
+                const m = Math.floor(prepSeconds / 60);
+                const s = prepSeconds % 60;
+                prepTimer.textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+                if (prepSeconds <= 0) {
+                    clearInterval(prepInterval);
+                    prepRunning = false;
+                    prepSection.classList.add('hidden');
+                    recordSection.classList.add('visible');
+                    alert('⏰ Preparation time is over! Start recording your answer.');
+                }
+            }, 1000);
+        };
+        
+        // Recording
+        window.toggleRecord = function(part) {
+            const btn = document.getElementById('record-btn-' + part);
+            const wf = document.getElementById('waveform-' + part);
+            const lbl = document.getElementById('record-label-' + part);
+            recState[part] = !recState[part];
+            if (recState[part]) {
+                btn.classList.add('recording');
+                wf.classList.add('visible');
+                lbl.textContent = '🔴 Recording Your Answer...';
+                lbl.style.color = '#dc3545';
+            } else {
+                btn.classList.remove('recording');
+                wf.classList.remove('visible');
+                lbl.textContent = '✓ Answer Recorded. Click Finish when ready.';
+                lbl.style.color = '#28a745';
+            }
+        };
+        
+        // Pre-test mode selection
+        document.getElementById('btn-exam-mode').addEventListener('click', () => {
+            isExamMode = true;
+            document.body.classList.add('exam-mode');
+            document.getElementById('pretest-overlay').style.display = 'none';
+            startTimer();
+        });
+        
+        document.getElementById('btn-practice-mode').addEventListener('click', () => {
+            document.getElementById('pretest-overlay').style.display = 'none';
+            startTimer();
+        });
+        
+        renderTimer();
+    })();
+    </script>
+
+    <!-- Test Tracking -->
+    <script src="../../js/testTracker.js"></script>
+    <script>
+        async function saveTestCompletion() {
+            await window.saveTestCompletion({
+                testType: 'SPEAKING',
+                testId: 'Speaking-Part2-Set22',
+                testName: 'Speaking Part 2 - Set 22',
+                skillArea: 'SPEAKING_PART_2',
+                maxScore: 9.0,
+                answersTotal: 1
+            });
+        }
+    </script>
+</body>
+</html>

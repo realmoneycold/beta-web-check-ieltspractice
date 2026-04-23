@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaking Part 3 - Set 29 - Happiness</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f7f8fa; line-height: 1.5; font-size: 16px; color: #222; }
+        body::after { content: "IELTSPRACTICE"; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-20deg); font-size: 72px; font-weight: 800; opacity: 0.025; pointer-events: none; z-index: 0; }
+        .pretest-overlay { position: fixed; inset: 0; background: rgba(15, 15, 30, 0.75); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .pretest-box { background: #fff; border: 2px solid #1a1a2e; border-radius: 16px; padding: 36px 32px; max-width: 520px; text-align: center; position: relative; z-index: 1; }
+        .pretest-title { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 18px; }
+        .pretest-desc { font-size: 15px; color: #ccc; margin-bottom: 22px; }
+        .pretest-btn-group { display: flex; gap: 12px; justify-content: center; position: relative; z-index: 1; }
+        .pretest-btn { flex: 1; min-width: 140px; padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; position: relative; z-index: 10; border: 2px solid transparent; transition: all 0.2s; }
+        .pretest-btn.btn-exam { background: #dc3545; color: #fff; }
+        .pretest-btn.btn-practice { background: #fff; color: #1a1a2e; border-color: #1a1a2e; }
+        .top-bar { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 18px; font-weight: 800; color: #1a1a2e; letter-spacing: -0.5px; }
+        .timer-container { display: flex; align-items: center; gap: 12px; }
+        .timer-display { font-size: 20px; font-weight: 600; color: #1a1a2e; font-family: 'Courier New', monospace; }
+        .timer-display.urgent { color: #dc3545; font-weight: 700; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .timer-controls { display: flex; gap: 6px; }
+        .timer-controls button { width: 32px; height: 32px; border: none; background: #f0f0f0; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .timer-controls button:hover { background: #e0e0e0; }
+        .back-btn { background: #f0f0f0; border: 1.5px solid #ccc; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; color: #444; cursor: pointer; }
+        .main-container { max-width: 800px; margin: 24px auto; padding: 0 16px 40px; position: relative; z-index: 1; }
+        .content-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 20px; }
+        .card-header { background: #1a1a2e; color: #fff; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .card-part-title { font-size: 19px; font-weight: 600; }
+        .card-body { padding: 24px; }
+        .card-footer { padding: 16px 24px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .topic-progress { font-size: 12px; font-weight: 600; color: #999; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 16px; }
+        @keyframes questionSpawn { 0% { opacity: 0; transform: translateY(30px) scale(0.95); } 60% { opacity: 1; transform: translateY(-5px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .question-block { display: none; animation: questionSpawn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .question-block.active { display: block; }
+        .p3-topic-heading { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1a1a2e; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #f0f0f0; animation: fadeIn 0.4s ease 0.1s both; }
+        .p3-question { font-size: 17px; font-weight: 600; color: #1a1a2e; margin-bottom: 12px; line-height: 1.5; animation: fadeIn 0.4s ease 0.2s both; }
+        .record-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #f0f0f0; display: flex; flex-direction: column; align-items: center; gap: 14px; opacity: 0; animation: fadeIn 0.4s ease 0.4s forwards; }
+        .question-block.active .record-section { opacity: 1; }
+        .record-btn { width: 68px; height: 68px; border-radius: 50%; border: none; background: #e53935; color: #fff; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 16px rgba(229,57,53,0.35); }
+        .record-btn.recording { background: #c62828; animation: pulse-ring 1.4s ease infinite; }
+        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(229,57,53,0.55); } 70% { box-shadow: 0 0 0 18px rgba(229,57,53,0); } 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); } }
+        .record-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        .waveform { display: none; align-items: center; gap: 3px; height: 32px; }
+        .waveform.visible { display: flex; }
+        .waveform-bar { width: 4px; background: #e53935; border-radius: 2px; }
+        .stop-icon { display: none; }
+        .record-btn.recording .rec-icon { display: none; }
+        .record-btn.recording .stop-icon { display: block; }
+        .nav-btn { padding: 9px 22px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; border: none; }
+        .nav-btn.prev { background: #f0f0f0; color: #444; }
+        .nav-btn.prev:disabled { opacity: 0.5; cursor: not-allowed; }
+        .nav-btn.next { background: #1a1a2e; color: #fff; }
+        .question-dots { display: flex; gap: 8px; }
+        .q-dot { width: 10px; height: 10px; border-radius: 50%; background: #ddd; transition: all 0.3s ease; }
+        .q-dot.active { background: #1a1a2e; transform: scale(1.2); }
+        .q-dot.visited { background: #8899b8; }
+        .highlight { background: #ffeb3b; border-radius: 2px; }
+        @media (max-width: 600px) { .main-container { padding: 0 12px 30px; } .card-body { padding: 16px; } }
+    </style>
+</head>
+<body>
+    <div id="pretest-overlay" class="pretest-overlay">
+        <div class="pretest-box">
+            <div class="pretest-title">Choose Your Test Mode</div>
+            <p class="pretest-desc">Are you taking this as a <strong>real exam</strong> or just for <strong>practice</strong>?</p>
+            <div class="pretest-btn-group">
+                <button class="pretest-btn btn-exam" id="btn-exam-mode">Yes — Real Exam Mode</button>
+                <button class="pretest-btn btn-practice" id="btn-practice-mode">No — Practice Mode</button>
+            </div>
+        </div>
+    </div>
+    <header class="top-bar">
+        <div class="logo">IELTSPRACTICE</div>
+        <div class="timer-container">
+            <span class="timer-display" id="timer-display">05:00</span>
+            <div class="timer-controls">
+                <button id="timer-toggle-btn" title="Pause/Resume">⏸</button>
+                <button id="timer-reset-btn" title="Reset">↻</button>
+            </div>
+            <button class="back-btn" onclick="if(confirm('Quit?'))window.location.href='../index.html'">← Back</button>
+        </div>
+    </header>
+    <div class="main-container">
+        <div class="content-card">
+            <div class="card-header">
+                <div class="card-part-title">Part 3 — Two-Way Discussion</div>
+            </div>
+            <div class="card-body">
+                <div class="topic-progress" id="p3-progress"><strong>Question 1 of 4</strong></div>
+                <div class="question-block active" id="p3-q1"><div class="p3-topic-heading">Question 1</div><p class="p3-question">What factors contribute most to a person's happiness?</p></div>
+<div class="question-block" id="p3-q2"><div class="p3-topic-heading">Question 2</div><p class="p3-question">Do you think money can buy happiness?</p></div>
+<div class="question-block" id="p3-q3"><div class="p3-topic-heading">Question 3</div><p class="p3-question">How does social media affect people's perception of happiness?</p></div>
+<div class="question-block" id="p3-q4"><div class="p3-topic-heading">Question 4</div><p class="p3-question">Is happiness more important than success?</p></div>
+                <div class="record-section">
+                    <div class="waveform" id="waveform-p3">
+                        <div class="waveform-bar" style="height:8px"></div><div class="waveform-bar" style="height:14px"></div>
+                        <div class="waveform-bar" style="height:20px"></div><div class="waveform-bar" style="height:26px"></div>
+                        <div class="waveform-bar" style="height:22px"></div><div class="waveform-bar" style="height:16px"></div>
+                        <div class="waveform-bar" style="height:28px"></div><div class="waveform-bar" style="height:20px"></div>
+                    </div>
+                    <button class="record-btn" id="record-btn-p3" onclick="toggleRecord('p3')">
+                        <span class="rec-icon">🎙</span><span class="stop-icon">⏹</span>
+                    </button>
+                    <span class="record-label" id="record-label-p3">Tap to Record Your Answer</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="nav-btn prev" id="p3-prev" onclick="p3Prev()" disabled>← Previous</button>
+                <div class="question-dots" id="p3-dots"><div class="q-dot active"></div>
+<div class="q-dot"></div>
+<div class="q-dot"></div>
+<div class="q-dot"></div></div>
+                <button class="nav-btn next" id="p3-next" onclick="p3Next()">Next →</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function(){
+        // Global timer (5 min for Part 3)
+        let isExamMode = false;
+        let timerSeconds = 5 * 60;
+        let timerInterval = null;
+        let timerRunning = false;
+        
+        // Part 3 navigation
+        let p3Current = 1;
+        const P3_TOTAL = 4;
+        const recState = {'p3': false};
+        
+        // Timer elements
+        const timerDisplay = document.getElementById('timer-display');
+        const timerToggleBtn = document.getElementById('timer-toggle-btn');
+        const timerResetBtn = document.getElementById('timer-reset-btn');
+        
+        // Timer functions
+        function renderTimer() {
+            const m = Math.floor(timerSeconds / 60);
+            const s = timerSeconds % 60;
+            timerDisplay.textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+            if (timerSeconds <= 60) timerDisplay.classList.add('urgent');
+        }
+        
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerRunning = true;
+            timerToggleBtn.textContent = '⏸';
+            timerInterval = setInterval(function() {
+                timerSeconds--;
+                renderTimer();
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerRunning = false;
+                    timerDisplay.textContent = '00:00';
+                    if (isExamMode) alert('⏰ Part 3 time is up!');
+                }
+            }, 1000);
+        }
+        
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerRunning = false;
+            timerToggleBtn.textContent = '▶';
+        }
+        
+        timerToggleBtn.addEventListener('click', function() {
+            if (isExamMode) return;
+            timerRunning ? pauseTimer() : startTimer();
+        });
+        
+        timerResetBtn.addEventListener('click', function() {
+            if (isExamMode) return;
+            pauseTimer();
+            timerSeconds = 5 * 60;
+            renderTimer();
+            timerDisplay.classList.remove('urgent');
+            timerToggleBtn.textContent = '▶';
+        });
+        
+        // Part 3 Navigation
+        function renderP3(){
+            if(recState.p3) toggleRecord('p3');
+            for(let i=1; i<=P3_TOTAL; i++){
+                const q = document.getElementById('p3-q'+i);
+                q.classList.remove('active');
+                q.style.animation = 'none';
+            }
+            setTimeout(()=>{
+                const cq = document.getElementById('p3-q'+p3Current);
+                cq.style.animation = '';
+                cq.classList.add('active');
+            }, 10);
+            document.getElementById('p3-progress').innerHTML = '<strong>Question '+p3Current+' of '+P3_TOTAL+'</strong>';
+            document.getElementById('p3-prev').disabled = (p3Current === 1);
+            const nb = document.getElementById('p3-next');
+            nb.textContent = (p3Current === P3_TOTAL) ? '✓ Finish Test' : 'Next →';
+            nb.style.background = (p3Current === P3_TOTAL) ? '#28a745' : '#1a1a2e';
+            document.querySelectorAll('#p3-dots .q-dot').forEach((d,i)=>{
+                d.classList.remove('active','visited');
+                if(i+1 === p3Current) d.classList.add('active');
+                else if(i+1 < p3Current) d.classList.add('visited');
+            });
+            document.getElementById('record-label-p3').textContent = 'Tap to Record Your Answer';
+        }
+        
+        window.p3Next = function(){
+            if(recState.p3){
+                toggleRecord('p3');
+                setTimeout(()=>{
+                    if(p3Current < P3_TOTAL){ p3Current++; renderP3(); }
+                    else if(confirm('Test complete!')) window.location.href='../index.html';
+                }, 300);
+            } else {
+                if(p3Current < P3_TOTAL){ p3Current++; renderP3(); }
+                else if(confirm('Test complete!')) window.location.href='../index.html';
+            }
+        };
+        
+        window.p3Prev = function(){
+            if(recState.p3) toggleRecord('p3');
+            if(p3Current > 1){ p3Current--; renderP3(); }
+        };
+        
+        window.toggleRecord = function(part){
+            const btn = document.getElementById('record-btn-'+part);
+            const wf = document.getElementById('waveform-'+part);
+            const lbl = document.getElementById('record-label-'+part);
+            recState[part] = !recState[part];
+            if(recState[part]){
+                btn.classList.add('recording');
+                wf.classList.add('visible');
+                lbl.textContent = '🔴 Recording Answer for Question '+p3Current+'...';
+                lbl.style.color = '#dc3545';
+            } else {
+                btn.classList.remove('recording');
+                wf.classList.remove('visible');
+                lbl.textContent = '✓ Answer Recorded. Click Next to continue.';
+                lbl.style.color = '#28a745';
+            }
+        };
+        
+        // Pre-test mode selection
+        document.getElementById('btn-exam-mode').addEventListener('click', ()=>{
+            isExamMode = true;
+            document.body.classList.add('exam-mode');
+            document.getElementById('pretest-overlay').style.display = 'none';
+            startTimer();
+        });
+        
+        document.getElementById('btn-practice-mode').addEventListener('click', ()=>{
+            document.getElementById('pretest-overlay').style.display = 'none';
+            startTimer();
+        });
+        
+        renderP3();
+        renderTimer();
+    })();
+    </script>
+
+    <!-- Test Tracking -->
+    <script src="../../js/testTracker.js"></script>
+    <script>
+        async function saveTestCompletion() {
+            await window.saveTestCompletion({
+                testType: 'SPEAKING',
+                testId: 'Speaking-Part3-Set29',
+                testName: 'Speaking Part 3 - Set 29',
+                skillArea: 'SPEAKING_PART_3',
+                maxScore: 9.0,
+                answersTotal: 6
+            });
+        }
+    </script>
+</body>
+</html>

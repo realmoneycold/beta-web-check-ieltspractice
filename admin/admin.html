@@ -2,10 +2,22 @@
 <html lang="en">
 
 <head>
+  <script>
+  window.addEventListener('error', function(event) {
+    console.error('Page error:', event.error);
+    document.body.innerHTML = `
+      <div style="padding: 40px; text-align: center; font-family: Arial;">
+        <h1>❌ Something went wrong</h1>
+        <p>The page encountered an error.</p>
+        <button onclick="location.reload()" style="padding: 10px 20px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer;">Refresh Page</button>
+      </div>
+    `;
+  });
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Portal | IELTS Practice</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../output.css">
   <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
   <script src="../assets/auth-guard.js"></script>
   <style>
@@ -1167,7 +1179,8 @@ Answer: A"></textarea>
   <script type="module">
     import { createApp } from 'https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.es.js'
 
-    createApp({
+    try {
+      createApp({
       currentPage: 'dashboard',
       isProfileModalOpen: false,
       isGradingModalOpen: false,
@@ -1415,6 +1428,9 @@ Answer: A"></textarea>
         this.currentPage = page;
       }
     }).mount('#app')
+    } catch (error) {
+      console.error('Petite-Vue initialization error:', error);
+    }
   </script>
 </body>
 

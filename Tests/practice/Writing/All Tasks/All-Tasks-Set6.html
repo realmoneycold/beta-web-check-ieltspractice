@@ -911,7 +911,7 @@
                 <div class="attemptedCount" id="status-2">0 of 1</div>
             </button>
         </div>
-        <button id="deliver-button" aria-label="Submit Writing" class="footer__deliverButton___3FM07" onclick="handleSubmitClick()">
+        <button id="deliver-button" aria-label="Submit Writing" class="footer__deliverButton___3FM07" >
             ✓ Submit
         </button>
     </nav>
@@ -1294,6 +1294,44 @@
         updateWordCount();
 
     })();
+    </script>
+
+    <!-- Test Tracking -->
+    <script src="../js/testTracker.js"></script>
+    <script>
+        async function saveTestCompletion() {
+            await window.saveTestCompletion({
+                testType: 'WRITING',
+                testId: 'All-Tasks-Set6',
+                testName: 'Full Writing Test - Set 6',
+                skillArea: 'WRITING_FULL',
+                maxScore: 9.0,
+                answersTotal: 2
+            });
+        }
+    </script>
+
+    <!-- AI Writing Checker -->
+    <script src="../../js/aiWritingChecker.js?v=3"></script>
+    <script>
+        console.log('[AI Checker] Script block executing...');
+        // Initialize AI Writing Checker when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[AI Checker] DOM ready, checking for module...');
+            console.log('[AI Checker] window.aiWritingChecker exists?', typeof window.aiWritingChecker !== 'undefined');
+            if (window.aiWritingChecker && window.aiWritingChecker.init) {
+                console.log('[AI Checker] Initializing...');
+                window.aiWritingChecker.init({
+                    textareaId: 'writingTextarea',
+                    submitButtonId: 'deliver-button',
+                    taskType: 'Task2'
+                });
+                console.log('[AI Checker] Initialized successfully');
+            } else {
+                console.error('[AI Checker] Module not loaded or init missing!');
+                console.log('[AI Checker] window.aiWritingChecker:', window.aiWritingChecker);
+            }
+        });
     </script>
 </body>
 </html>

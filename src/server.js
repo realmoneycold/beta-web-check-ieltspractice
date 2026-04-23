@@ -1,8 +1,30 @@
+const Sentry = require('@sentry/node');
+const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 const app = require('./app');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { initializeOllamaService } = require('./services/ollamaService');
 const prisma = require('./models/prisma');
+const logger = require('./services/loggerService');
+const http = require('http');
+const SignalingServer = require('./services/signalingServer');
+
+// Initialize Sentry before any other middleware or routes
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    integrations: [
+      ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
+      nodeProfilingIntegration(),
+    ],
+    // Performance Monitoring
+    tracesSampleRate: 1.0, //  Capture 100% of the transactions
+    // Set sampling rate for profiling - this is relative to tracesSampleRate
+    profilesSampleRate: 1.0,
+    environment: process.env.NODE_ENV || 'development',
+  });
+  logger.info('🚀 Sentry initialized');
+}
 
 // Security middleware
 app.use(helmet({
@@ -11,9 +33,9 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "'unsafe-eval'"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://api.resend.com", "https://generativelanguage.googleapis.com"],
+      connectSrc: ["'self'", "wss:", "ws:", "https://api.resend.com", "https://generativelanguage.googleapis.com"],
       mediaSrc: ["'self'", "blob:", "https:"],
       frameSrc: ["'self'", "https://zoom.us", "https://*.zoom.us"],
     },
@@ -50,12 +72,12 @@ const OPTIONAL_ENV_VARS = [
  * and warns about missing optional ones.
  */
 function validateEnvironment() {
-  console.log('🔍 Validating environment variables...');
+  logger.info('🔍 Validating environment variables...');
   const missing = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
   const warnings = [];
 
   if (missing.length) {
-    console.error('❌ Environment validation failed');
+    logger.error('❌ Environment validation failed');
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
@@ -66,9 +88,9 @@ function validateEnvironment() {
   });
 
   if (warnings.length) {
-    warnings.forEach(w => console.warn(w));
+    warnings.forEach(w => logger.warn(w));
   }
-  console.log('✅ Environment validation passed');
+  logger.info('✅ Environment validation passed');
 }
 
 // ─── VALIDATE FRONTEND_URL FOR PRODUCTION ─────────────────
@@ -94,7 +116,7 @@ function validateProductionConfig() {
     
     // Validate HTTPS for production
     if (!frontendUrl.startsWith('https://')) {
-      console.warn(
+      logger.warn(
         '⚠️  WARNING: FRONTEND_URL is not using HTTPS in production\n' +
         `   Current: ${frontendUrl}\n` +
         '   Consider changing to HTTPS for security'
@@ -123,35 +145,41 @@ function getRedactedDbUrl() {
  * Verifies database connection and basic health on startup
  */
 async function verifyDatabase() {
-  console.log('📡 Verifying database connection...');
+  logger.info('📡 Verifying database connection...');
   
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
-    console.error('❌ DATABASE_URL is not set in environment variables');
+    logger.error('❌ DATABASE_URL is not set in environment variables');
     process.exit(1);
   }
 
-  console.log(`🔗 Database URL: ${getRedactedDbUrl()}`);
+  logger.info(`🔗 Database URL: ${getRedactedDbUrl()}`);
 
   try {
     // 1. Simple connectivity check
     await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ Database connection verified');
+    logger.info('✅ Database connection verified');
 
     // 2. Check if migrations have likely run by checking for a core table
     // We'll check for 'User' table which should exist in any valid migration state
     try {
       await prisma.user.findFirst({ take: 1 });
-      console.log('✅ Database schema verified (User table found)');
+      logger.info('✅ Database schema verified (User table found)');
     } catch (schemaError) {
-      console.warn('⚠️  WARNING: Could not query User table. Migrations might not have run.');
-      console.error('❌ Schema error details:', schemaError.message);
+      logger.warn('⚠️  WARNING: Could not query User table. Migrations might not have run.');
+      logger.error('❌ Schema error details:', schemaError.message);
+      if (process.env.SENTRY_DSN) {
+        Sentry.captureException(schemaError);
+      }
       // We don't exit here as it might be a fresh DB, but we log it clearly
     }
 
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    console.error('   Please check if your database is running and DATABASE_URL is correct.');
+    logger.error('❌ Database connection failed:', error.message);
+    logger.error('   Please check if your database is running and DATABASE_URL is correct.');
+    if (process.env.SENTRY_DSN) {
+      Sentry.captureException(error);
+    }
     process.exit(1);
   }
 }
@@ -170,17 +198,72 @@ async function verifyDatabase() {
     // Initialize Ollama service
     await initializeOllamaService();
 
+    // Create HTTP server for Express and Socket.io
+    const server = http.createServer(app);
+    
+    // Initialize WebRTC Signaling Server
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
+    const signalingServer = new SignalingServer(server, {
+      origin: frontendUrl,
+      methods: ['GET', 'POST'],
+      credentials: true
+    });
+    
     // Start server
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`IELTSPRACTICE API listening on http://localhost:${PORT}`);
-      console.log(`Access from this machine or others on: http://0.0.0.0:${PORT}`);
+    server.listen(PORT, '0.0.0.0', () => {
+      logger.info(`IELTSPRACTICE API listening on http://localhost:${PORT}`);
+      logger.info(`Access from this machine or others on: http://0.0.0.0:${PORT}`);
+      logger.info(`🔌 WebRTC Signaling Server ready for Live Hub voice/video`);
       
       // Log current FRONTEND_URL being used
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
-      console.log(`📧 Email links will use: ${frontendUrl}`);
+      logger.info(`📧 Email links will use: ${frontendUrl}`);
+    });
+
+    // Graceful Shutdown
+    const gracefulShutdown = async (signal) => {
+      logger.info(`${signal} signal received: closing HTTP server...`);
+      server.close(async () => {
+        logger.info('HTTP server closed');
+        try {
+          await prisma.$disconnect();
+          logger.info('✅ Prisma database disconnected');
+          process.exit(0);
+        } catch (err) {
+          logger.error('❌ Error during database disconnection:', err);
+          process.exit(1);
+        }
+      });
+
+      // Force close if it takes too long (e.g., 10 seconds)
+      setTimeout(() => {
+        logger.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      if (process.env.SENTRY_DSN) {
+        Sentry.captureException(reason);
+      }
+      // In production, you might want to gracefully shutdown
+      // gracefulShutdown('unhandledRejection');
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught Exception:', error);
+      if (process.env.SENTRY_DSN) {
+        Sentry.captureException(error);
+      }
+      gracefulShutdown('uncaughtException');
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', error);
     process.exit(1);
   }
 })();

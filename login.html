@@ -1,10 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        // Inject Sentry DSN if available
+        window.SENTRY_DSN = '<!-- SENTRY_DSN_PLACEHOLDER -->';
+        window.NODE_ENV = 'development';
+    </script>
+    <script src="./js/sentry-monitor.js"></script>
+    <script>
+    window.addEventListener('error', function(event) {
+      console.error('Page error:', event.error);
+      document.body.innerHTML = `
+        <div style="padding: 40px; text-align: center; font-family: Arial;">
+          <h1>❌ Something went wrong</h1>
+          <p>The page encountered an error.</p>
+          <button onclick="location.reload()" style="padding: 10px 20px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer;">Refresh Page</button>
+        </div>
+      `;
+    });
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Login — IELTSPRACTICE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./output.css">
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <style>
         @import url('https://api.fontshare.com/v2/css?f[]=clash-grotesk@700,600,400&f[]=satoshi@700,500,400&display=swap');
@@ -96,7 +114,7 @@
             </div>
             <div class="flex items-center gap-6">
                 <a id="nav-signup-link" href="./signup.html" class="font-bold hover:text-[#FF6B35] transition-colors">Sign up</a>
-                <a id="nav-login-btn" href="./login.html" class="bg-[#FF6B35] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
+                <a id="nav-login-btn" href="./login.html" class="bg-[#FF6B35] !text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
                     Login
                 </a>
             </div>
@@ -237,9 +255,9 @@
                             Empowering students worldwide to achieve their dreams through innovative, technology-driven IELTS preparation tools.
                         </p>
                         <div class="flex gap-4">
-                            <a id="foot-soc-1" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
-                            <a id="foot-soc-2" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
-                            <a id="foot-soc-3" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-1" href="https://facebook.com/ieltspractice.uz" target="_blank" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-2" href="https://x.com/ieltspractice_uz" target="_blank" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-3" href="https://instagram.com/ieltspractice.uz" target="_blank" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
                         </div>
                     </div>
 
@@ -288,8 +306,9 @@
     </div>
 </body>
 <script>
-    // Password visibility toggle
-    const loginPwToggle  = document.getElementById('login-pw-toggle');
+    try {
+        // Password visibility toggle
+        const loginPwToggle  = document.getElementById('login-pw-toggle');
     const loginPwIcon    = document.getElementById('login-pw-icon');
     const loginPwInput   = document.getElementById('login-password');
 
@@ -331,7 +350,10 @@
         try {
             const res  = await fetch('/api/auth/login', {
                 method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1]
+                },
                 body:    JSON.stringify({ email, password })
             });
             const data = await res.json();
@@ -362,5 +384,8 @@
             spinner.classList.add('hidden');
         }
     });
+} catch (error) {
+    console.error('Initialization error:', error);
+}
 </script>
 </html>

@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+    window.addEventListener('error', function(event) {
+      console.error('Page error:', event.error);
+      document.body.innerHTML = `
+        <div style="padding: 40px; text-align: center; font-family: Arial;">
+          <h1>❌ Something went wrong</h1>
+          <p>The page encountered an error.</p>
+          <button onclick="location.reload()" style="padding: 10px 20px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer;">Refresh Page</button>
+        </div>
+      `;
+    });
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Portal | IELTS Practice</title>
@@ -351,6 +363,7 @@
 
     <script>
         (function () {
+        try {
             const form = document.getElementById('staffLoginForm');
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
@@ -514,7 +527,10 @@
                 updateCountdown();
                 countdownInterval = setInterval(updateCountdown, 1000);
             }
-        })();
-    </script>
+        } catch (error) {
+            console.error('Staff portal initialization error:', error);
+        }
+    })();
+</script>
 </body>
 </html>

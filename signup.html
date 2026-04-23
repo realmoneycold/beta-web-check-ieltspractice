@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account | IELTS Practice</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./output.css">
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <meta name="view-transition" content="same-origin">
     <style>
@@ -115,7 +115,7 @@
             </div>
             <div class="flex items-center gap-6">
                 <a id="nav-signup-link" href="./signup.html" class="font-bold text-[#000000] transition-colors">Sign up</a>
-                <a id="nav-login-btn" href="./login.html" class="bg-[#FF6B35] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
+                <a id="nav-login-btn" href="./login.html" class="bg-[#FF6B35] !text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#e85a2a] transition-all transform hover:scale-105">
                     Login
                 </a>
             </div>
@@ -230,9 +230,10 @@
                                     <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
                                         <iconify-icon icon="ph:at-bold" class="text-xl"></iconify-icon>
                                     </span>
-                                    <input type="text" id="username-input" placeholder="choose_your_username" class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none">
+                                    <input type="text" id="username-input" placeholder="john123" class="w-full bg-[#F9F5FF] border-2 border-transparent focus:border-[#8B5CF6] focus:bg-white rounded-2xl px-14 py-4 font-medium transition-all duration-300 outline-none">
                                 </div>
                                 <div id="username-error" class="hidden text-red-500 text-xs font-bold mt-1 ml-2">Username required</div>
+                                <div id="username-success" class="hidden text-green-500 text-xs font-bold mt-1 ml-2">Username is available</div>
                             </div>
 
                             <!-- Email -->
@@ -294,12 +295,14 @@
                             </div>
 
                             <!-- Terms -->
-                            <label class="flex items-start gap-3 cursor-pointer group px-2">
-                                <input type="checkbox" id="terms-checkbox" class="mt-1 w-5 h-5 rounded-lg border-2 border-purple-100 text-[#8B5CF6] focus:ring-[#8B5CF6] transition-all">
-                                <span class="text-xs font-medium text-gray-500 leading-relaxed">
-                                    I agree to the <a href="./termsconditions.html" class="text-[#8B5CF6] font-black hover:underline">Terms of Service</a> and <a href="./privacypolicy.html" class="text-[#8B5CF6] font-black hover:underline">Privacy Policy</a>.
-                                </span>
-                            </label>
+                            <div class="px-2">
+                                <label class="flex items-center gap-3 cursor-pointer group w-max max-w-none">
+                                    <input type="checkbox" id="terms-checkbox" class="w-5 h-5 rounded-lg border-2 border-purple-100 text-[#8B5CF6] focus:ring-[#8B5CF6] transition-all flex-shrink-0">
+                                    <span class="text-xs font-medium text-gray-500 !whitespace-nowrap inline-block">
+                                        I agree to the <a href="./termsconditions.html" class="text-[#8B5CF6] font-black hover:underline inline">Terms of Service</a> and <a href="./privacypolicy.html" class="text-[#8B5CF6] font-black hover:underline inline">Privacy Policy</a>.
+                                    </span>
+                                </label>
+                            </div>
                             <div id="terms-error" class="hidden text-red-500 text-xs font-bold ml-2">You must agree to the Terms</div>
 
                             <div id="signup-error" class="hidden p-4 rounded-xl bg-red-50 text-red-600 font-bold text-sm text-center"></div>
@@ -354,9 +357,9 @@
                             Empowering students worldwide to achieve their dreams through innovative, technology-driven IELTS preparation tools.
                         </p>
                         <div class="flex gap-4">
-                            <a id="foot-soc-1" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
-                            <a id="foot-soc-2" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
-                            <a id="foot-soc-3" href="#" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-1" href="https://facebook.com/ieltspractice.uz" target="_blank" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:facebook-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-2" href="https://x.com/ieltspractice_uz" target="_blank" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:twitter-logo-bold"></iconify-icon></a>
+                            <a id="foot-soc-3" href="https://instagram.com/ieltspractice.uz" target="_blank" class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-playful"><iconify-icon icon="ph:instagram-logo-bold"></iconify-icon></a>
                         </div>
                     </div>
 
@@ -463,28 +466,47 @@
         // Live Username Validation
         const usernameInput = document.getElementById('username-input');
         const usernameError = document.getElementById('username-error');
+        const usernameSuccess = document.getElementById('username-success');
         let unTimer;
+
         usernameInput.addEventListener('input', () => {
             clearTimeout(unTimer);
+            const val = usernameInput.value.trim();
+            const regex = /^[a-z0-9]{3,20}$/;
+
             usernameError.classList.add('hidden');
-            usernameError.classList.remove('text-green-500', 'text-red-500');
-            if(usernameInput.value.trim().length >= 3) {
-                unTimer = setTimeout(async () => {
-                    try {
-                        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(usernameInput.value)}`);
-                        const data = await res.json();
-                        if (!data.available) {
-                            usernameError.textContent = data.message || "This username has already been taken";
-                            usernameError.classList.remove('hidden', 'text-green-500');
-                            usernameError.classList.add('text-red-500');
-                        } else {
-                            usernameError.textContent = "Username is available!";
-                            usernameError.classList.remove('hidden', 'text-red-500');
-                            usernameError.classList.add('text-green-500');
-                        }
-                    } catch (e) {}
-                }, 400);
+            usernameSuccess.classList.add('hidden');
+
+            if (!val) {
+                usernameError.textContent = "Username is required";
+                usernameError.classList.remove('hidden');
+                return;
             }
+
+            if (!regex.test(val)) {
+                usernameError.textContent = "Username can only contain lowercase letters and numbers (a-z, 0-9) and must be 3-20 characters";
+                usernameError.classList.remove('hidden');
+                return;
+            }
+
+            unTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(val)}`);
+                    const data = await res.json();
+                    
+                    if (!data.available) {
+                        usernameError.textContent = data.message || "Username already taken";
+                        usernameError.classList.remove('hidden');
+                        usernameSuccess.classList.add('hidden');
+                    } else {
+                        usernameSuccess.textContent = "Username is available";
+                        usernameSuccess.classList.remove('hidden');
+                        usernameError.classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.error("Username check failed", e);
+                }
+            }, 400);
         });
 
         // Load Countries
@@ -539,11 +561,25 @@
 
             setErr('fullname-error', fullName.length >= 2);
 
-            // Check username — allow if error div is green (available) or empty (not yet checked)
+            // Check username regex and availability
+            const usernameRegex = /^[a-z0-9]{3,20}$/;
             const unErrEl = document.getElementById('username-error');
-            const unHasTakenMsg = !unErrEl.classList.contains('hidden') && unErrEl.classList.contains('text-red-500');
-            setErr('username-error', username.length >= 3 && !unHasTakenMsg);
-            if (username.length >= 3 && !unHasTakenMsg) unErrEl.classList.add('hidden');
+            const unSuccessEl = document.getElementById('username-success');
+            
+            if (!username) {
+                unErrEl.textContent = "Username is required";
+                setErr('username-error', false);
+            } else if (!usernameRegex.test(username)) {
+                unErrEl.textContent = "Username can only contain lowercase letters and numbers (a-z, 0-9) and must be 3-20 characters";
+                setErr('username-error', false);
+            } else if (!unErrEl.classList.contains('hidden')) {
+                // If it's already showing an error (from real-time check), keep it
+                isValid = false;
+            } else if (unSuccessEl.classList.contains('hidden')) {
+                // If success is hidden and no error is showing, it means it hasn't been validated yet
+                unErrEl.textContent = "Please wait for username validation";
+                setErr('username-error', false);
+            }
 
             setErr('email-error', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
             setErr('password-error', password.length >= 8);
@@ -560,7 +596,9 @@
             try {
                 const res = await fetch('/api/auth/signup', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         full_name: fullName,
                         username: username,

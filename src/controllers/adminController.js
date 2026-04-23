@@ -1,5 +1,5 @@
 const prisma = require('../models/prisma');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // ═══════════════════════════════════════════════════════════════
 // USER MANAGEMENT CRUD
@@ -1438,7 +1438,7 @@ async function createAdminTask(req, res) {
         notes: notes || null,
         label: label?.toUpperCase() || 'CUSTOMER_SERVICE',
         priority: priority?.toUpperCase() || 'MEDIUM',
-        assignedDate: assignedDate ? new Date(assignedDate) : new Date()
+        assignedDate: assignedDate ? new Date(new Date(assignedDate).toISOString()) : new Date()
       }
     });
 
@@ -1590,7 +1590,7 @@ async function createGoal(req, res) {
         title,
         priority: priority?.toUpperCase() || 'MEDIUM',
         column: column?.toUpperCase() || 'TODO',
-        dueDate: dueDate ? new Date(dueDate) : null
+        dueDate: dueDate ? new Date(new Date(dueDate).toISOString()) : null
       }
     });
 
@@ -1631,7 +1631,7 @@ async function updateGoal(req, res) {
     if (title !== undefined) updateData.title = title;
     if (priority !== undefined) updateData.priority = priority.toUpperCase();
     if (column !== undefined) updateData.column = column.toUpperCase();
-    if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(new Date(dueDate).toISOString()) : null;
 
     const goal = await prisma.strategicGoal.update({
       where: { id: goalId },

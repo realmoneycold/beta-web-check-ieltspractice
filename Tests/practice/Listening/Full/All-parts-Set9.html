@@ -3549,5 +3549,43 @@ If there are any questions...</div>
             contextElement = null;
         }
     </script>
+    <!-- Score Tracking -->
+    <script src="../../js/scoreCalculator.js"></script>
+    <script>
+        // Store test start time
+        window.testStartTime = Date.now();
+        
+        // Override checkAnswers to save score
+        const originalCheckAnswers = checkAnswers;
+        checkAnswers = async function() {
+            const result = originalCheckAnswers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            let correctCount = 0;
+            const scoreSummary = document.getElementById('score-summary');
+            
+            if (scoreSummary && scoreSummary.textContent) {
+                const text = scoreSummary.textContent;
+                const patterns = [/scored\s+(\d+)\s+out\s+of/i,/(\d+)\s*\/\s*40/,/score[^\d]*(\d+)/i,/(\d+)\s*points?/i];
+                for (const pattern of patterns) {
+                    const match = text.match(pattern);
+                    if (match) { correctCount = parseInt(match[1], 10); break; }
+                }
+            }
+            
+            const saveResult = await window.saveTestWithScore({
+                testType: 'LISTENING',
+                testId: 'Listening-Set9',
+                testName: 'Listening Test - Set 9',
+                skillArea: 'LISTENING_COMPREHENSION',
+                correct: correctCount,
+                total: 40,
+                timeSpent: Math.floor((Date.now() - window.testStartTime) / 1000)
+            });
+            
+            console.log(saveResult.success ? '[ScoreCalc] Score saved!' : '[ScoreCalc] Save failed:', saveResult);
+            return result;
+        };
+    </script>
 </body>
 </html>

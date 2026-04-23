@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing — Task 1 · Set 1 — IELTSPRACTICE</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            line-height: 1.4;
+            font-size: 16px;
+            padding-bottom: 60px;
+        }
+
+        /* ─── WATERMARK ─── */
+        body::after {
+            content: "IELTSPRACTICE";
+            position: fixed;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: 72px; font-weight: 800; letter-spacing: 2px;
+            color: #000000; opacity: 0.03;
+            pointer-events: none; z-index: 0; white-space: nowrap;
+        }
+
+        /* ─── HEADER ─── */
+        .header {
+            background-color: #ffffff;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200; height: 60px;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 14px; }
+
+        .back-btn {
+            background: none; border: 1.5px solid #ccc; border-radius: 6px;
+            padding: 5px 12px; font-size: 13px; font-weight: 600; color: #444;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+            transition: background 0.2s, border-color 0.2s; font-family: Arial, sans-serif;
+        }
+        .back-btn:hover { background: #f5f5f5; border-color: #999; }
+
+        .ielts-logo {
+            display: flex; align-items: center;
+            font-size: 18px; font-weight: 800; letter-spacing: 1.5px;
+            color: #1a1a2e; text-decoration: none; gap: 6px;
+        }
+        .ielts-logo-badge {
+            background: #1a1a2e; color: #ffffff;
+            padding: 2px 7px; border-radius: 4px;
+            font-size: 13px; font-weight: 800; letter-spacing: 1px;
+        }
+
+        .exam-mode-badge {
+            display: none; background: #dc3545; color: #fff;
+            font-size: 11px; font-weight: 700; padding: 2px 8px;
+            border-radius: 99px; letter-spacing: 0.5px; text-transform: uppercase;
+        }
+        body.exam-mode .exam-mode-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        body.exam-mode .exam-mode-badge::before {
+            content: ''; display: inline-block;
+            width: 7px; height: 7px; background: #fff;
+            border-radius: 50%; animation: blink 1.2s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        body.exam-mode #timer-toggle-btn,
+        body.exam-mode #timer-reset-btn { display: none !important; }
+
+        /* ─── TIMER ─── */
+        .timer-container {
+            color: #333; font-size: 16px; font-weight: 500;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .timer-controls { display: flex; align-items: center; gap: 6px; }
+        .timer-controls button {
+            background: #f0f0f0; border: 1px solid #ccc; border-radius: 50%;
+            padding: 0; cursor: pointer; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .timer-controls button:hover { background: #e0e0e0; }
+        .timer-controls button svg { width: 18px; height: 18px; fill: #333; }
+        .timer-display.urgent { color: #dc3545; font-weight: 700; }
+
+        /* ─── PRE-TEST MODAL ─── */
+        .pretest-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15, 15, 30, 0.75);
+            z-index: 3000; display: flex;
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        .pretest-modal {
+            background: #fff; border-radius: 12px;
+            padding: 40px 36px 32px; max-width: 480px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            text-align: center; animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .pretest-modal .modal-logo {
+            font-size: 15px; font-weight: 800;
+            letter-spacing: 1.5px; color: #1a1a2e; margin-bottom: 24px;
+        }
+        .pretest-modal .modal-logo span {
+            background: #1a1a2e; color: #fff;
+            padding: 2px 6px; border-radius: 4px;
+            font-size: 12px;
+        }
+        .pretest-modal h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 12px; }
+        .pretest-modal p { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 28px; }
+        .pretest-modal .exam-note {
+            background: #fff8e1; border: 1px solid #ffe082;
+            border-radius: 8px; padding: 12px 14px;
+            font-size: 13px; color: #795548; margin-bottom: 28px; text-align: left;
+        }
+        .pretest-modal .exam-note strong { color: #e65100; }
+        .pretest-btn-group { display: flex; gap: 12px; justify-content: center; }
+        .pretest-btn {
+            flex: 1; padding: 12px 16px; border-radius: 8px;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            transition: all 0.2s; border: 2px solid transparent;
+            font-family: Arial, sans-serif;
+        }
+        .pretest-btn.btn-exam { background: #1a1a2e; color: #fff; }
+        .pretest-btn.btn-exam:hover { background: #2d2d4e; }
+        .pretest-btn.btn-practice { background: #fff; color: #1a1a2e; border-color: #ccc; }
+        .pretest-btn.btn-practice:hover { background: #f5f5f5; border-color: #999; }
+
+        /* ─── MAIN LAYOUT ─── */
+        .main-container {
+            margin-top: 60px; display: flex;
+            background: #ffffff; height: calc(100vh - 120px);
+            flex-direction: column;
+        }
+        .part-header {
+            background-color: #f1f2ec; padding: 15px 20px;
+            border: 1px solid #e0e0e0; border-radius: 5px;
+            margin: 10px 20px;
+        }
+        .part-header p { margin: 0; }
+        .part-header p:first-child { margin-bottom: 5px; }
+
+        .panels-container { display: flex; flex: 1; overflow: hidden; }
+
+        /* Resizer */
+        .resizer {
+            width: 10px; cursor: col-resize;
+            background-color: #f0f0f0;
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="30" viewBox="0 0 10 30"><path d="M4 11h2v2H4zM4 15h2v2H4zM4 19h2v2H4z" fill="%23888"/></svg>');
+            background-repeat: no-repeat; background-position: center;
+            flex-shrink: 0; flex-grow: 0;
+        }
+
+        /* Left panel */
+        .left-panel {
+            width: 50%; padding: 20px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto; min-width: 200px;
+        }
+        .chart-container { text-align: center; margin: 20px 0; }
+        .chart-container img { max-width: 100%; height: auto; border: 1px solid #ccc; }
+        .task-prompt { padding: 15px; margin: 20px 0; border: 1px solid #000; }
+        .task-prompt p { margin-bottom: 10px; }
+        .task-prompt p:last-child { margin-bottom: 0; }
+        .instructions { margin-bottom: 20px; }
+        .instructions p { margin-bottom: 10px; }
+
+        /* Right panel */
+        .right-panel {
+            width: 50%; padding: 20px;
+            display: flex; flex-direction: column;
+            overflow-y: auto; min-width: 200px;
+        }
+        .writing-area { flex: 1; display: flex; flex-direction: column; }
+        .writing-textarea {
+            border: 1px solid #ccc; border-radius: 4px;
+            padding: 15px; font-size: 16px;
+            font-family: Arial, sans-serif; line-height: 1.6;
+            resize: none; outline: none;
+            flex: 1; min-height: 400px; overflow-y: auto; width: 100%;
+        }
+        .writing-textarea:focus { border-color: #4a90e2; border-width: 2px; }
+        .writing-textarea:disabled { background: #f9f9f9; color: #555; cursor: not-allowed; }
+
+        .word-count-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 10px; padding: 6px 10px;
+            background: #f8f9fa; border: 1px solid #e9ecef;
+            border-radius: 4px; font-size: 13px; color: #555;
+        }
+        .word-count-bar .count-num { font-weight: 700; color: #1a1a2e; font-size: 15px; }
+        .word-count-bar .count-target { font-size: 12px; color: #999; }
+        .word-count-bar.below-min .count-num { color: #dc3545; }
+        .word-count-bar.at-min .count-num    { color: #28a745; }
+
+        /* ─── CONTEXT MENU ─── */
+        .context-menu {
+            position: fixed; background: white;
+            border: 1px solid #ccc; border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000; display: none; min-width: 150px;
+        }
+        .context-menu-item {
+            padding: 10px 16px; cursor: pointer; font-size: 14px;
+            border-bottom: 1px solid #f0f0f0; transition: background-color 0.15s;
+            display: flex; align-items: center; gap: 8px;
+            color: #333; user-select: none;
+        }
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover { background-color: #f8f9fa; }
+        .context-menu-item.danger { color: #dc3545; }
+        .context-menu-item.danger:hover { background: #fff5f5; }
+        .highlight { background-color: #ffeb3b; border-radius: 2px; }
+
+        /* ─── NOTES PANEL ─── */
+        .notes-panel {
+            position: fixed; top: 100px; right: 30px; width: 260px;
+            background: #fffde7; border: 1px solid #f9a825;
+            border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            z-index: 1500; display: none; flex-direction: column;
+        }
+        .notes-panel.visible { display: flex; }
+        .notes-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; background: #f9a825;
+            border-radius: 8px 8px 0 0; cursor: move; user-select: none;
+        }
+        .notes-header span { font-size: 13px; font-weight: 700; color: #fff; }
+        .notes-close {
+            background: none; border: none; color: #fff;
+            font-size: 18px; cursor: pointer; line-height: 1; padding: 0 2px;
+        }
+        .notes-body { padding: 10px; }
+        .notes-textarea {
+            width: 100%; min-height: 120px;
+            border: 1px solid #f9a825; border-radius: 4px;
+            padding: 8px; font-size: 13px; font-family: Arial, sans-serif;
+            resize: vertical; outline: none; background: #fffff0;
+        }
+
+        /* ─── SUCCESS MODAL ─── */
+        .overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 2500;
+        }
+        .success-message {
+            display: none; position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 36px 32px; border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            text-align: center; z-index: 2600;
+            max-width: 420px; width: 90%;
+            animation: slideUp 0.25s ease;
+        }
+        .success-message h3 { color: #28a745; margin-bottom: 12px; font-size: 22px; }
+        .success-message p { color: #666; margin-bottom: 20px; line-height: 1.6; font-size: 15px; }
+        .success-message .success-score {
+            background: #f1f2ec; border-radius: 8px;
+            padding: 14px; margin-bottom: 20px;
+            font-size: 14px; text-align: left;
+        }
+        .success-message .success-score p { margin-bottom: 4px; color: #333; }
+        .success-message .btn {
+            padding: 10px 24px; background: #1a1a2e; color: white;
+            border: none; border-radius: 6px; cursor: pointer;
+            font-size: 15px; font-weight: 600;
+            font-family: Arial, sans-serif; transition: background 0.2s;
+        }
+        .success-message .btn:hover { background: #2d2d4e; }
+
+        /* ─── BOTTOM NAV ─── */
+        .nav-row {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #ffffff; border-top: 1px solid #e0e0e0;
+            padding: 0; display: flex; align-items: stretch;
+            height: 60px; z-index: 100;
+        }
+        .footer__questionWrapper___1tZ46 {
+            flex: 1; display: flex; align-items: center;
+            justify-content: flex-start; position: relative;
+        }
+        .footer__questionWrapper___1tZ46.completed::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background-color: #28a745; z-index: 1;
+        }
+        .footer__questionNo___3WNct {
+            background: none; border: none;
+            font-size: 16px; font-weight: 600; color: #333;
+            cursor: default; display: flex; flex-direction: row;
+            align-items: center; gap: 10px; transition: all 0.2s;
+            width: 100%; height: 100%; position: relative;
+            text-align: left; padding-left: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .footer__questionWrapper___1tZ46.selected .footer__questionNo___3WNct {
+            background-color: #f5f5f5;
+        }
+        .part-title { font-size: 16px; font-weight: bold; color: #333; }
+        .footer__questionWrapper___1tZ46.selected .attemptedCount { display: none; }
+        .attemptedCount { font-size: 14px; color: #666; font-weight: 400; }
+
+        .footer__deliverButton___3FM07 {
+            margin-left: auto; margin-right: 20px; align-self: center;
+            background-color: #f3f4f6; color: #111827;
+            border: 1px solid #d1d5db; padding: 10px 16px;
+            font-size: 15px; font-weight: 700; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            border-radius: 4px; transition: background-color 0.2s, border-color 0.2s;
+            white-space: nowrap; font-family: Arial, sans-serif;
+        }
+        .footer__deliverButton___3FM07:hover { background-color: #ebedf0; border-color: #c7ccd4; }
+        .footer__deliverButton___3FM07:disabled { background: #eef0f3; color: #9ca3af; cursor: not-allowed; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .panels-container { flex-direction: column; }
+            .left-panel, .right-panel { width: 100% !important; border-right: none; }
+            .left-panel { border-bottom: 1px solid #e0e0e0; }
+            .resizer { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PRE-TEST MODE SELECTION MODAL
+    ═══════════════════════════════════════════════════════ -->
+    <div id="pretest-overlay" class="pretest-overlay">
+        <div class="pretest-modal">
+            <div class="modal-logo" style="display:flex;align-items:center;gap:8px;"><img src="/assets/skating-character.png" alt="IELTS Practice" style="height:32px;width:auto;"><span style="font-size:15px;font-weight:800;"><span style="background:#1a1a2e;color:#fff;padding:2px 6px;border-radius:4px;">IELTS</span>PRACTICE</span></div>
+            <h2>Choose Your Test Mode</h2>
+            <p>Would you like to take this in a <strong>Real Exam Environment</strong>?</p>
+            <div class="exam-note">
+                <strong>⚠️ Real Exam Mode:</strong> The timer starts immediately and cannot be paused. The test will automatically submit when 20 minutes are up.
+            </div>
+            <div class="pretest-btn-group">
+                <button class="pretest-btn btn-exam"     id="btn-exam-mode">Yes — Real Exam Mode</button>
+                <button class="pretest-btn btn-practice" id="btn-practice-mode">No — Practice Mode</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         HEADER
+    ═══════════════════════════════════════════════════════ -->
+    <div class="header">
+        <div class="header-left">
+            <button class="back-btn" id="back-btn" title="Go back to home">← Back</button>
+            <a href="/index.html" class="ielts-logo" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+  <img src="/assets/skating-character.png" alt="IELTS Practice" style="height:36px;width:auto;object-fit:contain;">
+  <span style="font-size:18px;font-weight:800;color:#1a1a2e;letter-spacing:-0.5px;white-space:nowrap;">IELTS<span style="color:#4a90e2;">PRACTICE</span></span>
+</a>
+            <span class="exam-mode-badge" id="exam-mode-badge">Exam Mode</span>
+        </div>
+
+        <div class="timer-container">
+            <span class="timer-display" id="timer-display">20:00</span>
+            <div class="timer-controls">
+                <button id="timer-toggle-btn" title="Pause / Resume timer">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" id="toggle-icon">
+                        <path d="M0 0h24v24H0V0z" fill="none"/>
+                        <path d="M8 5v14l11-7L8 5z"/>
+                    </svg>
+                </button>
+                <button id="timer-reset-btn" title="Reset timer">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px">
+                        <path d="M0 0h24v24H0V0z" fill="none"/>
+                        <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MAIN CONTAINER
+    ═══════════════════════════════════════════════════════ -->
+    <div class="main-container" id="mainContainer">
+
+        <div class="part-header">
+            <p><strong>Writing Task 1 — Set 1</strong></p>
+            <p>You should spend about <strong>20 minutes</strong> on this task. Write <strong>at least 150 words</strong>.</p>
+        </div>
+
+        <div class="panels-container">
+
+            <!-- LEFT — prompt + chart -->
+            <div class="left-panel" id="left-panel">
+                <div class="task-prompt">
+                    <p><strong>The bar charts compare the percentage of men and women aged 60 to 64 who were employed in four different countries in the years 1970 and 2000.</strong></p>
+                    <p><strong>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.</strong></p>
+                </div>
+                <div class="chart-container">
+                    <img src="https://i0.wp.com/ieltspracticeonline.com/wp-content/uploads/2024/02/the-percentage-of-men-and-women-aged-60-64-who-were-employed-in-four-countries-in-1970-and-2000.png?resize=712%2C890&ssl=1"
+                         alt="Bar charts comparing the percentage of men and women aged 60–64 employed in four countries in 1970 and 2000"
+                         style="max-width:85%; height:auto; border:1px solid #ccc;" />
+                </div>
+            </div>
+
+            <!-- RESIZER -->
+            <div class="resizer" id="resizer"></div>
+
+            <!-- RIGHT — writing textarea -->
+            <div class="right-panel" id="right-panel">
+                <div class="writing-area">
+                    <textarea
+                        class="writing-textarea"
+                        id="writingTextarea"
+                        placeholder="Start writing your Task 1 response here…"
+                        oninput="updateWordCount()"
+                    ></textarea>
+                    <div class="word-count-bar" id="wordCountBar">
+                        <div>
+                            <span class="count-num" id="wordCount">0</span>
+                            <span class="count-target" id="wordTarget"> / 150 minimum</span>
+                        </div>
+                        <span id="wordStatus" style="font-size:12px; color:#dc3545;">150 more words needed</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         CONTEXT MENU
+    ═══════════════════════════════════════════════════════ -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="menu-highlight" onclick="doHighlight()">🖊 Highlight</div>
+        <div class="context-menu-item danger" id="menu-clear" onclick="doClearHighlight()">✕ Clear Highlight</div>
+        <div class="context-menu-item" id="menu-note" onclick="doOpenNote()">📝 Open Notes</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         NOTES PANEL
+    ═══════════════════════════════════════════════════════ -->
+    <div class="notes-panel" id="notesPanel">
+        <div class="notes-header" id="notesHeader">
+            <span>📝 Notes</span>
+            <button class="notes-close" id="notesClose">×</button>
+        </div>
+        <div class="notes-body">
+            <textarea class="notes-textarea" id="notesTextarea" placeholder="Jot down ideas, keywords, or an outline…"></textarea>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SUCCESS (RESULTS) MODAL
+    ═══════════════════════════════════════════════════════ -->
+    <div class="overlay" id="overlay"></div>
+    <div class="success-message" id="successMessage">
+        <h3>✅ Task 1 Submitted!</h3>
+        <p>Your response has been saved. Here is your word count summary.</p>
+        <div class="success-score" id="successScore"></div>
+        <button class="btn" onclick="closeSuccessMessage()">Close</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         BOTTOM NAVIGATION — standalone, no part switching
+    ═══════════════════════════════════════════════════════ -->
+    <nav class="nav-row" aria-label="Tasks" id="navigation">
+        <div class="footer__questionWrapper___1tZ46 selected" role="tablist">
+            <div class="footer__questionNo___3WNct">
+                <div class="part-title">Task 1</div>
+                <div class="attemptedCount" id="status-1">0 of 1</div>
+            </div>
+        </div>
+        <button id="deliver-button" aria-label="Submit Writing" class="footer__deliverButton___3FM07" >
+            ✓ Submit
+        </button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════
+         JAVASCRIPT
+    ═══════════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+        'use strict';
+
+        // ── CONSTANTS ─────────────────────────────────────────────
+        const STORAGE_KEY   = 'writing_p1_s1_data';
+        const MIN_WORDS     = 150;
+        const INITIAL_SECS  = 20 * 60;   // 20:00
+
+        // ── STATE ─────────────────────────────────────────────────
+        let timeInSeconds = INITIAL_SECS;
+        let timerInterval = null;
+        let isExamMode    = false;
+        let isRunning     = false;
+
+        // ── DOM REFS ───────────────────────────────────────────────
+        const timerDisplay = document.getElementById('timer-display');
+        const toggleBtn    = document.getElementById('timer-toggle-btn');
+        const resetBtn     = document.getElementById('timer-reset-btn');
+        const deliverBtn   = document.getElementById('deliver-button');
+        const textarea     = document.getElementById('writingTextarea');
+        const wordCountEl  = document.getElementById('wordCount');
+        const wordTargetEl = document.getElementById('wordTarget');
+        const wordStatusEl = document.getElementById('wordStatus');
+        const wordCountBar = document.getElementById('wordCountBar');
+        const contextMenu  = document.getElementById('contextMenu');
+        const notesPanel   = document.getElementById('notesPanel');
+        const resizer      = document.getElementById('resizer');
+        const leftPanel    = document.getElementById('left-panel');
+
+        const PLAY_SVG  = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M8 5v14l11-7L8 5z"/></svg>`;
+        const PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+
+        // ── TIMER ──────────────────────────────────────────────────
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            isRunning = true;
+            toggleBtn.innerHTML = PAUSE_SVG;
+
+            timerInterval = setInterval(() => {
+                timeInSeconds--;
+                renderTimer();
+                if (timeInSeconds <= 300) timerDisplay.classList.add('urgent');
+                if (timeInSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = '00:00';
+                    isRunning = false;
+                    if (isExamMode) performSubmit();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            toggleBtn.innerHTML = PLAY_SVG;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            timeInSeconds = INITIAL_SECS;
+            renderTimer();
+            timerDisplay.classList.remove('urgent');
+            toggleBtn.innerHTML = PLAY_SVG;
+        }
+
+        function renderTimer() {
+            const m = Math.floor(timeInSeconds / 60);
+            const s = timeInSeconds % 60;
+            timerDisplay.textContent =
+                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            if (isExamMode) return;
+            isRunning ? pauseTimer() : startTimer();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (isExamMode) return;
+            resetTimer();
+        });
+
+        // ── PRE-TEST MODAL ─────────────────────────────────────────
+        document.getElementById('btn-exam-mode').addEventListener('click', () => {
+            isExamMode = true;
+            document.body.classList.add('exam-mode');
+            document.getElementById('pretest-overlay').style.display = 'none';
+            startTimer();
+        });
+
+        document.getElementById('btn-practice-mode').addEventListener('click', () => {
+            isExamMode = false;
+            document.getElementById('pretest-overlay').style.display = 'none';
+            startTimer();
+        });
+
+        // ── BACK BUTTON ────────────────────────────────────────────
+        document.getElementById('back-btn').addEventListener('click', () => {
+            const leave = confirm('Are you sure you want to quit? Your progress will not be saved.');
+            if (leave) window.location.href = 'index.html';
+        });
+
+        // ── WORD COUNT ─────────────────────────────────────────────
+        window.updateWordCount = function () {
+            const text  = textarea.value.trim();
+            const count = text === '' ? 0 : text.split(/\s+/).length;
+
+            wordCountEl.textContent  = count;
+            wordTargetEl.textContent = ` / ${MIN_WORDS} minimum`;
+
+            wordCountBar.classList.remove('below-min', 'at-min');
+            if (count >= MIN_WORDS) {
+                wordCountBar.classList.add('at-min');
+                wordStatusEl.textContent = '✓ Minimum reached';
+                wordStatusEl.style.color = '#28a745';
+                document.querySelector('.footer__questionWrapper___1tZ46').classList.add('completed');
+                document.getElementById('status-1').textContent = '1 of 1';
+            } else {
+                wordCountBar.classList.add('below-min');
+                const remaining = MIN_WORDS - count;
+                wordStatusEl.textContent = `${remaining} more word${remaining !== 1 ? 's' : ''} needed`;
+                wordStatusEl.style.color = '#dc3545';
+                document.querySelector('.footer__questionWrapper___1tZ46').classList.remove('completed');
+                document.getElementById('status-1').textContent = '0 of 1';
+            }
+
+            // Auto-save to localStorage
+            localStorage.setItem(STORAGE_KEY, textarea.value);
+        };
+
+        // ── AUTO-SAVE interval ─────────────────────────────────────
+        setInterval(() => {
+            localStorage.setItem(STORAGE_KEY, textarea.value);
+        }, 5000);
+
+        // ── SUBMIT ─────────────────────────────────────────────────
+        window.handleSubmitClick = function () {
+            const confirmed = confirm('Submit Task 1? You will not be able to change your answer.');
+            if (confirmed) performSubmit();
+        };
+
+        function performSubmit() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            textarea.disabled = true;
+            deliverBtn.disabled = true;
+
+            const wc = countWords(textarea.value);
+            document.getElementById('successScore').innerHTML =
+                `<p><strong>Task 1:</strong> ${wc} words ${wc >= MIN_WORDS ? '✓' : '⚠ (below 150)'}</p>`;
+
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('successMessage').style.display = 'block';
+        }
+
+        function countWords(str) {
+            const t = (str || '').trim();
+            return t === '' ? 0 : t.split(/\s+/).length;
+        }
+
+        window.closeSuccessMessage = function () {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        };
+
+        // ── RESIZER ────────────────────────────────────────────────
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const startX     = e.clientX;
+            const startWidth = leftPanel.offsetWidth;
+            const doDrag = (e) => {
+                const newWidth = startWidth + e.clientX - startX;
+                const total    = document.querySelector('.panels-container').offsetWidth;
+                if (newWidth > 200 && (total - newWidth - resizer.offsetWidth) > 200) {
+                    leftPanel.style.flex  = `0 0 ${newWidth}px`;
+                    leftPanel.style.width = `${newWidth}px`;
+                }
+            };
+            const stopDrag = () => {
+                window.removeEventListener('mousemove', doDrag);
+                window.removeEventListener('mouseup', stopDrag);
+            };
+            window.addEventListener('mousemove', doDrag);
+            window.addEventListener('mouseup', stopDrag);
+        });
+
+        // ── CONTEXT MENU ───────────────────────────────────────────
+        let lastSelection = null;
+        let contextTarget = null;
+
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            lastSelection = window.getSelection();
+            contextTarget = e.target;
+
+            const hasSelection = lastSelection && !lastSelection.isCollapsed
+                && lastSelection.toString().trim().length > 0;
+            const onHighlight  = e.target.closest('.highlight');
+
+            document.getElementById('menu-highlight').style.display = hasSelection ? 'flex' : 'none';
+            document.getElementById('menu-clear').style.display      = onHighlight ? 'flex' : 'none';
+            document.getElementById('menu-note').style.display       = 'flex';
+
+            const menuW = 160, menuH = 110;
+            let left = e.clientX, top = e.clientY;
+            if (left + menuW > window.innerWidth)  left = window.innerWidth  - menuW - 8;
+            if (top  + menuH > window.innerHeight) top  = window.innerHeight - menuH - 8;
+
+            contextMenu.style.left    = `${left}px`;
+            contextMenu.style.top     = `${top}px`;
+            contextMenu.style.display = 'block';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target)) contextMenu.style.display = 'none';
+        });
+
+        window.doHighlight = function () {
+            contextMenu.style.display = 'none';
+            const sel = lastSelection;
+            if (!sel || sel.isCollapsed) return;
+            const range   = sel.getRangeAt(0);
+            const inLeft  = document.getElementById('left-panel').contains(range.commonAncestorContainer);
+            const inRight = document.getElementById('right-panel').contains(range.commonAncestorContainer);
+            if (!inLeft && !inRight) return;
+            if (inRight) { alert('Highlighting is available in the prompt (left panel) only.'); return; }
+            try {
+                const span = document.createElement('span');
+                span.className = 'highlight';
+                range.surroundContents(span);
+            } catch (_) {
+                const frag = range.extractContents();
+                const span = document.createElement('span');
+                span.className = 'highlight';
+                span.appendChild(frag);
+                range.insertNode(span);
+            }
+            window.getSelection().removeAllRanges();
+        };
+
+        window.doClearHighlight = function () {
+            contextMenu.style.display = 'none';
+            const hl = contextTarget && contextTarget.closest('.highlight');
+            if (!hl) return;
+            const parent = hl.parentNode;
+            while (hl.firstChild) parent.insertBefore(hl.firstChild, hl);
+            parent.removeChild(hl);
+            parent.normalize();
+        };
+
+        window.doOpenNote = function () {
+            contextMenu.style.display = 'none';
+            notesPanel.classList.add('visible');
+            document.getElementById('notesTextarea').focus();
+        };
+
+        document.getElementById('notesClose').addEventListener('click', () => {
+            notesPanel.classList.remove('visible');
+        });
+
+        // Draggable notes panel
+        (function makeDraggable(panel, handle) {
+            let ox = 0, oy = 0, mx = 0, my = 0;
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                mx = e.clientX; my = e.clientY;
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+            });
+            function drag(e) {
+                ox = mx - e.clientX; oy = my - e.clientY;
+                mx = e.clientX;      my = e.clientY;
+                panel.style.top  = (panel.offsetTop  - oy) + 'px';
+                panel.style.left = (panel.offsetLeft - ox) + 'px';
+                panel.style.right = 'auto';
+            }
+            function stopDrag() {
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+        })(notesPanel, document.getElementById('notesHeader'));
+
+        // ── INIT ───────────────────────────────────────────────────
+        // Restore saved content
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) { textarea.value = saved; }
+        updateWordCount();
+        renderTimer();
+
+    })();
+    </script>
+
+    <!-- Test Tracking -->
+    <script src="../../js/testTracker.js"></script>
+    <script>
+        async function saveTestCompletion() {
+            await window.saveTestCompletion({
+                testType: 'WRITING',
+                testId: 'Writing-Task1-Graph|Chart|Table-Set2',
+                testName: 'Writing Task 1 - Graph | Chart | Table - Set 2',
+                skillArea: 'WRITING_TASK_1_GRAPH',
+                maxScore: 9.0,
+                answersTotal: 1
+            });
+        }
+    </script>
+
+    <!-- AI Writing Checker -->
+    <script src="../../js/aiWritingChecker.js?v=3"></script>
+    <script>
+        console.log('[AI Checker] Script block executing...');
+        // Initialize AI Writing Checker when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[AI Checker] DOM ready, checking for module...');
+            console.log('[AI Checker] window.aiWritingChecker exists?', typeof window.aiWritingChecker !== 'undefined');
+            if (window.aiWritingChecker && window.aiWritingChecker.init) {
+                console.log('[AI Checker] Initializing...');
+                window.aiWritingChecker.init({
+                    textareaId: 'writingTextarea',
+                    submitButtonId: 'deliver-button',
+                    taskType: 'Task1'
+                });
+                console.log('[AI Checker] Initialized successfully');
+            } else {
+                console.error('[AI Checker] Module not loaded or init missing!');
+                console.log('[AI Checker] window.aiWritingChecker:', window.aiWritingChecker);
+            }
+        });
+    </script>
+</body>
+</html>
