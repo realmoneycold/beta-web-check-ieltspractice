@@ -4,7 +4,11 @@ const schemas = {
   signup: Joi.object({
     email: Joi.string().email().required().lowercase().trim(),
     password: Joi.string().min(8).required(),
-    full_name: Joi.string().min(2).max(100).required().trim(),
+    full_name: Joi.string().min(2).max(100).trim(),
+    firstName: Joi.string().min(1).max(50).trim(),
+    lastName: Joi.string().min(1).max(50).trim(),
+    username: Joi.string().alphanum().min(3).max(20).trim(),
+    country: Joi.string().max(100).allow('', null).trim(),
     role: Joi.string().valid('STUDENT', 'TEACHER', 'ADMIN', 'CEO').default('STUDENT')
   }),
   login: Joi.object({
