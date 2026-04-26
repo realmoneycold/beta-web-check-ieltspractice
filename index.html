@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IELTS Practice | Master Your Future</title>
     <link rel="stylesheet" href="./output.css">
+    <link rel="stylesheet" href="./css/logo.css">
     <script>
         // Inject Sentry DSN if available
         window.SENTRY_DSN = '<!-- SENTRY_DSN_PLACEHOLDER -->';
@@ -121,9 +122,12 @@
 <div v-scope="{ ...{'activeItem':'home','homeHref':'./index.html','coursesHref':'./courses.html','examHref':'./pages/exam-dates.html','centresHref':'./pages/education-centres.html','contactHref':'./contact.html','signupHref':'./signup.html','loginHref':'./login.html'}, $emit() {} }">
 <nav class="flex items-center justify-between px-8 md:px-16 py-8 bg-white relative z-[100]">
     <div class="flex items-center gap-12">
-        <a id="nav-logo" href="./index.html" class="text-3xl font-black flex items-center uppercase tracking-tighter" style="display: flex; align-items: center;">
-            <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3" style="border-right: 4px solid #FF6B35 !important; padding-right: 0.75rem; margin-right: 0.75rem; color: black !important;">IELTS</span>
-            <span class="text-black/60 text-lg tracking-[0.2em] font-bold" style="color: rgba(0, 0, 0, 0.6) !important; font-size: 1.125rem;">PRACTICE</span>
+        <a id="nav-logo" href="./index.html" class="ielts-logo-horizontal">
+            <div class="logo-text">
+                <span class="logo-ielts">IELTS</span>
+                <div class="logo-divider"></div>
+                <span class="logo-practice">PRACTICE</span>
+            </div>
         </a>
         <div class="hidden lg:flex items-center gap-8 font-semibold text-gray-600">
             <a :href="homeHref" class="hover:text-black transition-colors" :class="{ 'text-[#FF6B35] font-bold': activeItem === 'home' }">Home</a>
