@@ -20,6 +20,7 @@ const requireCeoAuth = require('../../middleware/ceoAuth');
 const dashboardRoutes = require('../dashboardRoutes');
 const publicRoutes = require('../publicRoutes');
 const aiRoutes = require('../aiRoutes');
+const contactRoutes = require('../contactRoutes');
 
 const centrePortalRoutes = require('../centrePortalRoutes');
 const adminPortalRoutes = require('../adminPortalRoutes');
@@ -47,6 +48,7 @@ router.use('/leaderboard', leaderboardRoutes);
 router.use('/statistics', statisticsRoutes);
 router.use('/ceo', requireCeoAuth, ceoRoutes);
 router.use('/ai', aiRoutes);
+router.use('/contact', contactRoutes);
 
 
 // Dashboard routes (must be before /student to avoid conflicts)

@@ -298,8 +298,59 @@ async function sendWelcomeEmail(email, name = 'there') {
   }
 }
 
+// ─── SEND CONTACT FORM EMAIL ─────────────────────────────────
+async function sendContactFormEmail({ name, email, subject, message }) {
+  const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@ieltspractice.com';
+  
+  const html = `
+    <div style="${baseStyle}">
+      <div style="${headerStyle}">
+        <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 600;">New Contact Form Submission</h1>
+      </div>
+      <div style="padding: 32px;">
+        <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+          You have received a new message from the contact form:
+        </p>
+        <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0 0 12px 0;"><strong style="color: #1a202c;">Name:</strong> ${name}</p>
+          <p style="margin: 0 0 12px 0;"><strong style="color: #1a202c;">Email:</strong> ${email}</p>
+          <p style="margin: 0 0 12px 0;"><strong style="color: #1a202c;">Subject:</strong> ${subject}</p>
+          <p style="margin: 0;"><strong style="color: #1a202c;">Message:</strong></p>
+          <p style="margin: 8px 0 0 0; color: #4a5568; white-space: pre-wrap;">${message}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ─── DEMO MODE ────────────────────────────────────
+  if (isDemoMode()) {
+    console.log('📧 DEMO: Contact form submission');
+    console.log('   From:', email);
+    console.log('   Name:', name);
+    console.log('   Subject:', subject);
+    console.log('   Message:', message);
+    return { success: true, demo: true };
+  }
+
+  // ─── PRODUCTION: Send via Resend ──────────────────
+  try {
+    const response = await resend.emails.send({
+      from: FROM,
+      to: SUPPORT_EMAIL,
+      subject: `Contact Form: ${subject}`,
+      html,
+      reply_to: email,
+    });
+    return { success: true, ...response };
+  } catch (error) {
+    console.error('❌ Failed to send contact form email:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendContactFormEmail,
 };
