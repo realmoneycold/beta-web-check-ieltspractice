@@ -10,6 +10,7 @@
 'use strict';
 
 const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
 const API_KEY = process.env.RESEND_API_KEY || '';
 const FROM = process.env.EMAIL_FROM || 'IELTS Practice <noreply@ieltspractice.com>';
@@ -298,9 +299,21 @@ async function sendWelcomeEmail(email, name = 'there') {
   }
 }
 
+// ─── ZOHO SMTP TRANSPORTER ──────────────────────────────────
+// For sending contact form emails to your Zoho inbox
+const zohoTransporter = nodemailer.createTransport({
+  host: process.env.ZOHO_SMTP_HOST || 'smtppro.zoho.com',
+  port: parseInt(process.env.ZOHO_SMTP_PORT) || 465,
+  secure: true, // use SSL
+  auth: {
+    user: process.env.ZOHO_USER || 'support@ieltspractice.net',
+    pass: process.env.ZOHO_PASS || '',
+  },
+});
+
 // ─── SEND CONTACT FORM EMAIL ─────────────────────────────────
 async function sendContactFormEmail({ name, email, subject, message }) {
-  const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@ieltspractice.com';
+  const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@ieltspractice.net';
   
   const html = `
     <div style="${baseStyle}">
@@ -332,16 +345,17 @@ async function sendContactFormEmail({ name, email, subject, message }) {
     return { success: true, demo: true };
   }
 
-  // ─── PRODUCTION: Send via Resend ──────────────────
+  // ─── PRODUCTION: Send via Zoho SMTP ───────────────
   try {
-    const response = await resend.emails.send({
-      from: FROM,
+    const info = await zohoTransporter.sendMail({
+      from: `IELTS Practice <${process.env.ZOHO_USER || 'support@ieltspractice.net'}>`,
       to: SUPPORT_EMAIL,
+      replyTo: email,
       subject: `Contact Form: ${subject}`,
       html,
-      reply_to: email,
     });
-    return { success: true, ...response };
+    console.log('✅ Contact form email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Failed to send contact form email:', error.message);
     throw error;
