@@ -299,20 +299,10 @@ async function sendWelcomeEmail(email, name = 'there') {
   }
 }
 
-// ─── ZOHO SMTP TRANSPORTER ──────────────────────────────────
-// For sending contact form emails to your Zoho inbox
-const zohoTransporter = nodemailer.createTransport({
-  host: process.env.ZOHO_SMTP_HOST || 'smtppro.zoho.com',
-  port: parseInt(process.env.ZOHO_SMTP_PORT) || 465,
-  secure: true, // use SSL
-  auth: {
-    user: process.env.ZOHO_USER || 'support@ieltspractice.net',
-    pass: process.env.ZOHO_PASS || '',
-  },
-});
-
 // ─── SEND CONTACT FORM EMAIL ─────────────────────────────────
+// Uses Resend API (Port 443 HTTPS) to bypass SMTP port blocks
 async function sendContactFormEmail({ name, email, subject, message }) {
+  // Use Zoho inbox email (.net domain)
   const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@ieltspractice.net';
   
   const html = `
@@ -345,17 +335,17 @@ async function sendContactFormEmail({ name, email, subject, message }) {
     return { success: true, demo: true };
   }
 
-  // ─── PRODUCTION: Send via Zoho SMTP ───────────────
+  // ─── PRODUCTION: Send via Resend API (Port 443) ───────────────
   try {
-    const info = await zohoTransporter.sendMail({
-      from: `IELTS Practice <${process.env.ZOHO_USER || 'support@ieltspractice.net'}>`,
+    const response = await resend.emails.send({
+      from: FROM,
       to: SUPPORT_EMAIL,
-      replyTo: email,
+      reply_to: email,
       subject: `Contact Form: ${subject}`,
       html,
     });
-    console.log('✅ Contact form email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    console.log('✅ Contact form email sent via Resend:', response.id);
+    return { success: true, ...response };
   } catch (error) {
     console.error('❌ Failed to send contact form email:', error.message);
     throw error;
