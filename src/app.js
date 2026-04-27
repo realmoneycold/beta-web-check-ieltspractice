@@ -146,8 +146,11 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs, {
 app.use('/teacher-dashboard', express.static(path.join(__dirname, '..', 'teacher-dashboard')));
 
 // Add specific route for student dashboard
+const fs = require('fs');
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dashboard.html'));
+  const html = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
+  res.set('Cache-Control', 'no-cache');
+  res.send(html);
 });
 
 // Primary login page — serve ROOT login.html (login/login.html is deprecated)
