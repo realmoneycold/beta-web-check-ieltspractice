@@ -580,5 +580,13 @@
             
             heroObserver.observe(document.getElementById('hero'));
         });
+
+        // Explicitly set footer links to ensure they work
+        document.addEventListener('DOMContentLoaded', function() {
+            const privacyLink = document.getElementById('copy-1');
+            const termsLink = document.getElementById('copy-2');
+            if (privacyLink) privacyLink.href = '/privacypolicy';
+            if (termsLink) termsLink.href = '/termsconditions';
+        });
     </script>
 </body></html>
