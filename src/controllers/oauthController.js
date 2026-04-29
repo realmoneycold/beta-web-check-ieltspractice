@@ -215,10 +215,16 @@ function googleAuth(req, res, next) {
 }
 
 function googleCallback(req, res, next) {
-  passport.authenticate('google', { failureRedirect: '/login.html?error=oauth_failed' })(req, res, async () => {
+  passport.authenticate('google', { failureRedirect: '/login.html?error=oauth_failed' }, async (err, user, info) => {
+    if (err) {
+      console.error('Google Auth Error:', err);
+      return res.redirect('/login.html?error=oauth_failed');
+    }
+    if (!user) {
+      return res.redirect('/login.html?error=oauth_failed');
+    }
+    
     try {
-      const user = req.user;
-      
       // Generate JWT token
       const token = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
@@ -240,7 +246,7 @@ function googleCallback(req, res, next) {
       console.error('Google Callback Error:', error);
       res.redirect('/login.html?error=auth_failed');
     }
-  });
+  })(req, res, next);
 }
 
 // ─── TELEGRAM OAUTH HANDLERS ─────────────────────────────────────
@@ -249,10 +255,16 @@ function telegramAuth(req, res, next) {
 }
 
 function telegramCallback(req, res, next) {
-  passport.authenticate('telegram', { failureRedirect: '/login.html?error=oauth_failed' })(req, res, async () => {
+  passport.authenticate('telegram', { failureRedirect: '/login.html?error=oauth_failed' }, async (err, user, info) => {
+    if (err) {
+      console.error('Telegram Auth Error:', err);
+      return res.redirect('/login.html?error=oauth_failed');
+    }
+    if (!user) {
+      return res.redirect('/login.html?error=oauth_failed');
+    }
+    
     try {
-      const user = req.user;
-      
       // Generate JWT token
       const token = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
@@ -274,7 +286,7 @@ function telegramCallback(req, res, next) {
       console.error('Telegram Callback Error:', error);
       res.redirect('/login.html?error=auth_failed');
     }
-  });
+  })(req, res, next);
 }
 
 // ─── TELEGRAM WIDGET LOGIN ────────────────────────────────────────
