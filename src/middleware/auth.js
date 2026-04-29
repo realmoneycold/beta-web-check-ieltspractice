@@ -23,6 +23,10 @@ function verifyToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Normalize: some legacy tokens use `userId` instead of `id`
+    if (decoded.userId != null && decoded.id == null) {
+      decoded.id = decoded.userId;
+    }
     req.user = decoded;
     next();
   } catch (err) {

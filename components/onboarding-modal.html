@@ -9,18 +9,38 @@
     </div>
 
     <form id="onboarding-form">
-      <!-- Question 1: Exam Date -->
+      <!-- Question 1: Username -->
       <div class="onboarding-form-section" id="section-1" style="display: block;">
-        <div class="onboarding-question-number">1 of 3</div>
-        
+        <div class="onboarding-question-number">1 of 4</div>
+
+        <label class="onboarding-question-title">Choose your username</label>
+
+        <div class="onboarding-option-group" style="gap: 8px;">
+          <input type="text" id="onboarding-username" class="onboarding-form-input" placeholder="e.g. johndoe123" autocomplete="username">
+          <small class="onboarding-hint-text" style="display: block;">
+            3-20 characters, lowercase letters and numbers only
+          </small>
+          <small id="onboarding-username-error" class="onboarding-hint-text" style="display: none; color: #EF4444; font-weight: 600;"></small>
+        </div>
+
+        <div class="onboarding-button-group">
+          <button type="button" class="onboarding-btn-secondary" onclick="skipOnboarding()">Skip</button>
+          <button type="button" class="onboarding-btn-primary" onclick="nextQuestion(1)">Next</button>
+        </div>
+      </div>
+
+      <!-- Question 2: Exam Date -->
+      <div class="onboarding-form-section" id="section-2" style="display: none;">
+        <div class="onboarding-question-number">2 of 4</div>
+
         <label class="onboarding-question-title">When is your exam?</label>
-        
+
         <div class="onboarding-option-group">
           <label class="onboarding-radio-option">
             <input type="radio" name="exam-date-option" value="date" id="exam-date-value">
             <span class="onboarding-radio-label">I have an exam date</span>
           </label>
-          
+
           <div id="exam-date-picker-container" style="display: none;">
             <input type="date" id="exam-date" class="onboarding-form-input" min="">
             <small class="onboarding-hint-text" style="display: block;">
@@ -35,17 +55,17 @@
         </div>
 
         <div class="onboarding-button-group">
-          <button type="button" class="onboarding-btn-secondary" onclick="skipOnboarding()">Skip</button>
-          <button type="button" class="onboarding-btn-primary" onclick="nextQuestion(1)">Next</button>
+          <button type="button" class="onboarding-btn-secondary" onclick="previousQuestion(2)">Back</button>
+          <button type="button" class="onboarding-btn-primary" onclick="nextQuestion(2)">Next</button>
         </div>
       </div>
 
-      <!-- Question 2: Target Band -->
-      <div class="onboarding-form-section" id="section-2" style="display: none;">
-        <div class="onboarding-question-number">2 of 3</div>
-        
+      <!-- Question 3: Target Band -->
+      <div class="onboarding-form-section" id="section-3" style="display: none;">
+        <div class="onboarding-question-number">3 of 4</div>
+
         <label class="onboarding-question-title">What is your Target Band?</label>
-        
+
         <div class="onboarding-band-selection">
           <select id="target-band" class="onboarding-form-input" required>
             <option value="">Select your target band...</option>
@@ -65,17 +85,17 @@
         </p>
 
         <div class="onboarding-button-group">
-          <button type="button" class="onboarding-btn-secondary" onclick="previousQuestion(1)">Back</button>
-          <button type="button" class="onboarding-btn-primary" onclick="nextQuestion(2)">Next</button>
+          <button type="button" class="onboarding-btn-secondary" onclick="previousQuestion(3)">Back</button>
+          <button type="button" class="onboarding-btn-primary" onclick="nextQuestion(3)">Next</button>
         </div>
       </div>
 
-      <!-- Question 3: Source -->
-      <div class="onboarding-form-section" id="section-3" style="display: none;">
-        <div class="onboarding-question-number">3 of 3</div>
-        
+      <!-- Question 4: Source -->
+      <div class="onboarding-form-section" id="section-4" style="display: none;">
+        <div class="onboarding-question-number">4 of 4</div>
+
         <label class="onboarding-question-title">Where did you hear about us?</label>
-        
+
         <div class="onboarding-option-group">
           <label class="onboarding-radio-option">
             <input type="radio" name="source" value="Friend" required>
@@ -109,7 +129,7 @@
         <div id="onboarding-error" class="onboarding-error-message" style="display: none;"></div>
 
         <div class="onboarding-button-group">
-          <button type="button" class="onboarding-btn-secondary" onclick="previousQuestion(2)">Back</button>
+          <button type="button" class="onboarding-btn-secondary" onclick="previousQuestion(4)">Back</button>
           <button type="submit" class="onboarding-btn-primary" id="onboarding-submit">Complete Setup</button>
         </div>
       </div>

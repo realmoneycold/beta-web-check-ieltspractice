@@ -97,12 +97,31 @@ function previousQuestion(currentNum) {
 
 function validateQuestion(questionNum) {
   if (questionNum === 1) {
-    // Question 1: Exam date - no validation needed (optional)
+    // Question 1: Username
+    const usernameInput = document.getElementById('onboarding-username');
+    const errorEl = document.getElementById('onboarding-username-error');
+    const val = usernameInput ? usernameInput.value.trim() : '';
+    const regex = /^[a-z0-9]{3,20}$/;
+
+    if (!val) {
+      if (errorEl) { errorEl.textContent = 'Please enter a username'; errorEl.style.display = 'block'; }
+      return false;
+    }
+    if (!regex.test(val)) {
+      if (errorEl) { errorEl.textContent = 'Username must be 3-20 lowercase letters and numbers only'; errorEl.style.display = 'block'; }
+      return false;
+    }
+    if (errorEl) errorEl.style.display = 'none';
     return true;
   }
 
   if (questionNum === 2) {
-    // Question 2: Target band is required
+    // Question 2: Exam date - no validation needed (optional)
+    return true;
+  }
+
+  if (questionNum === 3) {
+    // Question 3: Target band is required
     const targetBand = document.getElementById('target-band');
     if (!targetBand || !targetBand.value) {
       alert('Please select a target band');
@@ -165,6 +184,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupOnboardingListeners() {
+  // Pre-fill username from localStorage user object
+  try {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      const usernameInput = document.getElementById('onboarding-username');
+      if (usernameInput && user.username) {
+        usernameInput.value = user.username;
+      }
+    }
+  } catch (e) {
+    // Silently ignore parse errors
+  }
+
   // Exam date picker toggles
   const examDateValue = document.getElementById('exam-date-value');
   const examDateUnsure = document.getElementById('exam-date-unsure');
@@ -194,12 +227,14 @@ function setupOnboardingListeners() {
 
 async function handleOnboardingSubmit() {
   // Get form values
+  const usernameInput = document.getElementById('onboarding-username');
   const examDateOption = document.querySelector('input[name="exam-date-option"]:checked');
   const examDateInput = document.getElementById('exam-date');
   const targetBandSelect = document.getElementById('target-band');
   const sourceRadio = document.querySelector('input[name="source"]:checked');
 
   // Extract values
+  const username = usernameInput ? usernameInput.value.trim() : null;
   const examDateOptionValue = examDateOption ? examDateOption.value : null;
   const examDate = examDateOptionValue === 'date' ? (examDateInput ? examDateInput.value : null) : null;
   const targetBand = targetBandSelect ? targetBandSelect.value : null;
@@ -217,10 +252,10 @@ async function handleOnboardingSubmit() {
   }
 
   // Save data
-  await saveOnboardingData(examDate, isExamDateUnsure, targetBand, sourceOfExposure);
+  await saveOnboardingData(examDate, isExamDateUnsure, targetBand, sourceOfExposure, username);
 }
 
-async function saveOnboardingData(examDate, isExamDateUnsure, targetBand, sourceOfExposure) {
+async function saveOnboardingData(examDate, isExamDateUnsure, targetBand, sourceOfExposure, username) {
   try {
     const token = localStorage.getItem('authToken');
 
@@ -236,18 +271,21 @@ async function saveOnboardingData(examDate, isExamDateUnsure, targetBand, source
 
     // Silently handle data sending
 
+    const payload = {
+      examDate,
+      isExamDateUnsure,
+      targetBand,
+      sourceOfExposure
+    };
+    if (username) payload.username = username;
+
     const response = await fetch('/api/user/onboarding', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        examDate,
-        isExamDateUnsure,
-        targetBand,
-        sourceOfExposure
-      })
+      body: JSON.stringify(payload)
     });
 
     // Silently handle response status
@@ -257,11 +295,22 @@ async function saveOnboardingData(examDate, isExamDateUnsure, targetBand, source
 
     if (data.success) {
       // Silently handle success
-      
+
       // Store in localStorage for immediate use
       localStorage.setItem('userTargetBand', targetBand);
       localStorage.setItem('userExamDate', examDate || 'Not set');
       localStorage.setItem('onboardingComplete', 'true');
+
+      // Update stored user object with new username
+      if (data.data && data.data.username) {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          storedUser.username = data.data.username;
+          localStorage.setItem('user', JSON.stringify(storedUser));
+        } catch (e) {
+          // Silently ignore
+        }
+      }
 
       // Show success message
       const errorDiv = document.getElementById('onboarding-error');

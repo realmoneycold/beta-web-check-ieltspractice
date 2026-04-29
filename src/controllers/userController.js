@@ -282,9 +282,9 @@ async function saveOnboardingData(req, res) {
       return res.status(401).json({ success: false, message: 'Invalid user token' });
     }
 
-    const { examDate, isExamDateUnsure, targetBand, sourceOfExposure } = req.body;
+    const { examDate, isExamDateUnsure, targetBand, sourceOfExposure, username } = req.body;
 
-    console.log('[onboarding] Request body:', { examDate, isExamDateUnsure, targetBand, sourceOfExposure });
+    console.log('[onboarding] Request body:', { examDate, isExamDateUnsure, targetBand, sourceOfExposure, username });
     console.log('[onboarding] userId:', userId);
 
     // Validation
@@ -323,17 +323,45 @@ async function saveOnboardingData(req, res) {
       parsedExamDate = d;
     }
 
+    // Build update data
+    const updateData = {
+      exam_date: parsedExamDate,
+      isExamDateUnsure: isExamDateUnsure || false,
+      target_band: band,
+      sourceOfExposure,
+      onboardingComplete: true,
+      is_onboarded: true,  // keep in sync with schema's is_onboarded field
+    };
+
+    // Validate and add username if provided
+    if (username !== undefined && username !== null && username !== '') {
+      const cleanUsername = String(username).trim().toLowerCase();
+      const usernameRegex = /^[a-z0-9]{3,20}$/;
+      if (!usernameRegex.test(cleanUsername)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username must be 3-20 lowercase letters and numbers only'
+        });
+      }
+
+      // Check uniqueness (only if changed)
+      const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
+      if (!currentUser || currentUser.username !== cleanUsername) {
+        const existing = await prisma.user.findUnique({ where: { username: cleanUsername }, select: { id: true } });
+        if (existing && existing.id !== userId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Username is already taken. Please choose another.'
+          });
+        }
+        updateData.username = cleanUsername;
+      }
+    }
+
     // FIX 3: Update user — also sets is_onboarded which aligns with schema
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: {
-        exam_date: parsedExamDate,
-        isExamDateUnsure: isExamDateUnsure || false,
-        target_band: band,
-        sourceOfExposure,
-        onboardingComplete: true,
-        is_onboarded: true,  // keep in sync with schema's is_onboarded field
-      }
+      data: updateData
     });
 
     console.log('[onboarding] User updated successfully:', updatedUser.id);
@@ -345,7 +373,8 @@ async function saveOnboardingData(req, res) {
         exam_date: updatedUser.exam_date,
         target_band: updatedUser.target_band,
         sourceOfExposure: updatedUser.sourceOfExposure,
-        onboardingComplete: updatedUser.onboardingComplete
+        onboardingComplete: updatedUser.onboardingComplete,
+        username: updatedUser.username
       }
     });
 

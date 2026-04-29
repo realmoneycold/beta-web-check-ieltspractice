@@ -150,7 +150,7 @@ function googleCallback(req, res, next) {
     try {
       // Generate JWT token
       const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: JWT_EXPIRES_IN }
       );
@@ -282,7 +282,7 @@ async function telegramWidgetLogin(req, res) {
 
     // Generate JWT
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
