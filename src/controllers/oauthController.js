@@ -73,7 +73,7 @@ passport.use(
             role: 'STUDENT',
             current_band: 5.0,
             tasks_done: 0,
-            emailVerified: new Date(), // Auto-verify OAuth users
+            isVerified: true, // Auto-verify OAuth users
             country: null,
           },
         });
@@ -252,7 +252,7 @@ async function telegramWidgetLogin(req, res) {
           role: 'STUDENT',
           current_band: 5.0,
           tasks_done: 0,
-          emailVerified: new Date(),
+          isVerified: true,
           country: null,
           image: photo_url || null,
         },
