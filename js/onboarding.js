@@ -145,8 +145,8 @@ function skipOnboarding() {
 document.addEventListener('DOMContentLoaded', function() {
   // Silently handle initialization
   
-  // Load modal HTML first
-  fetch('./components/onboarding-modal.html')
+  // Load modal HTML first (cache-busted to ensure latest version)
+  fetch('./components/onboarding-modal.html?v=2')
     .then(r => {
       if (!r.ok) throw new Error(`Failed to load modal: ${r.status}`);
       return r.text();

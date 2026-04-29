@@ -39,7 +39,11 @@ router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
       where: {
         id: userId,
         role: 'STUDENT',
-        is_verified: true
+        // Check either field - OAuth users have isVerified, regular users have is_verified
+        OR: [
+          { is_verified: true },
+          { isVerified: true }
+        ]
       },
       select: {
         id: true,
