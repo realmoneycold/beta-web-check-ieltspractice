@@ -8,6 +8,8 @@ const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
 const morgan = require('morgan');
 const xss = require('xss-clean');
+const session = require('express-session');
+const passport = require('passport');
 const logger = require('./services/loggerService');
 const apiRoutes = require('./routes');
 const prisma = require('./models/prisma');
@@ -66,6 +68,25 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(xss());
 app.use(cookieParser());
+
+// Session configuration for OAuth
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Load OAuth strategies
+require('./controllers/oauthController');
 
 // CSRF Protection
 // Note: This middleware will expect a CSRF token in POST requests.

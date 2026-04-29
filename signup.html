@@ -327,11 +327,11 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <button class="flex items-center justify-center gap-3 bg-white border-2 border-gray-100 px-6 py-3.5 rounded-2xl font-bold hover:bg-gray-50 transition-all">
+                            <button id="google-oauth-btn" onclick="window.location.href='/api/v1/auth/oauth/google'" class="flex items-center justify-center gap-3 bg-white border-2 border-gray-100 px-6 py-3.5 rounded-2xl font-bold hover:bg-gray-50 transition-all">
                                 <iconify-icon icon="logos:google-icon" class="text-lg"></iconify-icon>
                                 <span class="text-sm">Google</span>
                             </button>
-                            <button class="flex items-center justify-center gap-3 bg-white border-2 border-gray-100 px-6 py-3.5 rounded-2xl font-bold hover:bg-gray-50 transition-all">
+                            <button id="telegram-oauth-btn" onclick="initTelegramAuth()" class="flex items-center justify-center gap-3 bg-white border-2 border-gray-100 px-6 py-3.5 rounded-2xl font-bold hover:bg-gray-50 transition-all">
                                 <iconify-icon icon="logos:telegram" class="text-lg"></iconify-icon>
                                 <span class="text-sm">Telegram</span>
                             </button>
@@ -643,6 +643,63 @@
                 submitBtn.querySelector('#btn-spinner').classList.add('hidden');
             }
         });
+    </script>
+
+    <script>
+        // ─── TELEGRAM AUTHENTICATION ─────────────────────────────────────
+        function initTelegramAuth() {
+            // Open Telegram login widget popup
+            const botName = 'ieltspractice_bot'; // Replace with your actual bot name
+            const authUrl = encodeURIComponent(`${window.location.origin}/api/v1/auth/oauth/telegram`);
+            
+            const width = 550;
+            const height = 450;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+            
+            const popup = window.open(
+                `https://oauth.telegram.org/auth?bot_id=${botName}&origin=${encodeURIComponent(window.location.origin)}&embed=0&request_access=write`,
+                'telegram_oauth',
+                `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
+            );
+            
+            // Listen for message from popup
+            window.addEventListener('message', async (e) => {
+                if (e.source !== popup) return;
+                
+                if (e.data?.event === 'auth_result' || e.data?.id) {
+                    const tgData = e.data;
+                    
+                    try {
+                        const res = await fetch('/api/v1/auth/oauth/telegram', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(tgData)
+                        });
+                        
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            // Store JWT and user data
+                            localStorage.setItem('authToken', data.token);
+                            localStorage.setItem('role', (data.user.role || 'student').toLowerCase());
+                            localStorage.setItem('user', JSON.stringify(data.user || {}));
+                            
+                            // Close popup and redirect
+                            popup.close();
+                            window.location.href = './dashboard.html';
+                        } else {
+                            popup.close();
+                            alert(data.message || 'Telegram authentication failed');
+                        }
+                    } catch (err) {
+                        popup.close();
+                        console.error('Telegram auth error:', err);
+                        alert('Authentication failed. Please try again.');
+                    }
+                }
+            }, { once: true });
+        }
     </script>
 </body>
 </html>

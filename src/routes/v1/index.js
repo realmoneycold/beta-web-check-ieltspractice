@@ -1,5 +1,6 @@
 const express = require('express');
 const authRoutes = require('../authRoutes');
+const oauthRoutes = require('../oauthRoutes');
 const adminAuthRoutes = require('../adminAuthRoutes');
 const educationAuthRoutes = require('../educationAuth');
 const educationRoutes = require('../educationRoutes');
@@ -29,6 +30,7 @@ const studentPortalRoutes = require('../studentPortalRoutes');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.use('/auth/oauth', oauthRoutes);
 router.use('/auth/admin', adminAuthRoutes);
 router.use('/auth/education', educationAuthRoutes);
 router.use('/auth/teacher', teacherAuthRoutes);
