@@ -173,9 +173,9 @@ function googleCallback(req, res, next) {
         image: user.image || null,
       })).toString('base64');
 
-      // Redirect through oauth-callback.html so frontend can store token in localStorage
+      // Redirect through oauth-callback bridge so frontend can store token in localStorage
       // (auth-guard.js checks localStorage, not cookies)
-      res.redirect(`/oauth-callback.html?token=${encodeURIComponent(token)}&role=${encodeURIComponent(user.role)}&user=${encodeURIComponent(userPayload)}`);
+      res.redirect(`/oauth-callback?token=${encodeURIComponent(token)}&role=${encodeURIComponent(user.role)}&user=${encodeURIComponent(userPayload)}`);
     } catch (error) {
       console.error('Google Callback Error:', error);
       res.redirect('/login.html?error=auth_failed');

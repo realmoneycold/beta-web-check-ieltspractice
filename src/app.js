@@ -195,6 +195,14 @@ app.get('/forgot-password.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'forgot-password.html'));
 });
 
+// OAuth callback bridge page (works with or without .html)
+app.get('/oauth-callback', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'oauth-callback.html'));
+});
+app.get('/oauth-callback.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'oauth-callback.html'));
+});
+
 // Teacher dashboard route
 app.get('/teacher/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'teacher-dashboard', 'teacher-dashboard.html'));
