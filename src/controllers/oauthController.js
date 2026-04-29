@@ -155,7 +155,7 @@ function googleCallback(req, res, next) {
         { expiresIn: JWT_EXPIRES_IN }
       );
 
-      // Set cookie
+      // Also set cookie for API requests that read cookies
       res.cookie('authToken', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -163,8 +163,19 @@ function googleCallback(req, res, next) {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
 
-      // Redirect to dashboard
-      res.redirect('/dashboard.html');
+      // Build minimal user payload for frontend localStorage
+      const userPayload = Buffer.from(JSON.stringify({
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        username: user.username,
+        role: user.role,
+        image: user.image || null,
+      })).toString('base64');
+
+      // Redirect through oauth-callback.html so frontend can store token in localStorage
+      // (auth-guard.js checks localStorage, not cookies)
+      res.redirect(`/oauth-callback.html?token=${encodeURIComponent(token)}&role=${encodeURIComponent(user.role)}&user=${encodeURIComponent(userPayload)}`);
     } catch (error) {
       console.error('Google Callback Error:', error);
       res.redirect('/login.html?error=auth_failed');

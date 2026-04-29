@@ -412,41 +412,43 @@ function initTelegramAuth() {
     );
     
     // Listen for message from popup
+    let tgHandled = false;
     window.addEventListener('message', async (e) => {
-        if (e.source !== popup) return;
-        
-        if (e.data?.event === 'auth_result' || e.data?.id) {
-            const tgData = e.data;
-            
-            try {
-                const res = await fetch('/api/v1/auth/oauth/telegram', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(tgData)
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    // Store JWT and user data
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('role', (data.user.role || 'student').toLowerCase());
-                    localStorage.setItem('user', JSON.stringify(data.user || {}));
-                    
-                    // Close popup and redirect
-                    popup.close();
-                    window.location.href = './dashboard.html';
-                } else {
-                    popup.close();
-                    alert(data.message || 'Telegram authentication failed');
-                }
-            } catch (err) {
+        if (e.source !== popup || tgHandled) return;
+
+        // Telegram sends { event: 'auth_result', result: { id, first_name, ... } }
+        const tgData = e.data?.result || e.data;
+        if (!tgData || (!tgData.id && !e.data?.event === 'auth_result')) return;
+
+        tgHandled = true;
+        try {
+            const res = await fetch('/api/v1/auth/oauth/telegram', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tgData)
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // Store JWT and user data
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('role', (data.user.role || 'student').toLowerCase());
+                localStorage.setItem('user', JSON.stringify(data.user || {}));
+
+                // Close popup and redirect
                 popup.close();
-                console.error('Telegram auth error:', err);
-                alert('Authentication failed. Please try again.');
+                window.location.href = './dashboard.html';
+            } else {
+                popup.close();
+                alert(data.message || 'Telegram authentication failed');
             }
+        } catch (err) {
+            popup.close();
+            console.error('Telegram auth error:', err);
+            alert('Authentication failed. Please try again.');
         }
-    }, { once: true });
+    });
 }
 </script>
 </html>
