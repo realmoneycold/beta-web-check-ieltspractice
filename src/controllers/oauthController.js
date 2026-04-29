@@ -1,6 +1,5 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const TelegramStrategy = require('passport-telegram-official').TelegramStrategy;
 const prisma = require('../models/prisma');
 const jwt = require('jsonwebtoken');
 
@@ -112,85 +111,9 @@ passport.use(
 );
 
 // ─── TELEGRAM OAUTH STRATEGY ──────────────────────────────────────
-passport.use(
-  new TelegramStrategy(
-    {
-      botToken: process.env.TELEGRAM_BOT_TOKEN,
-    },
-    async (profile, done) => {
-      try {
-        const telegramId = profile.id.toString();
-        const username = profile.username || `tg_${telegramId}`;
-        const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || username;
-        const photoUrl = profile.photo_url || null;
-
-        // Check if user exists with this Telegram ID
-        let account = await prisma.account.findUnique({
-          where: {
-            provider_providerAccountId: {
-              provider: 'telegram',
-              providerAccountId: telegramId,
-            },
-          },
-          include: { user: true },
-        });
-
-        if (account) {
-          // Update profile info if changed
-          if (photoUrl && account.user.image !== photoUrl) {
-            await prisma.user.update({
-              where: { id: account.user.id },
-              data: { image: photoUrl },
-            });
-          }
-          return done(null, account.user);
-        }
-
-        // Check if username is taken
-        let safeUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (safeUsername.length < 3) safeUsername = `tg${telegramId.slice(-6)}`;
-        
-        const existingUser = await prisma.user.findUnique({ where: { username: safeUsername } });
-        if (existingUser) {
-          safeUsername = `${safeUsername}${Math.floor(1000 + Math.random() * 9000)}`;
-        }
-
-        // Create new user
-        const user = await prisma.user.create({
-          data: {
-            full_name: fullName,
-            email: `${telegramId}@telegram.user`, // Placeholder email for Telegram users
-            username: safeUsername,
-            password: await require('bcryptjs').hash(generateRandomPassword(), 12),
-            role: 'STUDENT',
-            current_band: 5.0,
-            tasks_done: 0,
-            emailVerified: new Date(), // Auto-verify OAuth users
-            country: null,
-            image: photoUrl,
-          },
-        });
-
-        // Create account record
-        await prisma.account.create({
-          data: {
-            userId: user.id,
-            type: 'oauth',
-            provider: 'telegram',
-            providerAccountId: telegramId,
-            token_type: 'Bot',
-            scope: 'user_profile',
-          },
-        });
-
-        return done(null, user);
-      } catch (error) {
-        console.error('Telegram OAuth Error:', error);
-        return done(error, null);
-      }
-    }
-  )
-);
+// NOTE: Telegram login uses the widget POST endpoint (telegramWidgetLogin)
+// instead of passport strategy, because passport-telegram-official is ESM-only.
+// The GET /telegram and /telegram/callback routes are kept for compatibility.
 
 // Serialize/deserialize user for session
 passport.serializeUser((user, done) => {
@@ -250,43 +173,12 @@ function googleCallback(req, res, next) {
 }
 
 // ─── TELEGRAM OAUTH HANDLERS ─────────────────────────────────────
-function telegramAuth(req, res, next) {
-  passport.authenticate('telegram')(req, res, next);
+function telegramAuth(req, res) {
+  res.redirect('/login.html?error=telegram_use_widget');
 }
 
-function telegramCallback(req, res, next) {
-  passport.authenticate('telegram', { failureRedirect: '/login.html?error=oauth_failed' }, async (err, user, info) => {
-    if (err) {
-      console.error('Telegram Auth Error:', err);
-      return res.redirect('/login.html?error=oauth_failed');
-    }
-    if (!user) {
-      return res.redirect('/login.html?error=oauth_failed');
-    }
-    
-    try {
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
-
-      // Set cookie
-      res.cookie('authToken', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      });
-
-      // Redirect to dashboard
-      res.redirect('/dashboard.html');
-    } catch (error) {
-      console.error('Telegram Callback Error:', error);
-      res.redirect('/login.html?error=auth_failed');
-    }
-  })(req, res, next);
+function telegramCallback(req, res) {
+  res.redirect('/login.html?error=telegram_use_widget');
 }
 
 // ─── TELEGRAM WIDGET LOGIN ────────────────────────────────────────
