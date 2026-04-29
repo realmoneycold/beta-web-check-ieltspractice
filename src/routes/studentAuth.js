@@ -108,7 +108,7 @@ router.post('/login', studentLoginLimiter, validate('login'), async (req, res) =
     // Step 3: Generate JWT with user information
     const token = jwt.sign(
       {
-        userId: user.id,
+        id: user.id,
         email: user.email,
         role: 'STUDENT',
         fullName: user.full_name,
@@ -182,7 +182,7 @@ router.get('/verify', async (req, res) => {
     // Get fresh user data
     const user = await prisma.user.findFirst({
       where: { 
-        id: decoded.userId,
+        id: decoded.id,
         email: decoded.email,
         role: 'STUDENT',
         is_verified: true
@@ -269,7 +269,7 @@ function verifyStudentAuth(req, res, next) {
     // Get fresh user data
     prisma.user.findFirst({
       where: { 
-        id: decoded.userId,
+        id: decoded.id,
         email: decoded.email,
         role: 'STUDENT',
         is_verified: true

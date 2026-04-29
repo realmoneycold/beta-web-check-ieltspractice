@@ -126,7 +126,7 @@ router.post('/login', educationLoginLimiter, async (req, res) => {
     // Step 3: Generate JWT with user and centre information
     const token = jwt.sign(
       {
-        userId: user.id,
+        id: user.id,
         email: user.email,
         centreId: user.centreId,
         centreName: user.centre.name,
@@ -202,7 +202,7 @@ router.get('/verify', async (req, res) => {
     // Get fresh user data
     const user = await prisma.centreUser.findFirst({
       where: { 
-        id: decoded.userId,
+        id: decoded.id,
         email: decoded.email,
         centreId: decoded.centreId,
         role: 'CENTRE_ADMIN',
