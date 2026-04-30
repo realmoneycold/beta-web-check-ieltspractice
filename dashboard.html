@@ -598,7 +598,7 @@
                         } catch (error) {
                             console.error('❌ Error in mounted hook:', error);
                             // Only load from localStorage if token still exists
-                            const hasToken = localStorage.getItem('token') || localStorage.getItem('ielts_token');
+                            const hasToken = localStorage.getItem('token') || localStorage.getItem('ielts_token') || localStorage.getItem('authToken');
                             if (hasToken) {
                                 // Try loading from localStorage as fallback
                                 this.fullName = localStorage.getItem('userName') || '';
@@ -609,6 +609,15 @@
                                 this.testType = localStorage.getItem('testType') || 'Academic';
                                 this.targetBand = localStorage.getItem('targetBand') || '8.0';
                                 this.examDate = localStorage.getItem('examDate') || '';
+                                // OAuth fallback: parse the 'user' object stored by oauth-callback.html
+                                try {
+                                    const oauthUser = JSON.parse(localStorage.getItem('user') || '{}');
+                                    if (!this.fullName && oauthUser.full_name) this.fullName = oauthUser.full_name;
+                                    if (!this.userFullName && oauthUser.full_name) this.userFullName = oauthUser.full_name;
+                                    if (!this.email && oauthUser.email) this.email = oauthUser.email;
+                                    if (!this.userId && oauthUser.id) this.userId = oauthUser.id;
+                                    if (!this.username && oauthUser.username) this.username = '@' + oauthUser.username;
+                                } catch (e) {}
                                 console.log('📂 Loaded from localStorage fallback');
                             } else {
                                 console.log('🚫 No token, skipping localStorage fallback');
@@ -830,6 +839,14 @@
                             this.testType = localStorage.getItem('testType') || 'Academic';
                             this.targetBand = localStorage.getItem('targetBand') || '8.0';
                             this.examDate = localStorage.getItem('examDate') || '';
+                            // OAuth fallback: parse the 'user' object stored by oauth-callback.html
+                            try {
+                                const oauthUser = JSON.parse(localStorage.getItem('user') || '{}');
+                                if (!this.fullName && oauthUser.full_name) this.fullName = oauthUser.full_name;
+                                if (!this.email && oauthUser.email) this.email = oauthUser.email;
+                                if (!this.username && oauthUser.username) this.username = '@' + oauthUser.username;
+                                if (!this.userId && oauthUser.id) this.userId = oauthUser.id;
+                            } catch (e) {}
                         } finally {
                             this.isLoading = false;
                             console.log('--- Profile Load End ---');
@@ -8583,7 +8600,7 @@
     </script>
 
     <!-- Onboarding Modal Script -->
-    <script src="./js/onboarding.js"></script>
+    <script src="./js/onboarding.js?v=3"></script>
 
     <!-- DashboardAPI Verification & Chat Failsafe -->
     <script>

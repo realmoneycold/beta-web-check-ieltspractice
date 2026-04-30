@@ -35,16 +35,8 @@ router.get('/dashboard-data', requireAuth('STUDENT'), async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const student = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        role: 'STUDENT',
-        // Check either field - OAuth users have isVerified, regular users have is_verified
-        OR: [
-          { is_verified: true },
-          { isVerified: true }
-        ]
-      },
+    const student = await prisma.user.findUnique({
+      where: { id: userId },
       select: {
         id: true,
         full_name: true,
