@@ -112,30 +112,48 @@
         const successModal = document.getElementById('successMessage');
         if (successModal) {
             const closeBtn = successModal.querySelector('button.btn');
-            if (closeBtn) {
-                // Always force the button text and action so user never sees plain "Close"
+            if (closeBtn && (closeBtn.textContent.trim() === 'Close' || closeBtn.textContent.includes('Close'))) {
                 closeBtn.textContent = 'Close and Go back to Dashboard';
-                closeBtn.setAttribute('onclick', 'closeSuccessMessageAndGoToDashboard()');
+                const currentOnclick = closeBtn.getAttribute('onclick');
+                if (currentOnclick && currentOnclick.includes('closeSuccessMessage')) {
+                    closeBtn.setAttribute('onclick', 'closeSuccessMessageAndGoToDashboard()');
+                }
                 console.log('[TestTracker] Updated success modal button → "Close and Go back to Dashboard"');
             }
         }
 
-        // 3. Wrap performSubmit to track timing but do NOT blindly call
-        // window.saveTestCompletion() here — writing tests save via aiWritingChecker.js
-        // and calling it without arguments creates garbage UNKNOWN records.
-        if (typeof window.performSubmit === 'function') {
+        // 3. Wrap performSubmit so it also triggers the page's saveTestCompletion()
+        if (typeof window.performSubmit === 'function' && !window.performSubmit._wrapped) {
             const originalPerformSubmit = window.performSubmit;
             window.performSubmit = function() {
                 // Call the original submission logic first
-                return originalPerformSubmit.apply(this, arguments);
+                const result = originalPerformSubmit.apply(this, arguments);
+                
+                // Trigger AI evaluation if available (for timer auto-submit)
+                if (window.aiWritingChecker && typeof window.aiWritingChecker.evaluateEssay === 'function') {
+                    const textarea = document.getElementById('writingTextarea');
+                    if (textarea && textarea.value.trim().split(/\s+/).length >= 50) {
+                        console.log('[TestTracker] Auto-triggering AI evaluation for timer submit');
+                        window.aiWritingChecker.evaluateEssay(textarea.value.trim());
+                    }
+                }
+                
+                // Fire-and-forget the tracking call if the page defined one
+                if (typeof window.saveTestCompletion === 'function') {
+                    try {
+                        window.saveTestCompletion();
+                        console.log('[TestTracker] saveTestCompletion() fired from wrapped performSubmit');
+                    } catch (e) {
+                        console.warn('[TestTracker] saveTestCompletion() failed:', e);
+                    }
+                }
+                return result;
             };
-            console.log('[TestTracker] Wrapped performSubmit (timer tracking only)');
+            window.performSubmit._wrapped = true;
+            console.log('[TestTracker] Wrapped performSubmit → auto-calls saveTestCompletion + AI evaluation');
         }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', applyGlobalOverrides);
-    } else {
-        applyGlobalOverrides();
-    }
+    // Apply overrides immediately (script is at page bottom, DOM is ready)
+    applyGlobalOverrides();
 })();

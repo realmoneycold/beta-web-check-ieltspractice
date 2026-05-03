@@ -5427,25 +5427,93 @@
                                             {{ activity.testType }}
                                         </span>
                                     </td>
-                                    <td class="px-8 py-6 text-center">
-                                        <span v-if="['WRITING','SPEAKING'].includes(activity.testType)">Band {{ activity.score }}</span>
-                                        <span v-else>{{ activity.score }}%</span>
-                                    </td>
-                                    <td class="px-8 py-6 text-right text-gray-400 font-normal">{{ activity.formattedDate }}</td>
                                 </tr>
                             </tbody>
                         </table>
-                                        <td class="px-8 py-6">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-base font-black">5.0</span>
-                                                <iconify-icon icon="ph:trend-up-bold"
-                                                    class="text-emerald-500"></iconify-icon>
+                    </div>
+
+                    <!-- Practice History Table -->
+                        <div class="bg-white rounded-[40px] border border-purple-50 shadow-sm overflow-hidden">
+                            <div class="p-8 border-b border-purple-50 flex items-center justify-between bg-gray-50/50">
+                                <h3 class="text-xl font-heading font-black text-dark">Recent History</h3>
+                                <button
+                                    class="text-sm font-bold text-gray-500 hover:text-[#8B5CF6] bg-white border border-gray-200 px-5 py-2.5 rounded-xl shadow-sm">View
+                                    All</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr
+                                            class="text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-purple-50">
+                                            <th class="px-8 py-6">Date</th>
+                                            <th class="px-8 py-6">Activity</th>
+                                            <th class="px-8 py-6">Type</th>
+                                            <th class="px-8 py-6 text-right">Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm font-bold text-gray-700">
+                                    <!-- Loading State -->
+                                    <tr v-if="isLoadingStats">
+                                        <td colspan="4" class="px-8 py-12 text-center text-gray-400">
+                                            <iconify-icon icon="ph:spinner" class="text-2xl animate-spin inline-block mr-2"></iconify-icon>
+                                            Loading recent activity...
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Empty State -->
+                                    <tr v-else-if="recentActivity.length === 0">
+                                        <td colspan="4" class="px-8 py-12 text-center text-gray-400">
+                                            <iconify-icon icon="ph:clipboard-text" class="text-3xl mb-2"></iconify-icon>
+                                            <p>No recent activity yet.</p>
+                                            <p class="text-xs font-normal mt-1">Complete a test to see it here!</p>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Dynamic Activity Rows -->
+                                    <tr v-for="activity in recentActivity" :key="activity.id" 
+                                        class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                        <td class="px-8 py-6 flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                                 :class="{
+                                                     'bg-orange-100': activity.testType === 'SPEAKING',
+                                                     'bg-blue-100': activity.testType === 'READING',
+                                                     'bg-purple-100': activity.testType === 'LISTENING',
+                                                     'bg-green-100': activity.testType === 'WRITING'
+                                                 }">
+                                                <iconify-icon 
+                                                    :icon="activity.testType === 'SPEAKING' ? 'ph:microphone-stage-fill' : 
+                                                           activity.testType === 'READING' ? 'ph:book-open-fill' :
+                                                           activity.testType === 'LISTENING' ? 'ph:headphones-fill' :
+                                                           'ph:pencil-simple-fill'"
+                                                    :class="{
+                                                        'text-orange-600': activity.testType === 'SPEAKING',
+                                                        'text-blue-600': activity.testType === 'READING',
+                                                        'text-purple-600': activity.testType === 'LISTENING',
+                                                        'text-green-600': activity.testType === 'WRITING'
+                                                    }">
+                                                </iconify-icon>
+                                            </div>
+                                            <div>
+                                                <p class="text-dark">{{ activity.testName }}</p>
+                                                <p class="text-xs text-gray-400 font-normal mt-0.5">{{ activity.testType }}</p>
                                             </div>
                                         </td>
-                                        <td class="px-8 py-6 text-right">
-                                            <button class="text-[#8B5CF6] hover:underline font-black">View
-                                                Answers</button>
+                                        <td class="px-8 py-6 text-center">
+                                            <span class="px-3 py-1 rounded-full text-xs"
+                                                  :class="{
+                                                      'bg-orange-100 text-orange-600': activity.testType === 'SPEAKING',
+                                                      'bg-blue-100 text-blue-600': activity.testType === 'READING',
+                                                      'bg-purple-100 text-purple-600': activity.testType === 'LISTENING',
+                                                      'bg-green-100 text-green-600': activity.testType === 'WRITING'
+                                                  }">
+                                                {{ activity.testType }}
+                                            </span>
                                         </td>
+                                        <td class="px-8 py-6 text-center">
+                                            <span v-if="['WRITING','SPEAKING'].includes(activity.testType)">Band {{ activity.score }}</span>
+                                            <span v-else>{{ activity.score }}%</span>
+                                        </td>
+                                        <td class="px-8 py-6 text-right text-gray-400 font-normal">{{ activity.formattedDate }}</td>
                                     </tr>
                                 </tbody>
                             </table>
