@@ -416,7 +416,7 @@
                             let nextId = this.recentActivity.length + 1;
                             Object.values(parsedScores).forEach(entry => {
                                 const name = entry.testName || 'Writing Test';
-                                const score = parseFloat(entry.overallBand) || 0;
+                                const score = entry.overallBand || '0.0';
                                 const time = entry.completedAt ? new Date(entry.completedAt).toISOString().slice(0, 16) : '';
                                 const key = `${name.toLowerCase()}_${score}_${time}`;
                                 if (!existingKeys.has(key)) {
@@ -5036,7 +5036,7 @@
                                         <td class="px-10 py-6 text-gray-500">{{ activity.formattedDate }}</td>
                                         <td class="px-10 py-6 text-center">
                                             <span class="text-lg font-black" :class="activity.score >= 7 ? 'text-emerald-500' : activity.score >= 6 ? 'text-blue-500' : 'text-orange-500'">
-                                                {{ activity.score }}
+                                                {{ ['WRITING','SPEAKING'].includes(activity.testType) ? 'Band ' + Number(activity.score || 0).toFixed(1) : activity.score + '%' }}
                                             </span>
                                         </td>
                                         <td class="px-10 py-6">
@@ -5432,7 +5432,7 @@
                                         </span>
                                     </td>
                                     <td class="px-8 py-6 text-right">
-                                        <span v-if="['WRITING','SPEAKING'].includes(activity.testType)">Band {{ activity.score }}</span>
+                                        <span v-if="['WRITING','SPEAKING'].includes(activity.testType)">Band {{ Number(activity.score || 0).toFixed(1) }}</span>
                                         <span v-else>{{ activity.score }}%</span>
                                     </td>
                                 </tr>
