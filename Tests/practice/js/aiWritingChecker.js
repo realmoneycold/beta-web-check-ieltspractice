@@ -486,30 +486,63 @@ console.log('[AI Checker] Script file starting to load...');
         // Save to backend if user is logged in
         const token = getAuthToken();
         if (token) {
-            pendingSavePromise = fetch('/api/statistics/attempt', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                keepalive: true,
-                body: JSON.stringify({
-                    testType: 'WRITING',
-                    testId: testId,
-                    testName: testName,
-                    skillArea: currentTaskType,
-                    score: parseFloat(overallBand),
-                    maxScore: 9.0,
-                    status: 'COMPLETED',
-                    feedback: 'Overall Band: ' + overallBand
-                })
-            }).then(function(res) { return res.json(); })
-              .then(function(data) { console.log('Writing test attempt saved:', data); })
-              .catch(function(err) { console.warn('Failed to save writing test attempt:', err); })
-              .finally(function() { pendingSavePromise = null; });
+            const payload = {
+                testType: 'WRITING',
+                testId: testId,
+                testName: testName,
+                skillArea: currentTaskType,
+                score: parseFloat(overallBand),
+                maxScore: 9.0,
+                status: 'COMPLETED',
+                feedback: 'Overall Band: ' + overallBand
+            };
+
+            function doSave(attempt) {
+                return fetch('/api/statistics/attempt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    keepalive: true,
+                    body: JSON.stringify(payload)
+                }).then(function(res) {
+                    if (res.status === 401) {
+                        throw new Error('UNAUTHORIZED');
+                    }
+                    if (!res.ok) {
+                        throw new Error('HTTP ' + res.status);
+                    }
+                    return res.json();
+                }).then(function(data) {
+                    console.log('[AI Writing Checker] Test attempt saved to DB:', data);
+                    showNotification('Score saved to your profile!', 'success');
+                    return data;
+                }).catch(function(err) {
+                    if (err.message === 'UNAUTHORIZED') {
+                        console.warn('[AI Writing Checker] Auth expired. Keeping localStorage copy.');
+                        showNotification('Login expired. Score saved locally — sign in again to sync.', 'warning');
+                        throw err;
+                    }
+                    console.warn('[AI Writing Checker] Save attempt ' + attempt + ' failed:', err.message);
+                    if (attempt < 3) {
+                        console.log('[AI Writing Checker] Retrying in 2s...');
+                        return new Promise(function(r) { setTimeout(r, 2000); })
+                            .then(function() { return doSave(attempt + 1); });
+                    }
+                    console.warn('[AI Writing Checker] All retries exhausted. Score kept in localStorage only.');
+                    showNotification('Could not sync to server. Score saved locally.', 'warning');
+                    throw err;
+                });
+            }
+
+            pendingSavePromise = doSave(1).finally(function() { pendingSavePromise = null; });
+        } else {
+            console.log('[AI Writing Checker] No auth token — score saved to localStorage only.');
+            showNotification('Score saved locally. Log in to sync across devices.', 'info');
         }
 
-        return pendingSavePromise;
+        return pendingSavePromise || Promise.resolve();
     }
 
     /**

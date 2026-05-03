@@ -695,11 +695,13 @@ async function getOverview(req, res) {
       orderBy: { completedAt: 'desc' },
       take: 20,
       select: {
+        id: true,
         testName: true,
         testType: true,
         score: true,
         maxScore: true,
         percentageScore: true,
+        status: true,
         completedAt: true
       }
     });

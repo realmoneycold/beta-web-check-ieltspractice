@@ -376,16 +376,17 @@
                                             ? (activity.score || activity.percentageScore || 0)
                                             : (activity.percentageScore || 0);
                                         return {
-                                            id: index + 1,
+                                            id: activity.id || (index + 1),
                                             testName: activity.testName || 'Unknown Test',
                                             testType: activity.testType || 'UNKNOWN',
                                             score: score,
+                                            maxScore: activity.maxScore,
                                             status: activity.status || 'COMPLETED',
                                             completedAt: activity.completedAt,
                                             formattedDate: this.formatActivityDate(activity.completedAt)
                                         };
                                     });
-                                    console.log('[Stats] Recent activity loaded:', this.recentActivity.length, 'items');
+                                    console.log('[Stats] Recent activity loaded from DB:', this.recentActivity.length, 'items');
                                 }
 
                                 this.statsLastUpdated = new Date();
@@ -421,10 +422,12 @@
                                 const key = `${name.toLowerCase()}_${score}_${time}`;
                                 if (!existingKeys.has(key)) {
                                     this.recentActivity.push({
-                                        id: nextId++,
+                                        id: 'local_' + nextId++,
                                         testName: name,
                                         testType: 'WRITING',
                                         score: score,
+                                        maxScore: 9.0,
+                                        status: 'COMPLETED',
                                         completedAt: entry.completedAt,
                                         formattedDate: this.formatActivityDate(entry.completedAt)
                                     });
