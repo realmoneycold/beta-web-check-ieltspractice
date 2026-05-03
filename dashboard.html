@@ -671,10 +671,10 @@
                         }
                     },
 
-                    // Initialization
-                    async mounted() {
-                        console.log('✅ Petite-Vue is AWAKE and listening!');
-                        console.log('--- Vue mounted() hook called ---');
+                    // Initialization (PetiteVue doesn't support app-level mounted() lifecycle hook)
+                    async initDashboard() {
+                        console.log('✅ Dashboard initDashboard() called manually');
+                        console.log('--- initDashboard() hook called ---');
                         
                         // Check authentication first
                         if (!this.checkAuth()) {
@@ -3846,20 +3846,20 @@
                     window.DashboardAppInstance = mountedApp;
                     console.log('🎯 Dashboard app instance stored globally');
 
-                    // Trigger statistics loading directly as fallback (PetiteVue mounted() hook unreliable)
-                    setTimeout(() => {
-                        if (mountedApp && mountedApp.fetchUserStatistics) {
-                            console.log('[Stats] Directly triggering fetchUserStatistics after mount...');
-                            mountedApp.fetchUserStatistics().catch(err => {
-                                console.error('[Stats] Direct fetch failed:', err);
-                            });
-                        } else if (app && app.fetchUserStatistics) {
-                            console.log('[Stats] Directly triggering fetchUserStatistics via app ref...');
-                            app.fetchUserStatistics().catch(err => {
-                                console.error('[Stats] Direct fetch failed:', err);
-                            });
-                        }
-                    }, 100);
+                    // PetiteVue does NOT auto-call mounted() — trigger initialization manually
+                    if (mountedApp && mountedApp.initDashboard) {
+                        console.log('[Init] Calling initDashboard() manually...');
+                        mountedApp.initDashboard().catch(err => {
+                            console.error('[Init] initDashboard() failed:', err);
+                        });
+                    } else if (app && app.initDashboard) {
+                        console.log('[Init] Calling initDashboard() via app ref...');
+                        app.initDashboard().catch(err => {
+                            console.error('[Init] initDashboard() failed:', err);
+                        });
+                    } else {
+                        console.warn('[Init] initDashboard method not found on mounted app');
+                    }
                 } catch (mountError) {
                     console.error('❌ CRITICAL: PetiteVue mount failed:', mountError);
                     console.error('   This usually means there are template syntax errors in the HTML.');
@@ -8622,15 +8622,15 @@
 
         // Kick off data load as soon as the DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('🚀 DOM ready — dashboard data will be loaded by Vue mounted() hook');
+            console.log('🚀 DOM ready — dashboard data will be loaded by initDashboard()');
 
-            // Fallback: if mounted() hook never fires (PetiteVue quirk), trigger stats load directly
+            // Fallback: if initDashboard() hasn't been called yet, trigger it directly
             setTimeout(() => {
                 const inst = window.DashboardAppInstance;
-                if (inst && inst.fetchUserStatistics && (!inst.statsLastUpdated || inst.recentActivity.length === 0)) {
-                    console.log('[Stats] DOMContentLoaded fallback — triggering fetchUserStatistics...');
-                    inst.fetchUserStatistics().catch(err => {
-                        console.error('[Stats] Fallback fetch failed:', err);
+                if (inst && inst.initDashboard && !inst.statsLastUpdated) {
+                    console.log('[Init] DOMContentLoaded fallback — calling initDashboard()...');
+                    inst.initDashboard().catch(err => {
+                        console.error('[Init] Fallback initDashboard failed:', err);
                     });
                 }
             }, 500);
