@@ -3842,23 +3842,18 @@
                 // Mount the app and store reference globally
                 try {
                     console.log('🚀 Attempting to mount PetiteVue app...');
-                    const mountedApp = app.mount('#dashboard-app');
-                    window.DashboardAppInstance = mountedApp;
+                    app.mount('#dashboard-app');
+                    window.DashboardAppInstance = app;
                     console.log('🎯 Dashboard app instance stored globally');
 
                     // PetiteVue does NOT auto-call mounted() — trigger initialization manually
-                    if (mountedApp && mountedApp.initDashboard) {
-                        console.log('[Init] Calling initDashboard() manually...');
-                        mountedApp.initDashboard().catch(err => {
-                            console.error('[Init] initDashboard() failed:', err);
-                        });
-                    } else if (app && app.initDashboard) {
+                    if (app && app.initDashboard) {
                         console.log('[Init] Calling initDashboard() via app ref...');
                         app.initDashboard().catch(err => {
                             console.error('[Init] initDashboard() failed:', err);
                         });
                     } else {
-                        console.warn('[Init] initDashboard method not found on mounted app');
+                        console.warn('[Init] initDashboard method not found on app');
                     }
                 } catch (mountError) {
                     console.error('❌ CRITICAL: PetiteVue mount failed:', mountError);
@@ -8627,7 +8622,7 @@
             // Fallback: if initDashboard() hasn't been called yet, trigger it directly
             setTimeout(() => {
                 const inst = window.DashboardAppInstance;
-                if (inst && inst.initDashboard && !inst.statsLastUpdated) {
+                if (inst && inst.initDashboard) {
                     console.log('[Init] DOMContentLoaded fallback — calling initDashboard()...');
                     inst.initDashboard().catch(err => {
                         console.error('[Init] Fallback initDashboard failed:', err);
