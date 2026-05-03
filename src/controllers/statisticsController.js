@@ -669,32 +669,69 @@ async function getOverview(req, res) {
     const userId = req.user.id;
 
     // Get all data in parallel
-    const [stats, weaknesses, progress, streak] = await Promise.all([
-      getUserStatistics(userId),
-      getWeaknessAnalysis(userId),
-      getProgressOverTime(userId, 30),
-      getStudyStreak(userId)
+    const [testAttempts, skillStats, studyStreak, weaknesses, dailyLogs] = await Promise.all([
+      prisma.testAttempt.findMany({ where: { userId }, orderBy: { completedAt: 'desc' } }),
+      prisma.skillStatistics.findMany({ where: { userId } }),
+      prisma.userStudyStreak.findUnique({ where: { userId } }),
+      prisma.weaknessAnalysis.findMany({ where: { userId }, orderBy: [{ priority: 'desc' }, { failureCount: 'desc' }] }),
+      prisma.dailyStudyLog.findMany({
+        where: { userId, studyDate: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+        orderBy: { studyDate: 'desc' }
+      })
     ]);
 
-    // Get recent activity
+    const totalTests = testAttempts.length;
+    const completedTests = testAttempts.filter(t => t.status === 'COMPLETED').length;
+    const averageScore = testAttempts.length > 0
+      ? testAttempts.reduce((sum, t) => sum + (t.percentageScore || 0), 0) / testAttempts.length
+      : 0;
+
+    // Get recent activity (last 14 days, up to 20 entries)
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
     const recentActivity = await prisma.testAttempt.findMany({
-      where: { userId },
+      where: { userId, completedAt: { gte: fourteenDaysAgo } },
       orderBy: { completedAt: 'desc' },
-      take: 5,
+      take: 20,
       select: {
         testName: true,
         testType: true,
+        score: true,
+        maxScore: true,
         percentageScore: true,
         completedAt: true
       }
     });
 
     const overview = {
-      overview: stats.overview,
-      skillStatistics: stats.skills,
-      weaknesses: weaknesses.data,
-      progress: progress.data,
-      studyStreak: streak.data,
+      overview: {
+        totalTests,
+        completedTests,
+        averageScore: Math.round(averageScore * 10) / 10,
+        totalStudyTimeMinutes: Math.floor(
+          testAttempts.reduce((sum, t) => sum + (t.timeSpentSeconds || 0), 0) / 60
+        )
+      },
+      skillStatistics: skillStats,
+      weaknesses: {
+        weaknesses: weaknesses.slice(0, 10),
+        skillBalance: skillStats.map(stat => ({
+          skill: stat.skill,
+          averageScore: stat.averageScore,
+          totalAttempts: stat.totalAttempts,
+          performance: stat.averageScore >= 7 ? 'strong' : stat.averageScore >= 5 ? 'average' : 'weak'
+        })),
+        recommendations: [],
+        focusAreas: weaknesses.filter(w => w.priority >= 3).map(w => w.skillArea).slice(0, 5)
+      },
+      progress: {
+        dailyProgress: [],
+        trend: 'insufficient_data',
+        totalTests: testAttempts.length,
+        skill: 'all'
+      },
+      studyStreak: studyStreak || { currentStreak: 0, longestStreak: 0, weeklyGoal: 5 },
       recentActivity,
       lastUpdated: new Date()
     };

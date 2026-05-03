@@ -18,13 +18,14 @@ function generateUsername(email, fullName) {
 }
 
 // ─── GOOGLE OAUTH STRATEGY ──────────────────────────────────────
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.API_URL || 'https://ieltspractice.net'}/api/v1/auth/oauth/google/callback`,
-    },
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: `${process.env.API_URL || 'https://ieltspractice.net'}/api/v1/auth/oauth/google/callback`,
+      },
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails[0].value;
@@ -109,6 +110,7 @@ passport.use(
     }
   )
 );
+}
 
 // ─── TELEGRAM OAUTH STRATEGY ──────────────────────────────────────
 // NOTE: Telegram login uses the widget POST endpoint (telegramWidgetLogin)

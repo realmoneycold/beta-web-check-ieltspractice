@@ -11,6 +11,36 @@
     </script>
     <script src="./js/sentry-monitor.js"></script>
     <script>
+    // Cache bust: unregister old service workers and clear caches so the latest dashboard HTML is served
+    (function() {
+        function bustCache() {
+            var url = location.protocol + '//' + location.host + location.pathname + '?_cb=' + Date.now();
+            location.replace(url);
+        }
+        var needsReload = !sessionStorage.getItem('sw_cleared_v2');
+        if (needsReload && navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            }).then(function() {
+                if (window.caches) {
+                    return caches.keys().then(function(names) {
+                        return Promise.all(names.map(function(n) { return caches.delete(n); }));
+                    });
+                }
+            }).then(function() {
+                sessionStorage.setItem('sw_cleared_v2', '1');
+                // Only reload if the stale widget text is actually present in the rendered body
+                var bodyText = document.body ? document.body.innerText : '';
+                if (bodyText.indexOf('Set Date!') !== -1 || bodyText.indexOf('⚠️') !== -1) {
+                    bustCache();
+                }
+            }).catch(function() {
+                sessionStorage.setItem('sw_cleared_v2', '1');
+            });
+        }
+    })();
+    </script>
+    <script>
     window.addEventListener('error', function(event) {
       console.error('Page error:', event.error || event.message);
       // Don't show full page error for non-critical errors
@@ -92,8 +122,8 @@
 
                     // Notifications Data
                     notifications: JSON.parse(localStorage.getItem('userNotifications')) || [
-                        { id: 2, type: 'scoring-update', title: 'New Score System!', text: 'Your initial scores have been set to 6.0 across all skills. This gives you a fair starting point to track your progress to Band 8.0!', time: 'Just now', read: false, icon: 'ph:trophy-fill', color: 'text-emerald-500' },
-                        { id: 1, type: 'welcome', title: 'Welcome to IELTS Master!', text: 'Thank you for joining our community of students! Your initial scores have been automatically set to 6.0 to help you track your progress. We are excited to help you achieve your dream score!', time: 'Just now', read: false, icon: 'ph:student-fill', color: 'text-[#8B5CF6]' }
+                        { id: 2, type: 'scoring-update', title: 'New Score System!', text: 'Your initial scores have been set to 5.0 across all skills. This gives you a fair starting point to track your progress to Band 8.0!', time: 'Just now', read: false, icon: 'ph:trophy-fill', color: 'text-emerald-500' },
+                        { id: 1, type: 'welcome', title: 'Welcome to IELTS Master!', text: 'Thank you for joining our community of students! Your initial scores have been automatically set to 5.0 to help you track your progress. We are excited to help you achieve your dream score!', time: 'Just now', read: false, icon: 'ph:student-fill', color: 'text-[#8B5CF6]' }
                     ],
                     practiceFilter: 'all',
                     isLoading: false,
@@ -129,10 +159,10 @@
                     examDateRemaining: '',
 
                     // Skill Scores
-                    listeningScore: localStorage.getItem('listeningScore') || '6.0',
-                    readingScore: localStorage.getItem('readingScore') || '6.0',
-                    writingScore: localStorage.getItem('writingScore') || '6.0',
-                    speakingScore: localStorage.getItem('speakingScore') || '6.0',
+                    listeningScore: localStorage.getItem('listeningScore') || '5.0',
+                    readingScore: localStorage.getItem('readingScore') || '5.0',
+                    writingScore: localStorage.getItem('writingScore') || '5.0',
+                    speakingScore: localStorage.getItem('speakingScore') || '5.0',
 
                     // Recent Activity & Statistics
                     recentActivity: [],
@@ -192,7 +222,7 @@
                         { rank: 3, name: 'Mei L.', country: 'Singapore', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mei', testsTaken: 138, band: '8.5', trend: 'stable', trendAmount: '0' },
                         { rank: 4, name: 'Jack Reacher', country: 'Australia', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack', testsTaken: 128, band: '8.0', trend: 'up', trendAmount: '2' },
                         { rank: 5, name: 'Emma Watson', country: 'UK', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', testsTaken: 94, band: '8.0', trend: 'stable', trendAmount: '0' },
-                        { rank: 6, name: 'Ali Hassan', country: 'UAE', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ali', testsTaken: 62, band: '6.0', trend: 'down', trendAmount: '1' },
+                        { rank: 6, name: 'Ali Hassan', country: 'UAE', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ali', testsTaken: 62, band: '5.0', trend: 'down', trendAmount: '1' },
                         { rank: 7, name: 'Maria Garcia', country: 'Spain', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria', testsTaken: 87, band: '7.5', trend: 'up', trendAmount: '3' },
                         { rank: 8, name: 'Chen Wei', country: 'China', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chen', testsTaken: 92, band: '7.5', trend: 'stable', trendAmount: '0' },
                         { rank: 9, name: 'Priya Sharma', country: 'India', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya', testsTaken: 76, band: '7.0', trend: 'up', trendAmount: '1' },
@@ -230,6 +260,44 @@
                      */
                     async refreshStatistics() {
                         console.log('[Dashboard] Refreshing statistics after test completion...');
+                        // Reload speaking test scores from localStorage
+                        const savedSpeakingScores = localStorage.getItem('speaking_test_scores');
+                        if (savedSpeakingScores) {
+                            try {
+                                this.speakingTestScores = JSON.parse(savedSpeakingScores);
+                                console.log('[Dashboard] Reloaded speaking test scores:', Object.keys(this.speakingTestScores).length, 'tests');
+                                if (this.selectedSkill === 'speaking') {
+                                    this.generateSkillTests('speaking');
+                                }
+                            } catch (e) {
+                                console.warn('Failed to reload speaking_test_scores:', e);
+                            }
+                        }
+                        // Reload writing test scores from localStorage
+                        const savedWritingScores = localStorage.getItem('writing_test_scores');
+                        if (savedWritingScores) {
+                            try {
+                                this.writingTestScores = JSON.parse(savedWritingScores);
+                                console.log('[Dashboard] Reloaded writing test scores:', Object.keys(this.writingTestScores).length, 'tests');
+                                if (this.selectedSkill === 'writing') {
+                                    this.generateSkillTests('writing');
+                                }
+                            } catch (e) {
+                                console.warn('Failed to reload writing_test_scores:', e);
+                            }
+                        }
+                        // Reload test progress from localStorage
+                        const savedProgress = localStorage.getItem('testProgress');
+                        if (savedProgress) {
+                            try {
+                                const parsed = JSON.parse(savedProgress);
+                                if (typeof parsed === 'object' && parsed !== null) {
+                                    this.testProgress = { ...this.testProgress, ...parsed };
+                                }
+                            } catch (e) {
+                                console.warn('Failed to reload testProgress:', e);
+                            }
+                        }
                         await this.fetchUserStatistics();
                     },
 
@@ -246,19 +314,19 @@
                     },
 
                     async fetchUserStatistics() {
-                        // Check all possible token keys
-                        const token = localStorage.getItem('token') || 
-                                      localStorage.getItem('ielts_token') || 
-                                      localStorage.getItem('authToken');
-                        if (!token) {
-                            console.warn('[Stats] No token found. Checked: token, ielts_token, authToken');
-                            console.warn('[Stats] Available keys:', Object.keys(localStorage).filter(k => k.includes('token') || k.includes('auth')));
-                            return;
-                        }
-                        console.log('[Stats] Token found, fetching statistics...');
-
                         this.isLoadingStats = true;
                         try {
+                            // Check all possible token keys
+                            const token = localStorage.getItem('token') || 
+                                          localStorage.getItem('ielts_token') || 
+                                          localStorage.getItem('authToken');
+                            if (!token) {
+                                console.warn('[Stats] No token found. Checked: token, ielts_token, authToken');
+                                console.warn('[Stats] Available keys:', Object.keys(localStorage).filter(k => k.includes('token') || k.includes('auth')));
+                                return;
+                            }
+                            console.log('[Stats] Token found, fetching statistics...');
+
                             console.log('[Stats] Fetching user statistics...');
                             const response = await fetch('/api/statistics/overview', {
                                 method: 'GET',
@@ -300,14 +368,22 @@
 
                                 // Update recent activity
                                 if (data.recentActivity && Array.isArray(data.recentActivity)) {
-                                    this.recentActivity = data.recentActivity.map((activity, index) => ({
-                                        id: index + 1,
-                                        testName: activity.testName || 'Unknown Test',
-                                        testType: activity.testType || 'UNKNOWN',
-                                        score: activity.percentageScore || 0,
-                                        completedAt: activity.completedAt,
-                                        formattedDate: this.formatActivityDate(activity.completedAt)
-                                    }));
+                                    this.recentActivity = data.recentActivity.map((activity, index) => {
+                                        // For band-scored tests (WRITING / SPEAKING), show the actual band score.
+                                        // For percentage-based tests (LISTENING / READING), show percentageScore.
+                                        const isBandScore = activity.maxScore === 9.0 || (['WRITING','SPEAKING'].includes((activity.testType || '').toUpperCase()));
+                                        const score = isBandScore
+                                            ? (activity.score || activity.percentageScore || 0)
+                                            : (activity.percentageScore || 0);
+                                        return {
+                                            id: index + 1,
+                                            testName: activity.testName || 'Unknown Test',
+                                            testType: activity.testType || 'UNKNOWN',
+                                            score: score,
+                                            completedAt: activity.completedAt,
+                                            formattedDate: this.formatActivityDate(activity.completedAt)
+                                        };
+                                    });
                                     console.log('[Stats] Recent activity loaded:', this.recentActivity.length, 'items');
                                 }
 
@@ -318,7 +394,47 @@
                         } catch (error) {
                             console.error('[Stats] Error fetching statistics:', error);
                         } finally {
+                            // Always merge localStorage writing scores as fallback
+                            this.mergeLocalStorageWritingActivity();
                             this.isLoadingStats = false;
+                        }
+                    },
+
+                    mergeLocalStorageWritingActivity() {
+                        try {
+                            const savedWritingScores = localStorage.getItem('writing_test_scores');
+                            if (!savedWritingScores) return;
+                            const parsedScores = JSON.parse(savedWritingScores);
+                            // Build a set of unique keys from API entries so we don't add exact duplicates
+                            const existingKeys = new Set(this.recentActivity.map(a => {
+                                const name = (a.testName || '').toLowerCase();
+                                const score = a.score || 0;
+                                const time = a.completedAt ? new Date(a.completedAt).toISOString().slice(0, 16) : '';
+                                return `${name}_${score}_${time}`;
+                            }));
+                            let nextId = this.recentActivity.length + 1;
+                            Object.values(parsedScores).forEach(entry => {
+                                const name = entry.testName || 'Writing Test';
+                                const score = parseFloat(entry.overallBand) || 0;
+                                const time = entry.completedAt ? new Date(entry.completedAt).toISOString().slice(0, 16) : '';
+                                const key = `${name.toLowerCase()}_${score}_${time}`;
+                                if (!existingKeys.has(key)) {
+                                    this.recentActivity.push({
+                                        id: nextId++,
+                                        testName: name,
+                                        testType: 'WRITING',
+                                        score: score,
+                                        completedAt: entry.completedAt,
+                                        formattedDate: this.formatActivityDate(entry.completedAt)
+                                    });
+                                    existingKeys.add(key);
+                                }
+                            });
+                            // Sort by date descending
+                            this.recentActivity.sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
+                            console.log('[Stats] Merged localStorage writing scores. Total activities:', this.recentActivity.length);
+                        } catch (e) {
+                            console.warn('[Stats] Failed to merge localStorage writing activity:', e);
                         }
                     },
 
@@ -569,28 +685,79 @@
                         console.log('🔑 Token verified, loading dashboard...');
                         
                         try {
-                            // First, wait for dashboard initialization
-                            let data;
-                            if (window.lastDashboardResult) {
-                                console.log('🔄 Using existing dashboard data result');
-                                data = await window.lastDashboardResult;
-                            } else {
-                                console.log('🚀 Starting fresh dashboard initialization');
-                                // Clear any cached error state to ensure fresh data load
-                                window.dashboardError = false;
-                                window.lastDashboardResult = window.initializeDashboard();
-                                data = await window.lastDashboardResult;
-                            }
-                            
                             // Force refresh profile to ensure we get latest data after auth
                             // This will properly set targetBand, examDate, and call calculateRemainingTime()
                             await this.loadProfile(true);
+
+                            // DIRECT FALLBACK: if profile is still empty, fetch directly
+                            if (!this.fullName || !this.email) {
+                                console.warn('⚠️ Profile empty after loadProfile, calling API directly...');
+                                try {
+                                    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('ielts_token');
+                                    const res = await fetch('/api/student/dashboard-data', {
+                                        headers: { 'Authorization': 'Bearer ' + token }
+                                    });
+                                    const d = await res.json();
+                                    if (d.success && d.data) {
+                                        const p = d.data;
+                                        this.fullName = p.fullName || p.full_name || this.fullName;
+                                        this.userFullName = this.fullName;
+                                        this.email = p.email || this.email;
+                                        this.username = p.username || this.username;
+                                        this.userId = p.id || p.user_id || this.userId;
+                                        this.phone = p.phone || this.phone;
+                                        this.country = p.country || this.country || 'Uzbekistan';
+                                        this.testType = p.testType || p.test_type || this.testType || 'Academic';
+                                        this.targetBand = (p.targetBand || p.target_band || this.targetBand || '8.0').toString();
+                                        console.log('✅ Direct API fallback populated profile:', { fullName: this.fullName, email: this.email });
+                                    }
+                                } catch (e) {
+                                    console.warn('Direct API fallback failed:', e);
+                                }
+                            }
+
                             console.log('🎯 Profile loaded with fresh data');
                             
                             // Initialize study streak data
                             this.loadStreakData();
                             this.calculateCurrentStreak();
                             console.log('📅 Study streak loaded:', this.studyStreakDays, 'days');
+
+                            // Load test progress from localStorage
+                            const savedProgress = localStorage.getItem('testProgress');
+                            if (savedProgress) {
+                                try {
+                                    const parsed = JSON.parse(savedProgress);
+                                    if (typeof parsed === 'object' && parsed !== null) {
+                                        this.testProgress = { ...this.testProgress, ...parsed };
+                                        console.log('📊 Test progress loaded from localStorage:', this.testProgress);
+                                    }
+                                } catch (e) {
+                                    console.warn('Failed to parse testProgress:', e);
+                                }
+                            }
+
+                            // Load speaking test scores from localStorage
+                            const savedSpeakingScores = localStorage.getItem('speaking_test_scores');
+                            if (savedSpeakingScores) {
+                                try {
+                                    this.speakingTestScores = JSON.parse(savedSpeakingScores);
+                                    console.log('🎤 Speaking test scores loaded:', Object.keys(this.speakingTestScores).length, 'tests');
+                                } catch (e) {
+                                    console.warn('Failed to parse speaking_test_scores:', e);
+                                }
+                            }
+
+                            // Load writing test scores from localStorage
+                            const savedWritingScores = localStorage.getItem('writing_test_scores');
+                            if (savedWritingScores) {
+                                try {
+                                    this.writingTestScores = JSON.parse(savedWritingScores);
+                                    console.log('📝 Writing test scores loaded:', Object.keys(this.writingTestScores).length, 'tests');
+                                } catch (e) {
+                                    console.warn('Failed to parse writing_test_scores:', e);
+                                }
+                            }
                             
                             // Setup visibility listener to refresh stats when user returns from tests
                             this.setupVisibilityListener();
@@ -624,6 +791,8 @@
                             }
                         } finally {
                             console.log('--- Profile Load End ---');
+                            // Compute countdown from whatever examDate we ended up with
+                            this.calculateRemainingTime();
                             // Initialize study streak data (always run)
                             this.loadStreakData();
                             this.calculateCurrentStreak();
@@ -808,7 +977,10 @@
                                     targetBand: localStorage.getItem('targetBand'),
                                     testType: localStorage.getItem('testType')
                                 });
-                                
+
+                                // Compute countdown now that examDate is loaded
+                                this.calculateRemainingTime();
+
                                 console.log('✅ Profile data successfully mapped to UI:', {
                                     fullName: this.fullName,
                                     email: this.email,
@@ -824,6 +996,18 @@
                                     console.log('[Profile] Triggering re-render...');
                                     this.isLoading = false;
                                 }, 0);
+
+                                // Fallback: if API returned empty fields, populate from stored user JSON
+                                if (!this.fullName || !this.email) {
+                                    try {
+                                        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                                        if (!this.fullName && storedUser.full_name) this.fullName = storedUser.full_name;
+                                        if (!this.userFullName && storedUser.full_name) this.userFullName = storedUser.full_name;
+                                        if (!this.email && storedUser.email) this.email = storedUser.email;
+                                        if (!this.userId && storedUser.id) this.userId = String(storedUser.id);
+                                        if (!this.username && storedUser.username) this.username = '@' + storedUser.username;
+                                    } catch (e) {}
+                                }
                             } else {
                                 console.warn('❌ No profile data found in response:', dashboardData);
                                 this.saveError = 'Could not load profile data';
@@ -985,10 +1169,14 @@
                     },
 
                     calculateRemainingTime() {
-                        if (!this.examDate) return;
+                        if (!this.examDate) {
+                            // Default countdown when no exam date is set yet
+                            this.examDateRemaining = '~ 30 days remaining';
+                            return;
+                        }
                         const diffTime = Math.abs(new Date(this.examDate) - new Date());
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
+
                         if (diffDays <= 30) {
                             this.examDateRemaining = `~ ${diffDays} days remaining`;
                         } else {
@@ -1180,7 +1368,9 @@
                         writing: 0,
                         speaking: 0
                     },
-                    
+                    speakingTestScores: {},
+                    writingTestScores: {},
+
                     // Skill Filters
                     selectedFilters: {
                         listening: 'all',
@@ -1503,54 +1693,99 @@
                             // Combine all writing configs
                             const allWritingConfigs = { ...task1Configs, ...task2Configs };
                             
+                            // Helper: check if a writing test is completed from localStorage scores
+                            const isWritingCompleted = (testId) => {
+                                return this.writingTestScores && this.writingTestScores[testId] !== undefined;
+                            };
+                            const getWritingScore = (testId) => {
+                                const scoreObj = this.writingTestScores && this.writingTestScores[testId];
+                                return scoreObj ? scoreObj.overallBand : null;
+                            };
+
                             console.log(`Writing filter: ${filter}, config:`, config);
-                            
+
                             if (filter === 'all') {
                                 // Generate all writing tests including full and all task types
-                                tests = Array.from({ length: config.count }, (_, i) => ({
-                                    id: i + 1,
-                                    name: `${config.name} #${i + 1}`,
-                                    path: `${config.path}${config.file}${i + 1}.html`,
-                                    unlocked: i <= completedCount,
-                                    completed: i < completedCount,
-                                    locked: i > completedCount
-                                }));
+                                tests = Array.from({ length: config.count }, (_, i) => {
+                                    const testId = 'W_AT_' + String(i + 1).padStart(2, '0');
+                                    const completed = isWritingCompleted(testId);
+                                    return {
+                                        id: i + 1,
+                                        name: `${config.name} #${i + 1}`,
+                                        path: `${config.path}${config.file}${i + 1}.html`,
+                                        unlocked: i <= completedCount || completed,
+                                        completed: completed,
+                                        locked: i > completedCount && !completed,
+                                        score: getWritingScore(testId)
+                                    };
+                                });
                                 // Add all task-specific tests
                                 Object.entries(allWritingConfigs).forEach(([taskFilter, taskConfig]) => {
-                                    const taskTests = Array.from({ length: taskConfig.count }, (_, i) => ({
-                                        id: `task-${taskFilter}-${i + 1}`,
-                                        name: `${taskConfig.name} #${i + 1}`,
-                                        path: `${taskConfig.path}${taskConfig.file}${i + 1}.html`,
-                                        unlocked: true,
-                                        completed: false,
-                                        locked: false
-                                    }));
+                                    const taskTests = Array.from({ length: taskConfig.count }, (_, i) => {
+                                        let testId;
+                                        if (taskFilter === 'task1') testId = 'W_T1_GRAPH_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task1-process') testId = 'W_T1_PROC_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task1-map') testId = 'W_T1_MAP_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task2-opinion') testId = 'W_T2_OPINION_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task2-discussion') testId = 'W_T2_DISCUSSION_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task2-problem') testId = 'W_T2_PROBLEM_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task2-advantages') testId = 'W_T2_ADV_' + String(i + 1).padStart(2, '0');
+                                        else if (taskFilter === 'task2-direct') testId = 'W_T2_DIRECT_' + String(i + 1).padStart(2, '0');
+                                        else testId = 'W_' + taskFilter + '_' + String(i + 1).padStart(2, '0');
+                                        return {
+                                            id: `task-${taskFilter}-${i + 1}`,
+                                            name: `${taskConfig.name} #${i + 1}`,
+                                            path: `${taskConfig.path}${taskConfig.file}${i + 1}.html`,
+                                            unlocked: true,
+                                            completed: isWritingCompleted(testId),
+                                            locked: false,
+                                            score: getWritingScore(testId)
+                                        };
+                                    });
                                     tests = tests.concat(taskTests);
                                 });
                                 console.log(`Generated ${tests.length} writing tests for 'all' filter`);
                             } else if (filter === 'full') {
                                 // Generate only full tests (All Tasks)
                                 console.log(`Generating full writing tests from: ${config.path}${config.file}`);
-                                tests = Array.from({ length: config.count }, (_, i) => ({
-                                    id: i + 1,
-                                    name: `Full Writing Test #${i + 1}`,
-                                    path: `${config.path}${config.file}${i + 1}.html`,
-                                    unlocked: i <= completedCount,
-                                    completed: i < completedCount,
-                                    locked: i > completedCount
-                                }));
+                                tests = Array.from({ length: config.count }, (_, i) => {
+                                    const testId = 'W_AT_' + String(i + 1).padStart(2, '0');
+                                    const completed = isWritingCompleted(testId);
+                                    return {
+                                        id: i + 1,
+                                        name: `Full Writing Test #${i + 1}`,
+                                        path: `${config.path}${config.file}${i + 1}.html`,
+                                        unlocked: i <= completedCount || completed,
+                                        completed: completed,
+                                        locked: i > completedCount && !completed,
+                                        score: getWritingScore(testId)
+                                    };
+                                });
                                 console.log(`Generated ${tests.length} full writing tests`);
                             } else if (allWritingConfigs[filter]) {
                                 // Generate only the selected task tests
                                 const taskConfig = allWritingConfigs[filter];
-                                tests = Array.from({ length: taskConfig.count }, (_, i) => ({
-                                    id: `task-${filter}-${i + 1}`,
-                                    name: `${taskConfig.name} #${i + 1}`,
-                                    path: `${taskConfig.path}${taskConfig.file}${i + 1}.html`,
-                                    unlocked: true,
-                                    completed: false,
-                                    locked: false
-                                }));
+                                tests = Array.from({ length: taskConfig.count }, (_, i) => {
+                                    let testId;
+                                    if (filter === 'task1') testId = 'W_T1_GRAPH_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task1-process') testId = 'W_T1_PROC_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task1-map') testId = 'W_T1_MAP_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task2-opinion') testId = 'W_T2_OPINION_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task2-discussion') testId = 'W_T2_DISCUSSION_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task2-problem') testId = 'W_T2_PROBLEM_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task2-advantages') testId = 'W_T2_ADV_' + String(i + 1).padStart(2, '0');
+                                    else if (filter === 'task2-direct') testId = 'W_T2_DIRECT_' + String(i + 1).padStart(2, '0');
+                                    else testId = 'W_' + filter + '_' + String(i + 1).padStart(2, '0');
+                                    return {
+                                        id: `task-${filter}-${i + 1}`,
+                                        name: `${taskConfig.name} #${i + 1}`,
+                                        path: `${taskConfig.path}${taskConfig.file}${i + 1}.html`,
+                                        unlocked: true,
+                                        completed: isWritingCompleted(testId),
+                                        locked: false,
+                                        score: getWritingScore(testId)
+                                    };
+                                });
                                 console.log(`Generated ${tests.length} task-specific writing tests for ${filter}`);
                             } else if (filter === 'vocabulary' || filter === 'grammar') {
                                 // Academic Vocabulary and Grammar Focus are empty (0 items)
@@ -1566,19 +1801,34 @@
                                 'part2': { count: 30, name: 'Speaking Part 2', path: '/Tests/practice/Speaking/Part 2/', file: 'Speaking-Part2-Set' },
                                 'part3': { count: 30, name: 'Speaking Part 3', path: '/Tests/practice/Speaking/Part 3/', file: 'Speaking-Part3-Set' }
                             };
-                            
+
+                            // Helper: check if a speaking test is completed from localStorage scores
+                            const isSpeakingCompleted = (idx) => {
+                                const testId = 'S_AP_' + String(idx).padStart(2, '0');
+                                return this.speakingTestScores && this.speakingTestScores[testId] !== undefined;
+                            };
+                            const getSpeakingScore = (idx) => {
+                                const testId = 'S_AP_' + String(idx).padStart(2, '0');
+                                const scoreObj = this.speakingTestScores && this.speakingTestScores[testId];
+                                return scoreObj ? scoreObj.overallBand : null;
+                            };
+
                             console.log(`Speaking filter: ${filter}, config:`, config);
-                            
+
                             if (filter === 'all') {
                                 // Generate all speaking tests including full and parts
-                                tests = Array.from({ length: config.count }, (_, i) => ({
-                                    id: i + 1,
-                                    name: `Full Speaking Test #${i + 1}`,
-                                    path: `${config.path}${config.file}${i + 1}.html`,
-                                    unlocked: i <= completedCount,
-                                    completed: i < completedCount,
-                                    locked: i > completedCount
-                                }));
+                                tests = Array.from({ length: config.count }, (_, i) => {
+                                    const completed = isSpeakingCompleted(i + 1);
+                                    return {
+                                        id: i + 1,
+                                        name: `Full Speaking Test #${i + 1}`,
+                                        path: `${config.path}${config.file}${i + 1}.html`,
+                                        unlocked: i <= completedCount || completed,
+                                        completed: completed,
+                                        locked: i > completedCount && !completed,
+                                        score: getSpeakingScore(i + 1)
+                                    };
+                                });
                                 // Add part-specific tests
                                 Object.entries(partConfigs).forEach(([partFilter, partConfig]) => {
                                     const partTests = Array.from({ length: partConfig.count }, (_, i) => ({
@@ -1587,7 +1837,8 @@
                                         path: `${partConfig.path}${partConfig.file}${i + 1}.html`,
                                         unlocked: true,
                                         completed: false,
-                                        locked: false
+                                        locked: false,
+                                        score: null
                                     }));
                                     tests = tests.concat(partTests);
                                 });
@@ -1595,14 +1846,18 @@
                             } else if (filter === 'full') {
                                 // Generate only full tests (All Parts)
                                 console.log(`Generating full speaking tests from: ${config.path}${config.file}`);
-                                tests = Array.from({ length: config.count }, (_, i) => ({
-                                    id: i + 1,
-                                    name: `Full Speaking Test #${i + 1}`,
-                                    path: `${config.path}${config.file}${i + 1}.html`,
-                                    unlocked: i <= completedCount,
-                                    completed: i < completedCount,
-                                    locked: i > completedCount
-                                }));
+                                tests = Array.from({ length: config.count }, (_, i) => {
+                                    const completed = isSpeakingCompleted(i + 1);
+                                    return {
+                                        id: i + 1,
+                                        name: `Full Speaking Test #${i + 1}`,
+                                        path: `${config.path}${config.file}${i + 1}.html`,
+                                        unlocked: i <= completedCount || completed,
+                                        completed: completed,
+                                        locked: i > completedCount && !completed,
+                                        score: getSpeakingScore(i + 1)
+                                    };
+                                });
                                 console.log(`Generated ${tests.length} full speaking tests`);
                             } else if (partConfigs[filter]) {
                                 // Generate only the selected part tests
@@ -1613,7 +1868,8 @@
                                     path: `${partConfig.path}${partConfig.file}${i + 1}.html`,
                                     unlocked: true,
                                     completed: false,
-                                    locked: false
+                                    locked: false,
+                                    score: null
                                 }));
                                 console.log(`Generated ${tests.length} part-specific speaking tests for ${filter}`);
                             } else {
@@ -2948,9 +3204,9 @@
                             console.warn('Failed to load dojo text from API, using fallback:', err);
                             // Fallback text based on difficulty
                             const fallbackTexts = {
-                                beginner: "the quick brown fox jumps over the lazy dog simple words are easy to type practice makes perfect keep your fingers on the home row look at the screen not your hands typing is a skill that improves with time make sure to sit up straight and take breaks when needed",
-                                intermediate: "The International English Language Testing System (IELTS) is designed to help you work, study or migrate to a country where English is the native language. This includes countries such as Australia, Canada, New Zealand, the UK and USA. Your ability to listen, read, write and speak in English will be assessed during the test.",
-                                advanced: "The computer-delivered IELTS test offers a more efficient and streamlined experience for test takers. The Listening, Reading, and Writing sections are completed on a computer, while the Speaking test remains face-to-face with an examiner. This format allows for faster results, typically available within three to five days, and provides a modern testing environment with features like adjustable font sizes and highlighting tools. Many candidates find the typing format advantageous for the Writing section, as it allows for easier editing and word count tracking."
+                                beginner: "you have the power to heal your life and you need to know that they dont know that we know they know we know dont it make you sad to know that life is more than who you are leave something for someone but dont leave someone for something the people with ideas have no power and the people with power have no ideas you must take life the way it comes at you and make the best of it",
+                                intermediate: "you have the power to heal your life and you need to know that they dont know that we know they know we know dont it make you sad to know that life is more than who you are leave something for someone but dont leave someone for something the people with ideas have no power and the people with power have no ideas you must take life the way it comes at you and make the best of it",
+                                advanced: "you have the power to heal your life and you need to know that they dont know that we know they know we know dont it make you sad to know that life is more than who you are leave something for someone but dont leave someone for something the people with ideas have no power and the people with power have no ideas you must take life the way it comes at you and make the best of it"
                             };
                             this.dojoText = fallbackTexts[this.dojoDifficulty] || fallbackTexts.intermediate;
                             this.resetDojo();
@@ -3591,14 +3847,7 @@
                     const mountedApp = app.mount('#dashboard-app');
                     window.DashboardAppInstance = mountedApp;
                     console.log('🎯 Dashboard app instance stored globally');
-                    
-                    // Immediately load profile after mount with force refresh
-                    console.log('📂 Calling loadProfile with force refresh after app mount...');
-                    if (mountedApp && typeof mountedApp.loadProfile === 'function') {
-                        mountedApp.loadProfile(true).catch(err => {
-                            console.error('❌ Error loading profile after mount:', err);
-                        });
-                    }
+                    // mounted() hook already calls loadProfile(true) - no double-call needed
                 } catch (mountError) {
                     console.error('❌ CRITICAL: PetiteVue mount failed:', mountError);
                     console.error('   This usually means there are template syntax errors in the HTML.');
@@ -4374,7 +4623,7 @@
                             <div class="text-center">
                                 <p class="text-white/60 font-black text-xs uppercase tracking-tighter mb-1">Current Band
                                 </p>
-                                <p class="text-6xl font-heading font-black text-white">6.0</p>
+                                <p class="text-6xl font-heading font-black text-white">5.0</p>
                             </div>
                             <div class="w-px h-16 bg-white/20"></div>
                             <div class="text-center">
@@ -4384,8 +4633,8 @@
                                     <p class="text-white/60 font-black text-[10px] uppercase">Days</p>
                                 </div>
                                 <div v-else>
-                                    <p class="text-4xl font-heading font-black text-[#FF6B35]">⚠️</p>
-                                    <p class="text-white/80 font-black text-[10px] uppercase">Set Date!</p>
+                                    <p class="text-6xl font-heading font-black text-white">30</p>
+                                    <p class="text-white/60 font-black text-[10px] uppercase">Days</p>
                                 </div>
                             </div>
                         </div>
@@ -4862,7 +5111,7 @@
                                             class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:headphones-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">6.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1">Listening</h4>
                                     <p class="text-sm text-gray-400 font-bold mb-6">42 drills completed</p>
@@ -4882,7 +5131,7 @@
                                             class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:book-open-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">6.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1">Reading</h4>
                                     <p class="text-sm text-gray-400 font-bold mb-6">56 drills completed</p>
@@ -4904,7 +5153,7 @@
                                             class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:pencil-simple-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">6.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1 relative z-10">Writing</h4>
                                     <p
@@ -4927,7 +5176,7 @@
                                             class="w-14 h-14 rounded-2xl bg-purple-50 text-[#8B5CF6] flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:microphone-stage-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">6.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1">Speaking</h4>
                                     <p class="text-sm text-gray-400 font-bold mb-6">28 drills completed</p>
@@ -5004,11 +5253,25 @@
                                         <!-- Test Name -->
                                         <p class="font-bold text-sm mb-2" :class="test.locked ? 'text-gray-400' : 'text-gray-900'">{{ test.name }}</p>
 
-                                        <!-- Status Badge -->
+                                        <!-- Status Badge & Score -->
                                         <div class="flex items-center gap-2">
-                                            <span v-if="test.completed" class="px-2 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase rounded-lg">Completed</span>
+                                            <span v-if="test.completed && test.score" class="px-2 py-1 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 text-[10px] font-black uppercase rounded-lg flex items-center gap-1">
+                                                <iconify-icon icon="ph:star-fill" class="text-amber-500"></iconify-icon>
+                                                Band {{ test.score }}
+                                            </span>
+                                            <span v-else-if="test.completed" class="px-2 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase rounded-lg">Completed</span>
                                             <span v-else-if="test.unlocked" class="px-2 py-1 bg-purple-100 text-[#8B5CF6] text-[10px] font-black uppercase rounded-lg">Available</span>
                                             <span v-else class="px-2 py-1 bg-gray-200 text-gray-500 text-[10px] font-black uppercase rounded-lg">Locked</span>
+                                        </div>
+                                        <!-- Star Rating (only for completed with score) -->
+                                        <div v-if="test.completed && test.score" class="flex items-center gap-0.5 mt-1">
+                                            <template v-for="n in 5" :key="n">
+                                                <iconify-icon
+                                                    :icon="n <= Math.round(test.score / 9 * 5) ? 'ph:star-fill' : 'ph:star'"
+                                                    :class="n <= Math.round(test.score / 9 * 5) ? 'text-amber-400' : 'text-gray-300'"
+                                                    class="text-sm">
+                                                </iconify-icon>
+                                            </template>
                                         </div>
 
                                         <!-- Lock Message Tooltip -->
@@ -5164,14 +5427,17 @@
                                             {{ activity.testType }}
                                         </span>
                                     </td>
-                                    <td class="px-8 py-6 text-center">{{ activity.score }}%</td>
+                                    <td class="px-8 py-6 text-center">
+                                        <span v-if="['WRITING','SPEAKING'].includes(activity.testType)">Band {{ activity.score }}</span>
+                                        <span v-else>{{ activity.score }}%</span>
+                                    </td>
                                     <td class="px-8 py-6 text-right text-gray-400 font-normal">{{ activity.formattedDate }}</td>
                                 </tr>
                             </tbody>
                         </table>
                                         <td class="px-8 py-6">
                                             <div class="flex items-center gap-2">
-                                                <span class="text-base font-black">6.0</span>
+                                                <span class="text-base font-black">5.0</span>
                                                 <iconify-icon icon="ph:trend-up-bold"
                                                     class="text-emerald-500"></iconify-icon>
                                             </div>
@@ -5903,7 +6169,7 @@
                                     
                                     <!-- Word-by-word display with character styling (MonkeyType style) -->
                                     <div v-else id="typing-display"
-                                        class="typing-box text-xl leading-relaxed mb-5 select-none outline-none font-mono text-gray-900 overflow-x-hidden">
+                                        class="typing-box text-xl leading-relaxed mb-5 select-none outline-none font-mono text-gray-900 overflow-x-hidden max-h-[26rem] overflow-y-auto">
                                         <span v-for="(word, wordIndex) in dojoText.split(' ')" :key="'word-'+wordIndex">
                                             <span v-for="(char, charIndex) in word.split('')" :key="'char-'+wordIndex+'-'+charIndex"
                                                 :class="{
@@ -7996,7 +8262,7 @@
                                 <div class="text-center">
                                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">
                                         Current</p>
-                                    <p class="text-3xl font-black font-heading text-emerald-400">6.0<span
+                                    <p class="text-3xl font-black font-heading text-emerald-400">5.0<span
                                             class="text-sm text-emerald-400/50 block -mt-1">+0.0</span></p>
                                 </div>
                                 <div class="w-px bg-white/10"></div>
@@ -8050,7 +8316,7 @@
                                 <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
                                     <div class="bg-[#FF6B35] h-2 rounded-full" style="width: 70%"></div>
                                 </div>
-                                <p class="text-right text-xs font-black text-dark">Band 6.0</p>
+                                <p class="text-right text-xs font-black text-dark">Band 5.0</p>
                             </div>
                         </div>
                     </div>
@@ -8356,11 +8622,8 @@
 
         // Kick off data load as soon as the DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
-            // Wait a tiny bit for Vue instance to be created and mounted
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            console.log('🚀 Triggering loadDashboardData...');
-            await loadDashboardData();
+            // Vue mounted() hook already calls loadProfile(true) — no double-call needed here
+            console.log('🚀 DOM ready — dashboard data will be loaded by Vue mounted() hook');
         });
 
         let mapInstance = null;
@@ -8537,16 +8800,16 @@
             const options = {
                 series: [{
                     name: 'Listening',
-                    data: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
                 }, {
                     name: 'Reading',
-                    data: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
                 }, {
                     name: 'Writing',
-                    data: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
                 }, {
                     name: 'Speaking',
-                    data: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
                 }],
                 chart: {
                     type: 'area',
@@ -8600,7 +8863,7 @@
     </script>
 
     <!-- Onboarding Modal Script -->
-    <script src="./js/onboarding.js?v=3"></script>
+    <script src="./js/onboarding.js?v=4"></script>
 
     <!-- DashboardAPI Verification & Chat Failsafe -->
     <script>
