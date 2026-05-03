@@ -3851,7 +3851,21 @@
                     const mountedApp = app.mount('#dashboard-app');
                     window.DashboardAppInstance = mountedApp;
                     console.log('🎯 Dashboard app instance stored globally');
-                    // mounted() hook already calls loadProfile(true) - no double-call needed
+
+                    // Trigger statistics loading directly as fallback (PetiteVue mounted() hook unreliable)
+                    setTimeout(() => {
+                        if (mountedApp && mountedApp.fetchUserStatistics) {
+                            console.log('[Stats] Directly triggering fetchUserStatistics after mount...');
+                            mountedApp.fetchUserStatistics().catch(err => {
+                                console.error('[Stats] Direct fetch failed:', err);
+                            });
+                        } else if (app && app.fetchUserStatistics) {
+                            console.log('[Stats] Directly triggering fetchUserStatistics via app ref...');
+                            app.fetchUserStatistics().catch(err => {
+                                console.error('[Stats] Direct fetch failed:', err);
+                            });
+                        }
+                    }, 100);
                 } catch (mountError) {
                     console.error('❌ CRITICAL: PetiteVue mount failed:', mountError);
                     console.error('   This usually means there are template syntax errors in the HTML.');
@@ -8614,8 +8628,18 @@
 
         // Kick off data load as soon as the DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
-            // Vue mounted() hook already calls loadProfile(true) — no double-call needed here
             console.log('🚀 DOM ready — dashboard data will be loaded by Vue mounted() hook');
+
+            // Fallback: if mounted() hook never fires (PetiteVue quirk), trigger stats load directly
+            setTimeout(() => {
+                const inst = window.DashboardAppInstance;
+                if (inst && inst.fetchUserStatistics && (!inst.statsLastUpdated || inst.recentActivity.length === 0)) {
+                    console.log('[Stats] DOMContentLoaded fallback — triggering fetchUserStatistics...');
+                    inst.fetchUserStatistics().catch(err => {
+                        console.error('[Stats] Fallback fetch failed:', err);
+                    });
+                }
+            }, 500);
         });
 
         let mapInstance = null;
