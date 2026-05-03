@@ -13,11 +13,7 @@
     <script>
     // Cache bust: unregister old service workers and clear caches so the latest dashboard HTML is served
     (function() {
-        function bustCache() {
-            var url = location.protocol + '//' + location.host + location.pathname + '?_cb=' + Date.now();
-            location.replace(url);
-        }
-        var needsReload = !sessionStorage.getItem('sw_cleared_v2');
+        var needsReload = !sessionStorage.getItem('sw_cleared_v3');
         if (needsReload && navigator.serviceWorker) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
                 return Promise.all(regs.map(function(r) { return r.unregister(); }));
@@ -28,14 +24,12 @@
                     });
                 }
             }).then(function() {
-                sessionStorage.setItem('sw_cleared_v2', '1');
-                // Only reload if the stale widget text is actually present in the rendered body
-                var bodyText = document.body ? document.body.innerText : '';
-                if (bodyText.indexOf('Set Date!') !== -1 || bodyText.indexOf('⚠️') !== -1) {
-                    bustCache();
-                }
-            }).catch(function() {
-                sessionStorage.setItem('sw_cleared_v2', '1');
+                sessionStorage.setItem('sw_cleared_v3', '1');
+                // Force reload to get fresh dashboard.html without service worker cache
+                location.reload(true);
+            }).catch(function(err) {
+                console.warn('SW cache bust failed:', err);
+                sessionStorage.setItem('sw_cleared_v3', '1');
             });
         }
     })();
