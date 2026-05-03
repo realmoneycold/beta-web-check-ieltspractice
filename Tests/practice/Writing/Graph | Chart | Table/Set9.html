@@ -652,7 +652,7 @@
 </div>
 
 <!-- OVERLAY -->
-<div id="overlay" class="overlay" onclick="closeSuccessMessage()"></div>
+<div id="overlay" class="overlay" onclick="closeSuccessMessageAndGoToDashboard()"></div>
 
 <!-- SUCCESS MODAL -->
 <div class="success-message" id="successMessage">
@@ -660,7 +660,7 @@
     <p>Your response has been saved. Review your word count below.</p>
     <div class="success-score" id="successScore"></div>
     <div class="modal-btn-group">
-        <button class="btn-secondary" onclick="closeSuccessMessage()">Close</button>
+        <button class="btn-secondary" onclick="closeSuccessMessageAndGoToDashboard()">Close and Go back to Dashboard</button>
         <button class="btn" onclick="downloadPDF()">⬇ Download PDF</button>
     </div>
 </div>
@@ -827,9 +827,10 @@
         return t === '' ? 0 : t.split(/\s+/).length;
     }
 
-    window.closeSuccessMessage = function () {
+    window.closeSuccessMessageAndGoToDashboard = function () {
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('successMessage').style.display = 'none';
+        window.location.href = '/dashboard.html';
     };
 
     // ── PDF DOWNLOAD ──

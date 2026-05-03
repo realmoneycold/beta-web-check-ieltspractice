@@ -729,7 +729,7 @@
         <h3>✅ Task Submitted!</h3>
         <p>Your response has been saved. Here is your word count summary.</p>
         <div class="success-score" id="successScore"></div>
-        <button class="btn" onclick="closeSuccessMessage()">Close</button>
+        <button class="btn" onclick="closeSuccessMessageAndGoToDashboard()">Close and Go back to Dashboard</button>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
@@ -917,9 +917,10 @@
             return t === '' ? 0 : t.split(/\s+/).length;
         }
 
-        window.closeSuccessMessage = function () {
+        window.closeSuccessMessageAndGoToDashboard = function () {
             document.getElementById('overlay').style.display       = 'none';
             document.getElementById('successMessage').style.display = 'none';
+        window.location.href = '/dashboard.html';
         };
 
         /* ── RESIZER (split-screen drag) ────────────────────────── */

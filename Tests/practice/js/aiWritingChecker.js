@@ -91,13 +91,7 @@ console.log('[AI Checker] Script file starting to load...');
         showLoadingModal();
 
         try {
-            // Check multiple possible token keys (different parts of app use different keys)
-            const token = localStorage.getItem('authToken') || 
-                         localStorage.getItem('token') || 
-                         sessionStorage.getItem('authToken') || 
-                         sessionStorage.getItem('token') ||
-                         localStorage.getItem('student_token') ||
-                         sessionStorage.getItem('student_token');
+            const token = getAuthToken();
             
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
@@ -121,7 +115,26 @@ console.log('[AI Checker] Script file starting to load...');
             const result = await response.json();
 
             if (result.success && result.assessment) {
-                showResultsModal(result.assessment.assessment || result.assessment);
+                const assessment = result.assessment.assessment || result.assessment;
+                const savePromise = saveWritingTestScore(assessment);
+                const hasBackendSave = !!savePromise;
+                showResultsModal(assessment, hasBackendSave);
+                // Wait for backend save so user can't navigate away before it's sent
+                if (savePromise) {
+                    savePromise.then(function() {
+                        const btn = document.querySelector('#ai-checker-results .btn-primary');
+                        if (btn) {
+                            btn.textContent = 'Close and Go back to Dashboard';
+                            btn.disabled = false;
+                        }
+                    }).catch(function() {
+                        const btn = document.querySelector('#ai-checker-results .btn-primary');
+                        if (btn) {
+                            btn.textContent = 'Close and Go back to Dashboard';
+                            btn.disabled = false;
+                        }
+                    });
+                }
             } else {
                 throw new Error(result.error || 'Evaluation failed');
             }
@@ -172,7 +185,7 @@ console.log('[AI Checker] Script file starting to load...');
     /**
      * Show AI evaluation results
      */
-    function showResultsModal(assessment) {
+    function showResultsModal(assessment, hasBackendSave) {
         hideLoadingModal();
 
         const {
@@ -187,6 +200,9 @@ console.log('[AI Checker] Script file starting to load...');
             improvements,
             estimatedScore
         } = assessment;
+
+        const closeBtnText = hasBackendSave ? 'Saving score...' : 'Close and Go back to Dashboard';
+        const closeBtnDisabled = hasBackendSave ? 'disabled' : '';
 
         const modal = document.createElement('div');
         modal.id = 'ai-checker-results';
@@ -284,7 +300,7 @@ console.log('[AI Checker] Script file starting to load...');
 
                     <!-- Actions -->
                     <div class="ai-checker-actions">
-                        <button class="btn-primary" onclick="window.aiWritingChecker.closeResultsAndSubmit()">Continue to Submit</button>
+                        <button class="btn-primary" id="aiCheckerCloseBtn" onclick="window.aiWritingChecker.closeAndGoToDashboard()" ${closeBtnDisabled}>${closeBtnText}</button>
                         <button class="btn-secondary" onclick="window.aiWritingChecker.retry()">Re-evaluate</button>
                     </div>
                 </div>
@@ -322,6 +338,178 @@ console.log('[AI Checker] Script file starting to load...');
         } else if (window.handleSubmitClick) {
             window.handleSubmitClick();
         }
+    }
+
+    // Track the pending backend save promise so we can wait before navigating
+    let pendingSavePromise = null;
+
+    /**
+     * Close results and navigate to dashboard
+     */
+    function closeAndGoToDashboard() {
+        closeResults();
+        // If a backend save is still in flight, give it a moment to finish
+        if (pendingSavePromise) {
+            Promise.race([pendingSavePromise, new Promise(function(r) { setTimeout(r, 5000); })])
+                .finally(function() {
+                    window.location.href = '/dashboard.html';
+                });
+        } else {
+            window.location.href = '/dashboard.html';
+        }
+    }
+
+    /**
+     * Close success message modal and navigate to dashboard
+     * (shared function used by all writing test success modals)
+     */
+    window.closeSuccessMessageAndGoToDashboard = function() {
+        const overlay = document.getElementById('overlay');
+        const successMsg = document.getElementById('successMessage');
+        if (overlay) overlay.style.display = 'none';
+        if (successMsg) successMsg.style.display = 'none';
+        window.location.href = '/dashboard.html';
+    };
+
+    /**
+     * Unified token helper — checks every key the app uses
+     */
+    function getAuthToken() {
+        return localStorage.getItem('authToken') ||
+               localStorage.getItem('token') ||
+               localStorage.getItem('ielts_token') ||
+               localStorage.getItem('student_token') ||
+               sessionStorage.getItem('authToken') ||
+               sessionStorage.getItem('token') ||
+               sessionStorage.getItem('ielts_token') ||
+               sessionStorage.getItem('student_token') ||
+               null;
+    }
+
+    /**
+     * Save writing test score to localStorage and backend
+     */
+    function saveWritingTestScore(assessment) {
+        const overallBand = assessment.overallBandRounded || assessment.overallBand || assessment.band || null;
+        if (!overallBand) return;
+
+        // Determine test info from URL
+        const path = window.location.pathname;
+        const decodedPath = decodeURIComponent(path);
+        const fileName = path.substring(path.lastIndexOf('/') + 1);
+        let testId = null;
+        let testName = null;
+
+        console.log('[AI Writing Checker] Saving score for path:', decodedPath, 'file:', fileName);
+
+        // All Tasks full tests: All-Tasks-SetN.html -> W_AT_NN
+        const allTasksMatch = fileName.match(/All-Tasks-Set(\d+)/);
+        if (allTasksMatch) {
+            const setNum = parseInt(allTasksMatch[1], 10);
+            testId = 'W_AT_' + String(setNum).padStart(2, '0');
+            testName = 'Writing Full Test - Set ' + setNum;
+        }
+
+        // Task 1: SetN.html in specific folders -> W_T1_FOLDER_NN
+        const task1Match = fileName.match(/Set(\d+)/);
+        if (!testId && task1Match) {
+            const setNum = parseInt(task1Match[1], 10);
+            if (decodedPath.includes('Graph') || decodedPath.includes('Chart') || decodedPath.includes('Table')) {
+                testId = 'W_T1_GRAPH_' + String(setNum).padStart(2, '0');
+                testName = 'Task 1 Graph/Chart/Table - Set ' + setNum;
+            } else if (decodedPath.includes('Process') || decodedPath.includes('Diagram')) {
+                testId = 'W_T1_PROC_' + String(setNum).padStart(2, '0');
+                testName = 'Task 1 Process/Diagram - Set ' + setNum;
+            } else if (decodedPath.includes('Map')) {
+                testId = 'W_T1_MAP_' + String(setNum).padStart(2, '0');
+                testName = 'Task 1 Map - Set ' + setNum;
+            }
+        }
+
+        // Task 2: Writing-Part2-SetN.html -> W_T2_TYPE_NN
+        const task2Match = fileName.match(/Writing-Part2-Set(\d+)/);
+        if (!testId && task2Match) {
+            const setNum = parseInt(task2Match[1], 10);
+            if (decodedPath.includes('Opinion')) {
+                testId = 'W_T2_OPINION_' + String(setNum).padStart(2, '0');
+                testName = 'Task 2 Opinion Essay - Set ' + setNum;
+            } else if (decodedPath.includes('Discussion')) {
+                testId = 'W_T2_DISCUSSION_' + String(setNum).padStart(2, '0');
+                testName = 'Task 2 Discussion Essay - Set ' + setNum;
+            } else if (decodedPath.includes('Problem') || decodedPath.includes('Solution')) {
+                testId = 'W_T2_PROBLEM_' + String(setNum).padStart(2, '0');
+                testName = 'Task 2 Problem/Solution - Set ' + setNum;
+            } else if (decodedPath.includes('Advantages')) {
+                testId = 'W_T2_ADV_' + String(setNum).padStart(2, '0');
+                testName = 'Task 2 Advantages/Disadvantages - Set ' + setNum;
+            } else if (decodedPath.includes('Direct')) {
+                testId = 'W_T2_DIRECT_' + String(setNum).padStart(2, '0');
+                testName = 'Task 2 Direct Questions - Set ' + setNum;
+            }
+        }
+
+        if (!testId) {
+            // Fallback generic ID
+            testId = 'W_' + fileName.replace(/[^a-zA-Z0-9]/g, '_');
+            testName = 'Writing Test';
+        }
+
+        // Build result object
+        const result = {
+            testId: testId,
+            testName: testName,
+            overallBand: overallBand.toString(),
+            taskType: currentTaskType,
+            completedAt: new Date().toISOString(),
+            skill: 'writing'
+        };
+
+        // Save to localStorage FIRST so dashboard always has it even if API fails
+        let testScores = JSON.parse(localStorage.getItem('writing_test_scores') || '{}');
+        testScores[testId] = result;
+        localStorage.setItem('writing_test_scores', JSON.stringify(testScores));
+        console.log('[AI Writing Checker] Saved to localStorage:', testId, result);
+
+        // Update writing score in localStorage
+        localStorage.setItem('writingScore', overallBand.toString());
+
+        // Update test progress count
+        let progress = JSON.parse(localStorage.getItem('testProgress') || '{"listening":0,"reading":0,"writing":0,"speaking":0}');
+        if (typeof progress === 'number') {
+            progress = { listening: 0, reading: 0, writing: progress, speaking: 0 };
+        }
+        if (!progress.writing) progress.writing = 0;
+        const completedIds = Object.keys(testScores);
+        progress.writing = Math.max(progress.writing, completedIds.length);
+        localStorage.setItem('testProgress', JSON.stringify(progress));
+
+        // Save to backend if user is logged in
+        const token = getAuthToken();
+        if (token) {
+            pendingSavePromise = fetch('/api/statistics/attempt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                keepalive: true,
+                body: JSON.stringify({
+                    testType: 'WRITING',
+                    testId: testId,
+                    testName: testName,
+                    skillArea: currentTaskType,
+                    score: parseFloat(overallBand),
+                    maxScore: 9.0,
+                    status: 'COMPLETED',
+                    feedback: 'Overall Band: ' + overallBand
+                })
+            }).then(function(res) { return res.json(); })
+              .then(function(data) { console.log('Writing test attempt saved:', data); })
+              .catch(function(err) { console.warn('Failed to save writing test attempt:', err); })
+              .finally(function() { pendingSavePromise = null; });
+        }
+
+        return pendingSavePromise;
     }
 
     /**
@@ -706,6 +894,7 @@ console.log('[AI Checker] Script file starting to load...');
         init,
         closeResults,
         closeResultsAndSubmit,
+        closeAndGoToDashboard,
         retry,
         evaluateEssay
     };

@@ -104,6 +104,71 @@ exports.assessWriting = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// SPEAKING ASSESSMENT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/ai/assess-speaking
+ * Evaluate student's IELTS speaking response
+ */
+exports.assessSpeaking = async (req, res) => {
+  try {
+    const { speakingText, partType = 'Full', questionPrompt = '' } = req.body;
+    const studentId = req.user.id;
+
+    if (!speakingText || speakingText.trim().length < 20) {
+      return res.status(400).json({
+        success: false,
+        error: 'Speaking response must be at least 20 characters',
+      });
+    }
+
+    // Get student's performance history
+    const studentData = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
+
+    const context = {
+      id: studentId,
+      name: studentData?.name,
+    };
+
+    // Get AI assessment
+    const assessment = await groqService.evaluateIELTSSpeaking(speakingText, partType, questionPrompt, context);
+
+    logger.info('Speaking assessment completed', {
+      userId: studentId,
+      partType,
+      overallBand: assessment.overallBand || assessment.overallScore,
+    });
+
+    res.json({
+      success: true,
+      assessment,
+      message: 'Speaking assessment completed successfully',
+    });
+  } catch (error) {
+    logger.error('Error assessing speaking:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+    });
+    console.error('[AI Speaking Assessment Error]', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to assess speaking',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
 // AI MENTORING
 // ═══════════════════════════════════════════════════════════════
 

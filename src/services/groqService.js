@@ -98,6 +98,53 @@ BAND DESCRIPTORS:
 
 Remember: Be encouraging but honest. Provide specific examples.`;
 
+const IELTS_SPEAKING_SYSTEM_PROMPT = `You are an expert IELTS Speaking examiner with 10+ years of experience.
+
+Your task is to evaluate a student's spoken response based on IELTS Speaking band descriptors. Since you are evaluating from a text transcript, you can assess Fluency & Coherence, Lexical Resource, and Grammatical Range & Accuracy thoroughly. For Pronunciation, provide guidance based on word choice and common patterns (e.g., complex words that non-native speakers often mispronounce).
+
+RESPONSE FORMAT - ALWAYS respond in this JSON format:
+{
+  "fluencyAndCoherence": {
+    "band": 7,
+    "score": "7.0",
+    "feedback": "Good flow with minor hesitations. Ideas are logically connected."
+  },
+  "lexicalResource": {
+    "band": 7,
+    "score": "7.0",
+    "feedback": "Good range of vocabulary with some less common items used accurately."
+  },
+  "grammaticalRangeAndAccuracy": {
+    "band": 6.5,
+    "score": "6.5",
+    "feedback": "Mix of simple and complex structures with some minor errors."
+  },
+  "pronunciation": {
+    "band": 7,
+    "score": "7.0",
+    "feedback": "Likely clear and understandable. Watch intonation on questions.",
+    "wordsToPractice": ["pronunciation", "specific"]
+  },
+  "overallBand": "6.75",
+  "overallBandRounded": 7,
+  "overallScore": "7.0",
+  "strengths": ["Good fluency", "Appropriate vocabulary", "Coherent structure"],
+  "weaknesses": ["Some grammatical errors", "Limited complex structures"],
+  "improvements": ["Practice using more conditional sentences", "Expand topic-specific vocabulary"],
+  "examinerNotes": "Good attempt. Focus on grammatical accuracy and vocabulary range for higher band."
+}
+
+BAND DESCRIPTORS:
+- Band 9: Expert user - natural flow, sophisticated vocabulary, wide grammatical range, virtually no errors
+- Band 8: Very good - fluent with occasional hesitation, good vocabulary, mostly accurate grammar
+- Band 7: Good - generally fluent, adequate vocabulary with some less common items, mostly accurate
+- Band 6: Competent - some fluency issues, adequate vocabulary, mix of simple and complex with errors
+- Band 5: Modest - noticeable pauses, limited vocabulary, mainly simple structures with errors
+- Band 4: Limited - frequent pauses, basic vocabulary, simple structures with frequent errors
+- Below 4: Inadequate
+
+Remember: Be encouraging but honest. Provide specific examples from the response.`;
+
 const IELTS_MENTOR_SYSTEM_PROMPT = `You are a supportive and knowledgeable IELTS mentor.
 
 Your student has come to you with questions about IELTS writing, speaking, reading, or listening.
@@ -128,6 +175,60 @@ Format your response naturally as a mentor conversation, not bullet points.`;
  * @param {Object} studentContext - Student's performance data
  * @returns {Promise<Object>} Evaluation result with bands and feedback
  */
+/**
+ * Evaluate IELTS speaking response based on transcript
+ * @param {string} speakingText - Student's speaking transcript to evaluate
+ * @param {string} partType - 'Part1' | 'Part2' | 'Part3' | 'Full'
+ * @param {string} questionPrompt - The question/prompt the student responded to
+ * @param {Object} studentContext - Student's performance data
+ * @returns {Promise<Object>} Evaluation result with bands and feedback
+ */
+async function evaluateIELTSSpeaking(speakingText, partType = 'Full', questionPrompt = '', studentContext = {}) {
+  try {
+    if (!speakingText || speakingText.trim().length < 20) {
+      throw new Error('Speaking response must be at least 20 characters');
+    }
+
+    const client = initGroqClient();
+    const contextString = formatStudentContext(studentContext);
+
+    const fullPrompt = `${IELTS_SPEAKING_SYSTEM_PROMPT}
+
+---
+
+Evaluate this IELTS Speaking ${partType} response from a student${contextString ? ` with this background: ${contextString}` : ''}.
+
+QUESTION/PROMPT:
+"${questionPrompt || 'General IELTS Speaking question'}"
+
+STUDENT RESPONSE:
+"${speakingText}"
+
+Provide a detailed evaluation in JSON format with band scores for each criteria.`;
+
+    const message = await client.chat.completions.create({
+      messages: [
+        {
+          role: 'user',
+          content: fullPrompt,
+        },
+      ],
+      model: 'llama-3.1-8b-instant',
+      temperature: 0.7,
+      max_tokens: 1200,
+    });
+
+    const responseText = message.choices[0].message.content;
+    const evaluation = parseJSONResponse(responseText);
+
+    logger.info('IELTS speaking evaluation completed', { studentId: studentContext.id, partType });
+    return evaluation;
+  } catch (error) {
+    logger.error('Error evaluating IELTS speaking:', error);
+    throw new Error(`Speaking evaluation failed: ${error.message}`);
+  }
+}
+
 async function evaluateIELTSWriting(writingText, studentContext = {}) {
   try {
     if (!writingText || writingText.trim().length < 50) {
@@ -388,6 +489,7 @@ async function isGroqAvailable() {
 
 module.exports = {
   evaluateIELTSWriting,
+  evaluateIELTSSpeaking,
   getIELTSMentoring,
   getWritingTips,
   isGroqAvailable,

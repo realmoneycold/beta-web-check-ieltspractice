@@ -40,6 +40,14 @@
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('role', role);
       localStorage.setItem('user', JSON.stringify(data.user || { email, role }));
+      // Also store individual keys that dashboard.html reads on startup
+      if (data.user) {
+        if (data.user.full_name) localStorage.setItem('userName', data.user.full_name);
+        if (data.user.email)    localStorage.setItem('userEmail', data.user.email);
+        if (data.user.id)       localStorage.setItem('userId', String(data.user.id));
+        const handle = data.user.username ? '@' + data.user.username : (data.user.email ? '@' + data.user.email.split('@')[0] : '');
+        if (handle) localStorage.setItem('userHandle', handle);
+      }
 
       window.location.href = routeByRole(role);
     } catch (err) {

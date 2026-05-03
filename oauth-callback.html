@@ -85,6 +85,11 @@
           try {
             const user = JSON.parse(atob(userB64));
             localStorage.setItem('user', JSON.stringify(user));
+            // Also store individual keys that dashboard.html reads on startup
+            if (user.full_name) localStorage.setItem('userName', user.full_name);
+            if (user.email)    localStorage.setItem('userEmail', user.email);
+            if (user.username) localStorage.setItem('userHandle', '@' + user.username);
+            if (user.id)       localStorage.setItem('userId', String(user.id));
           } catch (e) {
             console.warn('Could not decode user payload:', e);
           }

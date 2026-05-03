@@ -91,4 +91,51 @@
     };
 
     console.log('[TestTracker] Test tracking module loaded');
+
+    // ═══════════════════════════════════════════════════════════════
+    // GLOBAL OVERRIDES — writing test success modal & submit tracking
+    // ═══════════════════════════════════════════════════════════════
+
+    function applyGlobalOverrides() {
+        // 1. Override success-modal close behaviour on writing test pages
+        if (typeof window.closeSuccessMessage === 'function') {
+            const originalCloseSuccessMessage = window.closeSuccessMessage;
+            window.closeSuccessMessage = function() {
+                if (originalCloseSuccessMessage) originalCloseSuccessMessage();
+                window.location.href = '/dashboard.html';
+            };
+            window.closeSuccessMessageAndGoToDashboard = window.closeSuccessMessage;
+            console.log('[TestTracker] Overrode closeSuccessMessage → redirect to /dashboard.html');
+        }
+
+        // 2. Update the button text inside the success modal dynamically
+        const successModal = document.getElementById('successMessage');
+        if (successModal) {
+            const closeBtn = successModal.querySelector('button.btn');
+            if (closeBtn) {
+                // Always force the button text and action so user never sees plain "Close"
+                closeBtn.textContent = 'Close and Go back to Dashboard';
+                closeBtn.setAttribute('onclick', 'closeSuccessMessageAndGoToDashboard()');
+                console.log('[TestTracker] Updated success modal button → "Close and Go back to Dashboard"');
+            }
+        }
+
+        // 3. Wrap performSubmit to track timing but do NOT blindly call
+        // window.saveTestCompletion() here — writing tests save via aiWritingChecker.js
+        // and calling it without arguments creates garbage UNKNOWN records.
+        if (typeof window.performSubmit === 'function') {
+            const originalPerformSubmit = window.performSubmit;
+            window.performSubmit = function() {
+                // Call the original submission logic first
+                return originalPerformSubmit.apply(this, arguments);
+            };
+            console.log('[TestTracker] Wrapped performSubmit (timer tracking only)');
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyGlobalOverrides);
+    } else {
+        applyGlobalOverrides();
+    }
 })();

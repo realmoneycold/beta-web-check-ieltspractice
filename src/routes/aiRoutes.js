@@ -20,6 +20,13 @@ const { requireAuth } = require('../middleware/unified-auth');
 router.post('/assess-writing', requireAuth('STUDENT'), aiController.assessWriting);
 
 /**
+ * POST /api/ai/assess-speaking
+ * Assess IELTS speaking response
+ * Body: { speakingText: string, partType?: 'Part1' | 'Part2' | 'Part3' | 'Full', questionPrompt?: string }
+ */
+router.post('/assess-speaking', requireAuth('STUDENT'), aiController.assessSpeaking);
+
+/**
  * POST /api/ai/mentor
  * Get AI mentoring response
  * Body: { question: string }
