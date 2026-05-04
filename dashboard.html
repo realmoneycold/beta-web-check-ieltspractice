@@ -104,8 +104,10 @@
             }
             
             console.log('[PetiteVue] Library found, creating app...');
-            
-            const app = PetiteVue.createApp({
+
+            // PetiteVue.createApp() returns a wrapper, NOT the data object.
+            // We keep a separate reference to the raw data so we can call methods directly.
+            const appData = {
                     // UI State
                     currentView: 'home', 
                     profileSection: 'personal',
@@ -3837,23 +3839,25 @@
                         // Sort by rank and take top 3
                         return filtered.sort((a, b) => a.rank - b.rank).slice(0, 3);
                     }
-                });
-                
+                };
+
+                const app = PetiteVue.createApp(appData);
+
                 // Mount the app and store reference globally
                 try {
                     console.log('🚀 Attempting to mount PetiteVue app...');
                     app.mount('#dashboard-app');
-                    window.DashboardAppInstance = app;
+                    window.DashboardAppInstance = appData;
                     console.log('🎯 Dashboard app instance stored globally');
 
                     // PetiteVue does NOT auto-call mounted() — trigger initialization manually
-                    if (app && app.initDashboard) {
-                        console.log('[Init] Calling initDashboard() via app ref...');
-                        app.initDashboard().catch(err => {
+                    if (appData && appData.initDashboard) {
+                        console.log('[Init] Calling initDashboard() via appData...');
+                        appData.initDashboard().catch(err => {
                             console.error('[Init] initDashboard() failed:', err);
                         });
                     } else {
-                        console.warn('[Init] initDashboard method not found on app');
+                        console.warn('[Init] initDashboard method not found on appData');
                     }
                 } catch (mountError) {
                     console.error('❌ CRITICAL: PetiteVue mount failed:', mountError);
