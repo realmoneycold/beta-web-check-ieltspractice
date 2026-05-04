@@ -607,6 +607,9 @@
             <div class="results-summary">
                 <p>Score: <span id="results-score"></span> / 14</p>
                 <p>IELTS Band: <span id="results-band"></span></p>
+                        </div>
+            <div class="results-actions" style="margin-top: 15px; text-align: center;">
+                <button onclick="window.location.href='/dashboard.html'" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px;">Finish & Go to Dashboard</button>
             </div>
             <div id="results-details" class="results-details-container"></div>
         </div>
@@ -847,6 +850,8 @@
             return (map[scaled] || 0.0).toFixed(1);
         }
 
+        window.calculateBand = calculateBand;
+
         function showResultsModal() {
             document.getElementById('results-modal').classList.remove('hidden');
         }
@@ -1055,6 +1060,7 @@
         initialize();
     });
     </script>
+    <script src="../../js/testTracker.js"></script>
     <script src="../../js/readingScoreSaver.js"></script>
 </body>
 </html>
