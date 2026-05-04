@@ -392,8 +392,9 @@
                         } catch (error) {
                             console.error('[Stats] Error fetching statistics:', error);
                         } finally {
-                            // Always merge localStorage writing scores as fallback
+                            // Always merge localStorage scores as fallback
                             this.mergeLocalStorageWritingActivity();
+                            this.mergeLocalStorageReadingActivity();
                             this.isLoadingStats = false;
                         }
                     },
@@ -435,6 +436,47 @@
                             console.log('[Stats] Merged localStorage writing scores. Total activities:', this.recentActivity.length);
                         } catch (e) {
                             console.warn('[Stats] Failed to merge localStorage writing activity:', e);
+                        }
+                    },
+
+                    mergeLocalStorageReadingActivity() {
+                        try {
+                            const savedReadingScores = localStorage.getItem('reading_test_scores');
+                            if (!savedReadingScores) return;
+                            const parsedScores = JSON.parse(savedReadingScores);
+                            // Build a set of unique keys from API entries so we don't add exact duplicates
+                            const existingKeys = new Set(this.recentActivity.map(a => {
+                                const name = (a.testName || '').toLowerCase();
+                                const score = a.score || 0;
+                                const time = a.completedAt ? new Date(a.completedAt).toISOString().slice(0, 16) : '';
+                                return `${name}_${score}_${time}`;
+                            }));
+                            let nextId = this.recentActivity.length + 1;
+                            (Array.isArray(parsedScores) ? parsedScores : Object.values(parsedScores)).forEach(entry => {
+                                const name = entry.testName || 'Reading Test';
+                                const score = entry.score || 0;
+                                const maxScore = entry.maxScore || 13;
+                                const time = entry.completedAt ? new Date(entry.completedAt).toISOString().slice(0, 16) : '';
+                                const key = `${name.toLowerCase()}_${score}_${time}`;
+                                if (!existingKeys.has(key)) {
+                                    this.recentActivity.push({
+                                        id: 'local_' + nextId++,
+                                        testName: name,
+                                        testType: 'READING',
+                                        score: score,
+                                        maxScore: maxScore,
+                                        status: 'COMPLETED',
+                                        completedAt: entry.completedAt,
+                                        formattedDate: this.formatActivityDate(entry.completedAt)
+                                    });
+                                    existingKeys.add(key);
+                                }
+                            });
+                            // Sort by date descending
+                            this.recentActivity.sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
+                            console.log('[Stats] Merged localStorage reading scores. Total activities:', this.recentActivity.length);
+                        } catch (e) {
+                            console.warn('[Stats] Failed to merge localStorage reading activity:', e);
                         }
                     },
 
