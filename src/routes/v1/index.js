@@ -19,6 +19,7 @@ const statisticsRoutes = require('../statisticsRoutes');
 const ceoRoutes = require('../../../ceo-page/routes-ceo');
 const requireCeoAuth = require('../../middleware/ceoAuth');
 const dashboardRoutes = require('../dashboardRoutes');
+const roomsRoutes = require('../roomsRoutes');
 const publicRoutes = require('../publicRoutes');
 const aiRoutes = require('../aiRoutes');
 const contactRoutes = require('../contactRoutes');
@@ -55,6 +56,9 @@ router.use('/contact', contactRoutes);
 
 // Dashboard routes (must be before /student to avoid conflicts)
 router.use('/student/dashboard', dashboardRoutes);
+
+// Rooms API for Live Hub (GET/POST/PATCH/DELETE)
+router.use('/rooms', roomsRoutes);
 
 // New unified logic blocks based on the data engineering architecture
 router.use('/centre', centrePortalRoutes);

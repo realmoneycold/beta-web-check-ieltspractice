@@ -2332,6 +2332,9 @@ That is the end of section 4. You now have half a minute to check your answers. 
             <div class="modal-body">
                 <p id="score-summary"></p>
                 <div id="result-details"></div>
+                <div style="text-align:center;margin-top:20px;">
+                    <button onclick="window.finishListeningAndSave()" style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;">Finish & Go to Dashboard</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2715,7 +2718,6 @@ That is the end of section 4. You now have half a minute to check your answers. 
                     selectedRange.insertNode(fragment);
                 }
             } catch(err) {
-                console.warn('Primary highlighting failed, trying robust fallback:', err);
                 
                 // Robust fallback for complex selections
                 try {
@@ -2763,7 +2765,6 @@ That is the end of section 4. You now have half a minute to check your answers. 
                         range.insertNode(contents);
                     }
                 } catch(e2) {
-                    console.warn('Robust fallback failed, using final method:', e2);
                     // Final fallback - use execCommand
                     try {
                         document.execCommand('backColor', false, 'yellow');
@@ -2794,7 +2795,6 @@ That is the end of section 4. You now have half a minute to check your answers. 
                 span.appendChild(tooltip);
                 selectedRange.surroundContents(span);
             }catch(err){
-                console.warn('Complex selection – cannot comment');
             }
             window.getSelection().removeAllRanges();
             closeContextMenu();
@@ -3029,6 +3029,7 @@ That is the end of section 4. You now have half a minute to check your answers. 
             const resultDetails = document.getElementById('result-details');
             
             scoreSummary.textContent = `You scored ${score} out of 40 (Band ${band}).`;
+            window.autoSaveListeningScore(score, band);
             
             let tableHTML = '<table><tr><th>Question</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th></tr>';
             resultsData.sort((a,b) => parseInt(a.question, 10) - parseInt(b.question, 10)).forEach(res => {
@@ -3550,5 +3551,6 @@ That is the end of section 4. You now have half a minute to check your answers. 
             return result;
         };
     </script>
+    <script src="../../js/listeningTestUtils.js?v=1"></script>
 </body>
 </html>

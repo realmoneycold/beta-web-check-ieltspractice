@@ -2812,6 +2812,9 @@ So, which direction is plant science likely to go in next? Many of the phenomena
             <div class="modal-body">
                 <p id="score-summary"></p>
                 <div id="result-details"></div>
+                <div style="text-align:center;margin-top:20px;">
+                    <button onclick="window.finishListeningAndSave()" style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;">Finish & Go to Dashboard</button>
+                </div>
             </div>
         </div>
     </div>
@@ -3008,7 +3011,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                 if (radioInput || groupCheckboxAnswered) {
                     isAnswered = true;
                     if (qNum >= 15 && qNum <= 20 && radioInput) {
-                        console.log(`Question ${qNum} radio detected as answered: ${radioInput.value}`);
                     }
                 // Check for checkbox questions with multiple answer requirements
                 } else if (textInput && typeof textInput.value === 'string' && textInput.value.trim() !== '') {
@@ -3018,8 +3020,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                 } else if (clickableCell) {
                     isAnswered = true;
                     if (qNum >= 13 && qNum <= 16 || qNum >= 25 && qNum <= 30) {
-                        console.log(`Question ${qNum} clickable cell detected as answered: ${clickableCell.getAttribute('data-value')}`);
-                        console.log(`Clickable cell element:`, clickableCell);
                     }
                 }
 
@@ -3086,13 +3086,10 @@ The reality is that unhappy workers are unlikely to work well together and there
 
         // Test function to verify clickable cells are working
         function testClickableCells() {
-            console.log('Testing clickable cells...');
             const cells = document.querySelectorAll('.clickable-cell');
-            console.log(`Found ${cells.length} clickable cells`);
             cells.forEach((cell, index) => {
                 const question = cell.getAttribute('data-question');
                 const value = cell.getAttribute('data-value');
-                console.log(`Cell ${index}: question=${question}, value=${value}`);
             });
         }
         
@@ -3312,7 +3309,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                     selectedRange.insertNode(fragment);
                 }
             } catch(err) {
-                console.warn('Primary highlighting failed, trying robust fallback:', err);
                 
                 // Robust fallback for complex selections
                 try {
@@ -3360,7 +3356,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                         range.insertNode(contents);
                     }
                 } catch(e2) {
-                    console.warn('Robust fallback failed, using final method:', e2);
                     // Final fallback - use execCommand
                     try {
                         document.execCommand('backColor', false, 'yellow');
@@ -3391,7 +3386,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                 span.appendChild(tooltip);
                 selectedRange.surroundContents(span);
             }catch(err){
-                console.warn('Complex selection – cannot comment');
             }
             window.getSelection().removeAllRanges();
             closeContextMenu();
@@ -3877,6 +3871,7 @@ The reality is that unhappy workers are unlikely to work well together and there
             const resultDetails = document.getElementById('result-details');
             
             scoreSummary.textContent = `You scored ${score} out of 40 (Band ${band}).`;
+            window.autoSaveListeningScore(score, band);
             
             let tableHTML = '<table><thead><tr><th>Question</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th></tr></thead><tbody>';
             resultsData.sort((a,b) => parseInt(a.question, 10) - parseInt(b.question, 10)).forEach(res => {
@@ -4569,7 +4564,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                     const hiddenInput = document.getElementById(`q${questionNumber}`);
                     if (hiddenInput) {
                         hiddenInput.value = this.value;
-                        console.log(`Question ${questionNumber} selected: ${this.value}`);
                     }
                 });
             });
@@ -4771,7 +4765,6 @@ The reality is that unhappy workers are unlikely to work well together and there
                     // Autoplay may be blocked on first interaction – user already
                     // clicked the modal button which counts as a gesture, but some
                     // browsers still block it. We re-show a minimal prompt in that case.
-                    console.warn('Autoplay blocked, attempting resume on next interaction:', err);
                     const resume = function() {
                         audioPlayer.play().catch(function(){});
                         document.removeEventListener('click', resume);
@@ -4855,5 +4848,6 @@ The reality is that unhappy workers are unlikely to work well together and there
             return result;
         };
     </script>
+    <script src="../../js/listeningTestUtils.js?v=1"></script>
 </body>
 </html>

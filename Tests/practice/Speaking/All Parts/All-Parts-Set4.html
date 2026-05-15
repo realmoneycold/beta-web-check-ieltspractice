@@ -1195,21 +1195,47 @@
         });
 
         // Stop any active recording when switching parts
-        Object.keys(recState).forEach(k => {
-            if (recState[k]) toggleRecord(k);
+        Object.keys(window.recState).forEach(k => {
+            if (window.recState[k]) toggleRecord(k);
         });
     };
 
     // ── PART 1 NAVIGATION ───────────────────────────────────────
+    // Initialize answers storage
+    window.p1Answers = {};
+    
+    function saveP1Answer() {
+        const textarea = document.getElementById('ai-text-p1');
+        if (textarea) {
+            window.p1Answers[p1Current] = textarea.value;
+            localStorage.setItem('allparts_p1_answers', JSON.stringify(window.p1Answers));
+        }
+    }
+    
+    function loadP1Answer() {
+        const textarea = document.getElementById('ai-text-p1');
+        if (textarea && window.p1Answers[p1Current]) {
+            textarea.value = window.p1Answers[p1Current];
+        } else if (textarea) {
+            textarea.value = '';
+        }
+        // Hide AI results when switching questions
+        const resultsPanel = document.getElementById('ai-results-p1');
+        if (resultsPanel) resultsPanel.classList.remove('visible');
+    }
+    
     function renderP1() {
         for (let i = 1; i <= P1_TOTAL; i++) {
             document.getElementById(`p1-q${i}`).classList.toggle('active', i === p1Current);
         }
+        
+        // Load answer for current question (blank if not answered yet)
+        loadP1Answer();
         document.getElementById('p1-progress').innerHTML =
             `Topic ${p1Current} of ${P1_TOTAL} · ${p1Topics[p1Current - 1]}`;
 
         document.getElementById('p1-prev').disabled = (p1Current === 1);
-        document.getElementById('p1-next').disabled = (p1Current === P1_TOTAL);
+        document.getElementById('p1-next').disabled = false; // Always enabled to allow going to Part 2
         document.getElementById('p1-next').textContent =
             p1Current === P1_TOTAL ? 'Go to Part 2 →' : 'Next →';
 
@@ -1223,10 +1249,17 @@
     }
 
     window.p1Next = function () {
-        if (p1Current < P1_TOTAL) { p1Current++; renderP1(); }
+        saveP1Answer();
+        if (window.recState.p1) toggleRecord('p1');
+        if (p1Current < P1_TOTAL) { 
+            p1Current++; 
+            renderP1();
+        }
         else switchPart(2);
     };
     window.p1Prev = function () {
+        saveP1Answer();
+        if (window.recState.p1) toggleRecord('p1');
         if (p1Current > 1) { p1Current--; renderP1(); }
     };
 
@@ -1261,10 +1294,36 @@
     };
 
     // ── PART 3 NAVIGATION ───────────────────────────────────────
+    // Initialize answers storage
+    window.p3Answers = {};
+    
+    function saveP3Answer() {
+        const textarea = document.getElementById('ai-text-p3');
+        if (textarea) {
+            window.p3Answers[p3Current] = textarea.value;
+            localStorage.setItem('allparts_p3_answers', JSON.stringify(window.p3Answers));
+        }
+    }
+    
+    function loadP3Answer() {
+        const textarea = document.getElementById('ai-text-p3');
+        if (textarea && window.p3Answers[p3Current]) {
+            textarea.value = window.p3Answers[p3Current];
+        } else if (textarea) {
+            textarea.value = '';
+        }
+        // Hide AI results when switching questions
+        const resultsPanel = document.getElementById('ai-results-p3');
+        if (resultsPanel) resultsPanel.classList.remove('visible');
+    }
+    
     function renderP3() {
         for (let i = 1; i <= P3_TOTAL; i++) {
             document.getElementById(`p3-q${i}`).classList.toggle('active', i === p3Current);
         }
+        
+        // Load answer for current question (blank if not answered yet)
+        loadP3Answer();
         document.getElementById('p3-progress').textContent =
             `Question ${p3Current} of ${P3_TOTAL}`;
 
@@ -1282,9 +1341,16 @@
     }
 
     window.p3Next = function () {
-        if (p3Current < P3_TOTAL) { p3Current++; renderP3(); }
+        saveP3Answer();
+        if (window.recState.p3) toggleRecord('p3');
+        if (p3Current < P3_TOTAL) { 
+            p3Current++; 
+            renderP3();
+        }
     };
     window.p3Prev = function () {
+        saveP3Answer();
+        if (window.recState.p3) toggleRecord('p3');
         if (p3Current > 1) { p3Current--; renderP3(); }
     };
 
@@ -1294,9 +1360,9 @@
         const waveform = document.getElementById(`waveform-${part}`);
         const label    = document.getElementById(`record-label-${part}`);
 
-        recState[part] = !recState[part];
+        window.recState[part] = !window.recState[part];
 
-        if (recState[part]) {
+        if (window.recState[part]) {
             btn.classList.add('recording');
             waveform.classList.add('visible');
             label.textContent = '● Recording…';

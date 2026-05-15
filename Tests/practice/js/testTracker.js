@@ -22,11 +22,29 @@
      * @param {string} config.feedback - User feedback (optional)
      * @returns {Promise<boolean>} - Success status
      */
+    /**
+     * Get auth token from any known storage key
+     */
+    function getAuthToken() {
+        return localStorage.getItem('authToken')
+            || localStorage.getItem('token')
+            || localStorage.getItem('ielts_token')
+            || sessionStorage.getItem('authToken')
+            || sessionStorage.getItem('token')
+            || sessionStorage.getItem('ielts_token')
+            || null;
+    }
+
     window.saveTestCompletion = async function(config) {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const token = getAuthToken();
+        
+        // Always save to localStorage so dashboard can show it even offline
+        if (config.testType === 'WRITING') {
+            saveWritingCompletionToLocalStorage(config);
+        }
         
         if (!token) {
-            console.log('[TestTracker] No auth token, skipping test tracking');
+            console.log('[TestTracker] No auth token, skipping backend test tracking');
             return false;
         }
 
@@ -60,6 +78,10 @@
             if (response.ok) {
                 const result = await response.json();
                 console.log('[TestTracker] Test completion saved successfully:', result);
+                // Also save to localStorage for dashboard display
+                if (config.testType === 'WRITING' && config.score) {
+                    saveWritingCompletionToLocalStorage(config);
+                }
                 return true;
             } else {
                 const errorText = await response.text();
@@ -89,6 +111,92 @@
             window.location.href = redirectUrl;
         }
     };
+
+    /**
+     * Save writing test completion to localStorage for dashboard display
+     */
+    function saveWritingCompletionToLocalStorage(config) {
+        try {
+            const path = window.location.pathname;
+            const decodedPath = decodeURIComponent(path);
+            const fileName = path.substring(path.lastIndexOf('/') + 1);
+            let testId = config.testId || null;
+
+            // Auto-generate testId from URL if not provided
+            if (!testId) {
+                const allTasksMatch = fileName.match(/All-Tasks-Set(\d+)/);
+                if (allTasksMatch) {
+                    testId = 'W_AT_' + String(parseInt(allTasksMatch[1])).padStart(2, '0');
+                }
+                const setMatch = fileName.match(/Set(\d+)/);
+                if (!testId && setMatch) {
+                    const setNum = parseInt(setMatch[1], 10);
+                    if (decodedPath.includes('Graph') || decodedPath.includes('Chart') || decodedPath.includes('Table')) {
+                        testId = 'W_T1_GRAPH_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Process') || decodedPath.includes('Diagram')) {
+                        testId = 'W_T1_PROC_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Map')) {
+                        testId = 'W_T1_MAP_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Opinion')) {
+                        testId = 'W_T2_OPINION_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Discussion')) {
+                        testId = 'W_T2_DISCUSSION_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Problem') || decodedPath.includes('Solution')) {
+                        testId = 'W_T2_PROBLEM_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Advantages')) {
+                        testId = 'W_T2_ADV_' + String(setNum).padStart(2, '0');
+                    } else if (decodedPath.includes('Direct')) {
+                        testId = 'W_T2_DIRECT_' + String(setNum).padStart(2, '0');
+                    }
+                }
+                const task2Match = fileName.match(/Writing-Part2-Set(\d+)/);
+                if (!testId && task2Match) {
+                    const setNum = parseInt(task2Match[1], 10);
+                    if (decodedPath.includes('Opinion')) testId = 'W_T2_OPINION_' + String(setNum).padStart(2, '0');
+                    else if (decodedPath.includes('Discussion')) testId = 'W_T2_DISCUSSION_' + String(setNum).padStart(2, '0');
+                    else if (decodedPath.includes('Problem') || decodedPath.includes('Solution')) testId = 'W_T2_PROBLEM_' + String(setNum).padStart(2, '0');
+                    else if (decodedPath.includes('Advantages')) testId = 'W_T2_ADV_' + String(setNum).padStart(2, '0');
+                    else if (decodedPath.includes('Direct')) testId = 'W_T2_DIRECT_' + String(setNum).padStart(2, '0');
+                }
+                if (!testId) {
+                    testId = 'W_' + fileName.replace(/[^a-zA-Z0-9]/g, '_');
+                }
+            }
+
+            // Build result
+            const result = {
+                testId: testId,
+                overallBand: config.score ? String(config.score) : null,
+                taskType: config.skillArea || 'WRITING',
+                completedAt: new Date().toISOString(),
+                skill: 'writing'
+            };
+
+            // Save to localStorage
+            let testScores = JSON.parse(localStorage.getItem('writing_test_scores') || '{}');
+            testScores[testId] = result;
+            localStorage.setItem('writing_test_scores', JSON.stringify(testScores));
+
+            // Update writing score if we have one
+            if (config.score) {
+                localStorage.setItem('writingScore', String(config.score));
+            }
+
+            // Update test progress
+            let progress = JSON.parse(localStorage.getItem('testProgress') || '{"listening":0,"reading":0,"writing":0,"speaking":0}');
+            if (typeof progress === 'number') {
+                progress = { listening: 0, reading: 0, writing: progress, speaking: 0 };
+            }
+            if (!progress.writing) progress.writing = 0;
+            const completedIds = Object.keys(testScores);
+            progress.writing = Math.max(progress.writing, completedIds.length);
+            localStorage.setItem('testProgress', JSON.stringify(progress));
+
+            console.log('[TestTracker] Saved writing completion to localStorage:', testId, config.score);
+        } catch (e) {
+            console.warn('[TestTracker] Failed to save to localStorage:', e);
+        }
+    }
 
     console.log('[TestTracker] Test tracking module loaded');
 

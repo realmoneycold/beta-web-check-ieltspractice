@@ -38,6 +38,19 @@
         .loading { text-align: center; padding: 40px; color: #666; }
         .error { padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; margin-bottom: 16px; }
         .chart-container { position: relative; height: 300px; margin-top: 20px; }
+        .two-column { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .criteria-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
+        .criteria-card h3 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .criteria-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .criteria-item:last-child { border-bottom: none; }
+        .criteria-name { font-size: 14px; color: #555; }
+        .criteria-score { font-weight: 700; font-size: 16px; }
+        .criteria-score.low { color: #ef4444; }
+        .criteria-score.medium { color: #f59e0b; }
+        .criteria-score.good { color: #10b981; }
+        .focus-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+        .focus-badge.weakness { background: #fecaca; color: #991b1b; }
+        .focus-badge.strength { background: #d1fae5; color: #065f46; }
     </style>
 </head>
 <body>
@@ -86,12 +99,30 @@
                 </div>
             </div>
 
-            <!-- Skill Progress -->
-            <div class="section">
-                <h2>📈 Skills Progress</h2>
-                <div class="skill-grid" id="skillGrid"></div>
-                <div class="chart-container">
-                    <canvas id="progressChart"></canvas>
+            <!-- Score Progression & Criteria Analysis -->
+            <div class="two-column">
+                <div class="section">
+                    <h2>📈 Score Progression (IELTS Bands)</h2>
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Criteria to Work On -->
+                <div>
+                    <div class="criteria-card" id="criteriaToWorkOn">
+                        <h3>⚠️ Criteria to Work On</h3>
+                        <div id="criteriaWeaknesses">
+                            <div style="color: #666; font-size: 13px;">Complete speaking tests to see your focus areas</div>
+                        </div>
+                    </div>
+                    
+                    <div class="criteria-card" id="criteriaStrengths">
+                        <h3>✅ Your Strengths</h3>
+                        <div id="criteriaStrengthsList">
+                            <div style="color: #666; font-size: 13px;">Complete speaking tests to see your strengths</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -132,6 +163,15 @@
                 const weaknesses = await weaknessesRes.json();
                 const progress = await progressRes.json();
 
+                // DEBUG: Log all API responses
+                console.log('[DEBUG] Overview API response:', overview);
+                console.log('[DEBUG] Overview data:', overview.data);
+                console.log('[DEBUG] Skill statistics:', overview.data?.skillStatistics);
+                console.log('[DEBUG] Progress API response:', progress);
+                console.log('[DEBUG] Progress data:', progress.data);
+                console.log('[DEBUG] Daily progress:', progress.data?.dailyProgress);
+                console.log('[DEBUG] Skill progress:', progress.data?.skillProgress);
+
                 renderOverview(overview.data);
                 renderWeaknesses(weaknesses.data);
                 renderProgress(progress.data);
@@ -146,7 +186,33 @@
 
         function renderOverview(data) {
             document.getElementById('totalTests').textContent = data.overview.totalTests;
-            document.getElementById('avgScore').textContent = data.overview.averageScore.toFixed(1);
+            
+            // Calculate overall current score as average of all 4 skills (L+R+W+S)/4
+            let totalBandScore = 0;
+            let skillCount = 0;
+            const skillStats = data.skillStatistics || [];
+            
+            // Convert percentage scores to IELTS bands (0-9) and average them
+            skillStats.forEach(skill => {
+                if (skill.averageScore > 0) {
+                    // Convert percentage (0-100) to IELTS band (0-9)
+                    const bandScore = (skill.averageScore / 100) * 9;
+                    totalBandScore += bandScore;
+                    skillCount++;
+                }
+            });
+            
+            // Calculate overall average across all skills and round to nearest 0.5 (IELTS standard)
+            const rawOverall = skillCount > 0 ? (totalBandScore / skillCount) : 0;
+            const overallBand = Math.round(rawOverall * 2) / 2;
+            
+            // Display the overall IELTS band score
+            document.getElementById('avgScore').textContent = overallBand.toFixed(1);
+            document.querySelector('#avgScore').parentElement.querySelector('.stat-label').textContent = 'Current Overall Band';
+            
+            // Store for other uses
+            window.calculatedOverallBand = overallBand;
+            
             document.getElementById('studyTime').textContent = Math.floor(data.overview.totalStudyTimeMinutes / 60) + 'h';
             
             const streak = data.studyStreak || {};
@@ -171,19 +237,25 @@
                 skillGrid.appendChild(skillDiv);
             });
 
-            // Render recent activity
+            // Render recent activity - show IELTS bands for speaking tests
             const recentDiv = document.getElementById('recentActivity');
-            recentDiv.innerHTML = data.recentActivity.map(test => `
+            recentDiv.innerHTML = data.recentActivity.map(test => {
+                const isSpeaking = test.testType && test.testType.includes('SPEAKING');
+                const score = isSpeaking ? (test.score ? test.score.toFixed(1) : 'N/A') : (test.percentageScore ? test.percentageScore.toFixed(0) + '%' : 'N/A');
+                const scoreColor = isSpeaking 
+                    ? (test.score >= 7 ? '#10b981' : test.score >= 6 ? '#f59e0b' : '#ef4444')
+                    : (test.percentageScore > 70 ? '#10b981' : test.percentageScore > 50 ? '#f59e0b' : '#ef4444');
+                return `
                 <div style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 600;">${test.testName}</div>
                         <div style="font-size: 13px; color: #666;">${new Date(test.completedAt).toLocaleDateString()}</div>
                     </div>
-                    <div style="font-weight: 700; color: ${test.percentageScore > 70 ? '#10b981' : test.percentageScore > 50 ? '#f59e0b' : '#ef4444'}">
-                        ${test.percentageScore ? test.percentageScore.toFixed(0) + '%' : 'N/A'}
+                    <div style="font-weight: 700; color: ${scoreColor}">
+                        ${isSpeaking ? 'Band ' + score : score}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function renderWeaknesses(data) {
@@ -204,36 +276,217 @@
 
         function renderProgress(data) {
             const ctx = document.getElementById('progressChart').getContext('2d');
-            const labels = data.dailyProgress.map(d => d.date.slice(5));
-            const scores = data.dailyProgress.map(d => d.averageScore);
+            
+            // Check if there's no data
+            if (!data.dailyProgress || data.dailyProgress.length === 0) {
+                document.getElementById('progressChart').parentElement.innerHTML = 
+                    '<div style="text-align:center;padding:40px;color:#666;">' +
+                    '<div style="font-size:48px;margin-bottom:10px;">📊</div>' +
+                    '<div>No progress data yet.</div>' +
+                    '<div style="font-size:13px;margin-top:8px;">Complete some tests to see your score progression!</div>' +
+                    '</div>';
+                return;
+            }
+            
+            // Get all unique dates for labels (chronological order)
+            const allDates = data.dailyProgress.map(d => d.date);
+            const labels = allDates.map(d => d.slice(5)); // MM-DD format
+            
+            // Skill colors matching dashboard
+            const skillColors = {
+                'LISTENING': { border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+                'READING': { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+                'WRITING': { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+                'SPEAKING': { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' }
+            };
+            
+            // Build datasets for each skill from skillProgress (cumulative averages)
+            const datasets = [];
+            const skillProgress = data.skillProgress || {};
+            
+            Object.keys(skillProgress).forEach(skillType => {
+                const skillData = skillProgress[skillType];
+                const color = skillColors[skillType] || { border: '#667eea', bg: 'rgba(102, 126, 234, 0.1)' };
+                
+                // Create data points aligned with all dates
+                // Use cumulative running average (score field) not individual test score
+                const dataPoints = allDates.map(date => {
+                    const entry = skillData.find(d => d.date === date);
+                    return entry ? entry.score : null; // cumulative average up to that point
+                });
+                
+                // Only add dataset if there's actual data
+                const hasData = dataPoints.some(p => p !== null);
+                if (hasData) {
+                    datasets.push({
+                        label: skillType.charAt(0) + skillType.slice(1).toLowerCase(),
+                        data: dataPoints,
+                        borderColor: color.border,
+                        backgroundColor: color.bg,
+                        fill: false,
+                        tension: 0.3,
+                        spanGaps: true, // Connect lines across missing data points
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    });
+                }
+            });
+            
+            // If no skill-specific data, fall back to overall average from dailyProgress
+            if (datasets.length === 0) {
+                const overallScores = allDates.map(date => {
+                    const entry = data.dailyProgress.find(d => d.date === date);
+                    return entry ? entry.averageScore : null;
+                });
+                datasets.push({
+                    label: 'Overall Average',
+                    data: overallScores,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                });
+            }
 
             new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Average Score (%)',
-                        data: scores,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        title: {
+                            display: true,
+                            text: 'Your Average Score Progression',
+                            font: { size: 14 }
+                        },
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.parsed.y;
+                                    return val ? context.dataset.label + ' Avg: Band ' + val.toFixed(1) : context.dataset.label + ': No data';
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: 100
+                            max: 9,
+                            min: 0,
+                            ticks: {
+                                stepSize: 0.5,
+                                callback: function(value) {
+                                    return value.toFixed(1);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Cumulative Average Band Score'
+                            }
                         }
                     }
                 }
             });
+            
+            // Render criteria analysis from localStorage if available
+            renderCriteriaAnalysis();
+        }
+        
+        function renderCriteriaAnalysis() {
+            // Get AI results from localStorage
+            let aiResults = {};
+            try {
+                aiResults = JSON.parse(localStorage.getItem('allparts_ai_results') || '{}');
+            } catch(e) { return; }
+            
+            // Collect all criteria scores
+            const criteriaScores = {
+                fluencyAndCoherence: { total: 0, count: 0, name: 'Fluency & Coherence' },
+                lexicalResource: { total: 0, count: 0, name: 'Lexical Resource' },
+                grammaticalRangeAndAccuracy: { total: 0, count: 0, name: 'Grammar' },
+                pronunciation: { total: 0, count: 0, name: 'Pronunciation' }
+            };
+            
+            ['p1', 'p2', 'p3'].forEach(function(partKey) {
+                if (aiResults[partKey]) {
+                    aiResults[partKey].forEach(function(r) {
+                        if (r.assessment) {
+                            const a = r.assessment;
+                            if (a.fluencyAndCoherence) {
+                                criteriaScores.fluencyAndCoherence.total += parseFloat(a.fluencyAndCoherence.score || a.fluencyAndCoherence.band || 0);
+                                criteriaScores.fluencyAndCoherence.count++;
+                            }
+                            if (a.lexicalResource) {
+                                criteriaScores.lexicalResource.total += parseFloat(a.lexicalResource.score || a.lexicalResource.band || 0);
+                                criteriaScores.lexicalResource.count++;
+                            }
+                            if (a.grammaticalRangeAndAccuracy) {
+                                criteriaScores.grammaticalRangeAndAccuracy.total += parseFloat(a.grammaticalRangeAndAccuracy.score || a.grammaticalRangeAndAccuracy.band || 0);
+                                criteriaScores.grammaticalRangeAndAccuracy.count++;
+                            }
+                            if (a.pronunciation) {
+                                criteriaScores.pronunciation.total += parseFloat(a.pronunciation.score || a.pronunciation.band || 0);
+                                criteriaScores.pronunciation.count++;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Calculate averages and sort
+            const averages = Object.keys(criteriaScores).map(function(key) {
+                const c = criteriaScores[key];
+                return {
+                    key: key,
+                    name: c.name,
+                    avg: c.count > 0 ? (c.total / c.count).toFixed(1) : 0,
+                    count: c.count
+                };
+            }).filter(function(c) { return c.count > 0; });
+            
+            if (averages.length === 0) return;
+            
+            // Sort by average (lowest first for weaknesses, highest for strengths)
+            averages.sort(function(a, b) { return a.avg - b.avg; });
+            
+            // Get weaknesses (bottom 2 or those below 6.0)
+            const weaknesses = averages.filter(function(c) { return c.avg < 6.0; });
+            if (weaknesses.length === 0) weaknesses.push(averages[0]); // At least show the lowest
+            
+            // Get strengths (top 2 or those above 7.0)
+            const strengths = averages.slice().reverse().filter(function(c) { return c.avg >= 7.0; });
+            if (strengths.length === 0) strengths.push(averages[averages.length - 1]); // At least show the highest
+            
+            // Render weaknesses
+            const weaknessesDiv = document.getElementById('criteriaWeaknesses');
+            weaknessesDiv.innerHTML = weaknesses.slice(0, 2).map(function(c) {
+                const scoreClass = c.avg < 5 ? 'low' : (c.avg < 6.5 ? 'medium' : 'good');
+                return '<div class="criteria-item">' +
+                    '<span class="criteria-name">' + c.name + '</span>' +
+                    '<span class="criteria-score ' + scoreClass + '">' + c.avg + '</span>' +
+                    '</div>';
+            }).join('');
+            
+            // Render strengths
+            const strengthsDiv = document.getElementById('criteriaStrengthsList');
+            strengthsDiv.innerHTML = strengths.slice(0, 2).map(function(c) {
+                return '<div class="criteria-item">' +
+                    '<span class="criteria-name">' + c.name + '</span>' +
+                    '<span class="criteria-score good">' + c.avg + '</span>' +
+                    '</div>';
+            }).join('');
         }
 
         function showError(message) {

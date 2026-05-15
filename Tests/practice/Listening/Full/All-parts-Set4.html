@@ -1760,6 +1760,9 @@
                 <div class="modal-body">
                     <p id="score-summary"></p>
                     <div id="result-details"></div>
+                <div style="text-align:center;margin-top:20px;">
+                    <button onclick="window.finishListeningAndSave()" style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;">Finish & Go to Dashboard</button>
+                </div>
                 </div>
             </div>
         </div>
@@ -2050,7 +2053,6 @@
                     span.className = 'highlight';
                     selectedRange.surroundContents(span);
                 } catch(err){
-                    console.warn('Complex selection – fallback highlight');
                     document.execCommand('backColor', false, 'yellow');
                 }
                 window.getSelection().removeAllRanges();
@@ -2072,7 +2074,6 @@
                     span.appendChild(tooltip);
                     selectedRange.surroundContents(span);
                 }catch(err){
-                    console.warn('Complex selection – cannot comment');
                 }
                 window.getSelection().removeAllRanges();
                 closeContextMenu();
@@ -2319,6 +2320,7 @@
                 const resultDetails = document.getElementById('result-details');
                 
                 scoreSummary.textContent = `You scored ${score} out of 40 (Band ${band}).`;
+            window.autoSaveListeningScore(score, band);
                 
                 let tableHTML = '<table><tr><th>Question</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th></tr>';
                 resultsData.forEach(res => {
@@ -2541,7 +2543,6 @@
                 });
 
                 function handleDragStart(e) {
-                    console.log('dragstart', this.textContent.trim());
                     draggedElement = this;
                     // Set drag data so drop zones accept the drop in all browsers
                     e.dataTransfer.effectAllowed = 'move';
@@ -2561,7 +2562,6 @@
                 }
 
                 function handleDragEnter(e) {
-                    console.log('dragenter', this.classList.contains('drop-zone') ? 'zone' : 'list');
                     if (this.classList.contains('drop-zone')) {
                         this.classList.add('drag-over');
                     }
@@ -2575,7 +2575,6 @@
 
                 function handleDropToZone(e) {
                     e.preventDefault();
-                    console.log('drop on zone');
                     this.classList.remove('drag-over');
                     if (!draggedElement) return;
 
@@ -2610,7 +2609,6 @@
 
                 function handleDropToList(e) {
                     e.preventDefault();
-                    console.log('drop back to list');
                     if (!draggedElement) return;
                     this.appendChild(draggedElement);
                     updateAnsweredIndicators();
@@ -2799,5 +2797,6 @@
             return result;
         };
     </script>
+    <script src="../../js/listeningTestUtils.js?v=1"></script>
 </body>
     </html>

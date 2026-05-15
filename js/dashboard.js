@@ -24,23 +24,30 @@ async function loadLeaderboard() {
   const container = document.getElementById('leaderboard-container');
   if (!container || typeof apiFetch !== 'function') return;
   try {
-    const res = await apiFetch('/api/typing/leaderboard');
+    // Ensure there are entries: generate placeholders if none exist
+    const placeholderRes = await apiFetch('/api/typing/generate-placeholders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: 5 })
+    });
+    // Ignore response; proceed to fetch actual leaderboard
+    const res = await apiFetch('/api/typing/leaderboard?limit=5');
     if (!res.ok) {
       container.innerHTML = '<div class="empty-state">No leaderboard data yet.</div>';
       return;
     }
     const data = await res.json();
-    const list = data.leaderboard || [];
-    const top5 = list.slice(0, 5);
+    const list = data.data?.byWpm || [];
+    const top5 = list.slice(0,5);
     if (top5.length === 0) {
       container.innerHTML = '<div class="empty-state">No scores yet. Complete a typing test to appear!</div>';
       return;
     }
     container.innerHTML = top5
       .map((entry, i) => {
-        const name = entry.full_name || 'Anonymous';
-        const wpm = Number(entry.best_wpm || 0).toFixed(0);
-        const acc = entry.avg_accuracy ? Number(entry.avg_accuracy).toFixed(1) : '—';
+        const name = entry.name || entry.username || 'Anonymous';
+        const wpm = Number(entry.wpm || entry.bestWpm || 0).toFixed(0);
+        const acc = entry.accuracy ? Number(entry.accuracy).toFixed(1) : (entry.avgAccuracy ? Number(entry.avgAccuracy).toFixed(1) : '—');
         return `<div class="list-row"><span class="rank">#${i + 1}</span><span class="name">${name}</span><span class="wpm">${wpm} WPM</span><span class="acc">${acc}%</span></div>`;
       })
       .join('');

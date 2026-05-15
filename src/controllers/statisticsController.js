@@ -128,6 +128,17 @@ async function getUserStatistics(req, res) {
       orderBy: { completedAt: 'desc' }
     });
 
+    // Convert skill statistics array to object format for frontend compatibility
+    // Also convert percentage scores to IELTS band scores (0-9)
+    const skillStatsObject = {};
+    skillStats.forEach(stat => {
+      const bandScore = (stat.averageScore / 100) * 9; // Convert percentage to band
+      skillStatsObject[stat.skill] = {
+        ...stat,
+        averageBand: Math.round(bandScore * 2) / 2 // Round to nearest 0.5
+      };
+    });
+
     return res.status(200).json({
       success: true,
       data: {
@@ -139,7 +150,7 @@ async function getUserStatistics(req, res) {
             testAttempts.reduce((sum, t) => sum + (t.timeSpentSeconds || 0), 0) / 60
           )
         },
-        skillStatistics: skillStats,
+        skillStatistics: skillStatsObject, // Now in object format with averageBand
         studyStreak: studyStreak || { currentStreak: 0, longestStreak: 0 },
         recentActivity: recentActivity.slice(0, 10),
         testHistory: testAttempts.slice(0, 50) // Last 50 tests
@@ -242,31 +253,106 @@ async function getProgressOverTime(req, res) {
       }
     });
 
-    // Group by date for trend analysis
-    const progressByDate = {};
-    attempts.forEach(attempt => {
-      const date = attempt.completedAt.toISOString().split('T')[0];
-      if (!progressByDate[date]) {
-        progressByDate[date] = [];
-      }
-      progressByDate[date].push(attempt);
-    });
+    // DEBUG: Log what we found
+    console.log(`[DEBUG] User ${userId} attempts found:`, attempts.length);
+    console.log(`[DEBUG] Attempts:`, attempts.map(a => ({ type: a.testType, score: a.score, date: a.completedAt.toISOString().split('T')[0] })));
 
-    // Calculate daily averages
-    const dailyProgress = Object.entries(progressByDate).map(([date, tests]) => ({
-      date,
-      averageScore: tests.reduce((sum, t) => sum + (t.percentageScore || 0), 0) / tests.length,
-      testsCompleted: tests.length,
-      skills: [...new Set(tests.map(t => t.testType))]
-    }));
+    // Group attempts by skill type and calculate CUMULATIVE RUNNING AVERAGES
+    // This shows how the user's average score for each skill progresses over time
+    const skillAttempts = {};
+    
+    // Sort all attempts by date first
+    attempts.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
+    
+    // Group by skill type
+    attempts.forEach(attempt => {
+      const skillType = attempt.testType;
+      if (!skillAttempts[skillType]) skillAttempts[skillType] = [];
+      skillAttempts[skillType].push(attempt);
+    });
+    
+    // Calculate cumulative running averages for each skill
+    const skillProgress = {};
+    const allProgressPoints = [];
+    
+    Object.keys(skillAttempts).forEach(skillType => {
+      const tests = skillAttempts[skillType];
+      let runningSum = 0;
+      
+      skillProgress[skillType] = tests.map((test, index) => {
+        const isBandScore = skillType === 'SPEAKING' || skillType === 'WRITING';
+        let score;
+        if (isBandScore) {
+          score = test.score || 0;
+        } else {
+          // Convert percentage to 0-9 scale
+          score = ((test.percentageScore || 0) / 100 * 9);
+        }
+        
+        runningSum += score;
+        const runningAverage = runningSum / (index + 1);
+        const date = test.completedAt.toISOString().split('T')[0];
+        
+        allProgressPoints.push({
+          date,
+          skill: skillType,
+          runningAverage: parseFloat(runningAverage.toFixed(2)),
+          testNumber: index + 1
+        });
+        
+        return {
+          date,
+          score: runningAverage, // This is the cumulative average up to this test
+          testScore: score, // Individual test score
+          testNumber: index + 1
+        };
+      });
+    });
+    
+    // Get unique sorted dates for the overall timeline
+    const uniqueDates = [...new Set(allProgressPoints.map(p => p.date))].sort();
+    
+    // Build daily progress showing the latest running average for each skill on each date
+    const dailyProgress = uniqueDates.map(date => {
+      const dayPoints = allProgressPoints.filter(p => p.date === date);
+      const skillAverages = {};
+      
+      // Get the latest running average for each skill on this date
+      ['LISTENING', 'READING', 'WRITING', 'SPEAKING'].forEach(skillType => {
+        const skillPoint = dayPoints
+          .filter(p => p.skill === skillType)
+          .pop(); // Get the last test of this skill on this date
+        if (skillPoint) {
+          skillAverages[skillType] = skillPoint.runningAverage;
+        }
+      });
+      
+      const allScores = Object.values(skillAverages);
+      const overallAvg = allScores.length > 0 
+        ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length 
+        : 0;
+      
+      return {
+        date,
+        averageScore: overallAvg,
+        testsCompleted: dayPoints.length,
+        skills: Object.keys(skillAverages),
+        skillAverages
+      };
+    });
 
     // Calculate trend (improving/declining)
     const trend = calculateTrend(attempts);
+
+    // DEBUG: Log what's being returned
+    console.log(`[DEBUG] skillProgress:`, skillProgress);
+    console.log(`[DEBUG] dailyProgress:`, dailyProgress);
 
     return res.status(200).json({
       success: true,
       data: {
         dailyProgress,
+        skillProgress, // Per-skill progress data
         trend,
         totalTests: attempts.length,
         skill: skill || 'all'
@@ -345,15 +431,34 @@ async function updateSkillStatistics(userId, testType) {
 
     if (attempts.length === 0) return;
 
-    const scores = attempts.map(a => a.percentageScore || 0).filter(s => s > 0);
+    // For band-scored tests (SPEAKING, WRITING), use actual score (0-9)
+    // For percentage-scored tests (LISTENING, READING), use percentageScore (0-100)
+    const scores = attempts.map(a => {
+      const isBandScore = a.testType === 'SPEAKING' || a.testType === 'WRITING';
+      if (isBandScore) {
+        // Convert band score (0-9) to percentage (0-100) for consistent averaging
+        return ((a.score || 0) / 9) * 100;
+      }
+      return a.percentageScore || 0;
+    }).filter(s => s > 0);
+    
     const times = attempts.map(a => a.timeSpentSeconds || 0).filter(t => t > 0);
+
+    // Calculate best/worst scores using the same logic
+    const rawScores = attempts.map(a => {
+      const isBandScore = a.testType === 'SPEAKING' || a.testType === 'WRITING';
+      if (isBandScore) {
+        return ((a.score || 0) / 9) * 100;
+      }
+      return a.percentageScore || 0;
+    }).filter(s => s > 0);
 
     const stats = {
       totalAttempts: attempts.length,
       completedAttempts: attempts.filter(a => a.status === 'COMPLETED').length,
       averageScore: scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0,
-      bestScore: scores.length > 0 ? Math.max(...scores) : 0,
-      worstScore: scores.length > 0 ? Math.min(...scores) : 0,
+      bestScore: rawScores.length > 0 ? Math.max(...rawScores) : 0,
+      worstScore: rawScores.length > 0 ? Math.min(...rawScores) : 0,
       totalTimeSpentSeconds: times.reduce((a, b) => a + b, 0),
       averageTimeSpentSeconds: times.length > 0 ? Math.floor(times.reduce((a, b) => a + b, 0) / times.length) : 0,
       lastAttemptAt: attempts[attempts.length - 1].completedAt

@@ -216,7 +216,71 @@ router.get('/category/:category', verifyToken, async (req, res) => {
       });
     }
     
-    // Find the leaderboard for this category
+    // Special handling for TYPING_DOJO - query from TypingRanking table
+    if (categoryUpper === 'TYPING_DOJO') {
+      console.log('[API] Fetching TYPING_DOJO rankings from TypingRanking table...');
+      
+      // Get all rankings from the dedicated table with user info
+      let rankings = await prisma.typingRanking.findMany({
+        orderBy: { score: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              full_name: true,
+              username: true,
+              country: true,
+            }
+          }
+        }
+      });
+      
+      console.log(`[API] Found ${rankings.length} rankings in TypingRanking table`);
+
+      // Filter by country if requested
+      if (country) {
+        rankings = rankings.filter(r => r.user?.country?.toLowerCase() === country.toLowerCase());
+      }
+
+      // Get total count before pagination
+      const totalCount = rankings.length;
+
+      // Apply pagination
+      const paginated = rankings.slice(offset, offset + limit);
+
+      // Format for response
+      const formattedRankings = paginated.map((r, index) => ({
+        rank: r.rank || (offset + index + 1),
+        id: r.userId,
+        name: r.user?.full_name || r.user?.username || 'Anonymous',
+        username: r.user?.username,
+        country: r.user?.country || 'Unknown',
+        score: r.score,
+        wpm: r.bestWpm,
+        accuracy: r.avgAccuracy,
+        testsTaken: r.testsCount,
+        isPlaceholder: false,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user?.username || r.userId}`,
+        trend: 'stable',
+        trendAmount: '0'
+      }));
+
+      console.log(`[API] Returning ${formattedRankings.length} formatted rankings (paginated)`);
+      formattedRankings.forEach(r => {
+        console.log(`[API]   - Rank #${r.rank}: ${r.name} (ID=${r.id}, Score=${r.score})`);
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          rankings: formattedRankings,
+          totalCount,
+          hasMore: offset + paginated.length < totalCount
+        }
+      });
+    }
+    
+    // For other categories, use the pre-calculated leaderboard
     const leaderboard = await prisma.leaderboard.findUnique({
       where: { category: categoryUpper },
       include: {
@@ -242,7 +306,6 @@ router.get('/category/:category', verifyToken, async (req, res) => {
     });
     
     if (!leaderboard) {
-      // If no pre-calculated leaderboard, return empty or fallback
       return res.json({
         success: true,
         data: {

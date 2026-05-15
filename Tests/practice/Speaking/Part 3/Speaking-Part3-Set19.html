@@ -61,6 +61,304 @@
         .q-dot.visited { background: #8899b8; }
         .highlight { background: #ffeb3b; border-radius: 2px; }
         @media (max-width: 600px) { .main-container { padding: 0 12px 30px; } .card-body { padding: 16px; } }
+    
+        /* AI Speaking Review Styles */
+        .ai-response-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px dashed #ddd;
+        }
+        .ai-response-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .ai-response-textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 15px;
+            line-height: 1.5;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        .ai-response-textarea:focus {
+            outline: none;
+            border-color: #8B5CF6;
+        }
+        .ai-response-textarea.transcribing {
+            border-color: #10B981;
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-border {
+            0%, 100% { border-color: #10B981; box-shadow: 0 0 0 0 rgba(16,185,129,0.2); }
+            50% { border-color: #34D399; box-shadow: 0 0 0 4px rgba(16,185,129,0.1); }
+        }
+        .ai-review-btn {
+            margin-top: 10px;
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: Arial, sans-serif;
+        }
+        .ai-review-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+        }
+        .ai-review-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .ai-loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: ai-spin 0.8s linear infinite;
+        }
+        @keyframes ai-spin {
+            to { transform: rotate(360deg); }
+        }
+        .ai-results-panel {
+            margin-top: 16px;
+            padding: 16px;
+            background: #faf9ff;
+            border-radius: 10px;
+            border: 1px solid #e8e0f5;
+            display: none;
+        }
+        .ai-results-panel.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        .ai-overall-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .ai-overall-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+        }
+        .ai-overall-score {
+            font-size: 24px;
+            font-weight: 800;
+            color: #fff;
+        }
+        .ai-band-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #fff;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .ai-criteria-name {
+            font-size: 13px;
+            color: #666;
+        }
+        .ai-band-badge {
+            background: #8B5CF6;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .ai-feedback-section {
+            margin-top: 12px;
+            padding: 12px;
+            background: #fff;
+            border-radius: 6px;
+        }
+        .ai-feedback-heading {
+            font-size: 12px;
+            font-weight: 700;
+            color: #8B5CF6;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .ai-feedback-text {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        /* Results Modal Styles */
+        .results-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .results-overlay.visible {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        .results-modal {
+            background: #fff;
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .results-header {
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: #fff;
+            padding: 20px 24px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .results-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .results-close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .results-close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .results-overall-bar {
+            background: #f9f5ff;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e0d4f7;
+        }
+        .results-overall-label {
+            font-size: 16px;
+            font-weight: 700;
+            color: #555;
+        }
+        .results-overall-score {
+            font-size: 36px;
+            font-weight: 800;
+            color: #7C3AED;
+        }
+        .results-body {
+            padding: 20px 24px;
+        }
+        .results-question-block {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .results-question-block:last-child {
+            border-bottom: none;
+        }
+        .results-question-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+        .results-answer-text {
+            font-size: 13px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        .results-ai-band {
+            display: inline-block;
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .results-loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .results-loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0d4f7;
+            border-top-color: #8B5CF6;
+            border-radius: 50%;
+            animation: ai-spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        .results-footer {
+            padding: 16px 24px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .results-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .results-btn-primary {
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: #fff;
+        }
+        .results-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+        }
+        .results-btn-secondary {
+            background: #f0f0f0;
+            color: #444;
+        }
     </style>
 </head>
 <body>
@@ -107,6 +405,15 @@
                     </button>
                     <span class="record-label" id="record-label-p3">Tap to Record Your Answer</span>
                 </div>
+            
+                <!-- AI Speaking Review Section -->
+                <div class="ai-response-section">
+                    <label class="ai-response-label">✍️ Type your answer here for AI Review</label>
+                    <textarea id="ai-text-p3" class="ai-response-textarea" placeholder="Type or speak..."></textarea>
+                    <button id="ai-btn-p3" class="ai-review-btn" onclick="submitSpeakingReview('p3')">🤖 Get AI Feedback</button>
+                    <div id="ai-results-p3" class="ai-results-panel"></div>
+                </div>
+
             </div>
             <div class="card-footer">
                 <button class="nav-btn prev" id="p3-prev" onclick="p3Prev()" disabled>← Previous</button>
@@ -128,7 +435,7 @@
         // Part 3 navigation
         let p3Current = 1;
         const P3_TOTAL = 3;
-        const recState = {'p3': false};
+        window.recState = {'p3': false}; // Expose globally for speech recognition
         
         // Timer elements
         const timerDisplay = document.getElementById('timer-display');
@@ -182,7 +489,7 @@
         
         // Part 3 Navigation
         function renderP3(){
-            if(recState.p3) toggleRecord('p3');
+            if(window.recState.p3) toggleRecord('p3');
             for(let i=1; i<=P3_TOTAL; i++){
                 const q = document.getElementById('p3-q'+i);
                 q.classList.remove('active');
@@ -204,23 +511,46 @@
                 else if(i+1 < p3Current) d.classList.add('visited');
             });
             document.getElementById('record-label-p3').textContent = 'Tap to Record Your Answer';
+            
+            // Load saved answer for current question and hide results
+            const aiTextarea = document.getElementById('ai-text-p3');
+            const aiResults = document.getElementById('ai-results-p3');
+            if (aiTextarea) aiTextarea.value = window.p3Answers[p3Current] || '';
+            if (aiResults) aiResults.classList.remove('visible');
+        }
+        
+
+        // Save current answer before navigating
+        function saveCurrentAnswer(){
+            const aiTextarea = document.getElementById('ai-text-p3');
+            if (aiTextarea) {
+                window.p3Answers[p3Current] = aiTextarea.value;
+            }
         }
         
         window.p3Next = function(){
-            if(recState.p3){
+            saveCurrentAnswer();
+            if(window.recState.p3){
                 toggleRecord('p3');
                 setTimeout(()=>{
                     if(p3Current < P3_TOTAL){ p3Current++; renderP3(); }
-                    else if(confirm('Test complete!')) window.location.href='../index.html';
+                    else if(confirm('Test complete! Get AI evaluation for all answers?')){
+                    saveCurrentAnswer();
+                    evaluateAllAnswers();
+                }
                 }, 300);
             } else {
                 if(p3Current < P3_TOTAL){ p3Current++; renderP3(); }
-                else if(confirm('Test complete!')) window.location.href='../index.html';
+                else if(confirm('Test complete! Get AI evaluation for all answers?')){
+                    saveCurrentAnswer();
+                    evaluateAllAnswers();
+                }
             }
         };
         
         window.p3Prev = function(){
-            if(recState.p3) toggleRecord('p3');
+            saveCurrentAnswer();
+            if(window.recState.p3) toggleRecord('p3');
             if(p3Current > 1){ p3Current--; renderP3(); }
         };
         
@@ -228,8 +558,8 @@
             const btn = document.getElementById('record-btn-'+part);
             const wf = document.getElementById('waveform-'+part);
             const lbl = document.getElementById('record-label-'+part);
-            recState[part] = !recState[part];
-            if(recState[part]){
+            window.recState[part] = !window.recState[part];
+            if(window.recState[part]){
                 btn.classList.add('recording');
                 wf.classList.add('visible');
                 lbl.textContent = '🔴 Recording Answer for Question '+p3Current+'...';
@@ -258,12 +588,333 @@
         renderP3();
         renderTimer();
     })();
+
+    // AI Speaking Review Functions
+
+    // Round to nearest 0.5 for IELTS band scores
+    function roundToHalf(value) {
+        return Math.round(value * 2) / 2;
+    }
+    function getAuthToken() {
+        return localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('ielts_token') || '';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getCurrentQuestionText() {
+        const activeBlock = document.querySelector('.question-block.active');
+        if(!activeBlock) return '';
+        const heading = activeBlock.querySelector('.p3-topic-heading');
+        const question = activeBlock.querySelector('.p3-question');
+        return (heading ? heading.textContent + ': ' : '') + (question ? question.textContent : '');
+    }
+
+    window.submitSpeakingReview = async function(part) {
+        const textarea = document.getElementById('ai-text-' + part);
+        const btn = document.getElementById('ai-btn-' + part);
+        const resultsPanel = document.getElementById('ai-results-' + part);
+        const text = textarea ? textarea.value.trim() : '';
+
+        if (!text || text.length < 20) {
+            alert('Please write at least 20 characters before submitting for AI review.');
+            return;
+        }
+
+        const token = getAuthToken();
+        if (!token) {
+            alert('You need to be logged in to use AI review.');
+            return;
+        }
+
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="ai-loading"></span> Analyzing...';
+        resultsPanel.classList.remove('visible');
+        resultsPanel.innerHTML = '';
+
+        const questionPrompt = getCurrentQuestionText();
+
+        try {
+            const res = await fetch('/api/ai/assess-speaking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ speakingText: text, partType: 'Part3', questionPrompt: questionPrompt })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'AI review failed');
+            displaySpeakingResults(resultsPanel, data.assessment);
+        } catch (err) {
+            console.error('AI review error:', err);
+            resultsPanel.innerHTML = '<p style="color:#e53935;font-size:13px;font-weight:600;">⚠️ ' + (err.message || 'Error. Try again.') + '</p>';
+            resultsPanel.classList.add('visible');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    };
+
+    function displaySpeakingResults(panel, a) {
+        const f = a.fluencyAndCoherence || {};
+        const l = a.lexicalResource || {};
+        const g = a.grammaticalRangeAndAccuracy || {};
+        const p = a.pronunciation || {};
+        const overall = a.overallBandRounded || a.overallScore || 'N/A';
+
+        let html = '<div class="ai-overall-row"><span class="ai-overall-label">Overall Band</span><span class="ai-overall-score">' + overall + '</span></div>';
+        html += '<div class="ai-band-row"><span class="ai-criteria-name">Fluency & Coherence</span><span class="ai-band-badge">' + (f.score || f.band || 'N/A') + '</span></div>';
+        html += '<div class="ai-band-row"><span class="ai-criteria-name">Lexical Resource</span><span class="ai-band-badge">' + (l.score || l.band || 'N/A') + '</span></div>';
+        html += '<div class="ai-band-row"><span class="ai-criteria-name">Grammar</span><span class="ai-band-badge">' + (g.score || g.band || 'N/A') + '</span></div>';
+        html += '<div class="ai-band-row"><span class="ai-criteria-name">Pronunciation</span><span class="ai-band-badge">' + (p.score || p.band || 'N/A') + '</span></div>';
+
+        if (a.examinerNotes) {
+            html += '<div class="ai-feedback-section"><div class="ai-feedback-heading">Examiner Notes</div><div class="ai-feedback-text">' + escapeHtml(a.examinerNotes) + '</div></div>';
+        }
+        if (a.strengths && a.strengths.length) {
+            html += '<div class="ai-feedback-section"><div class="ai-feedback-heading">Strengths</div><div class="ai-feedback-text">' + a.strengths.map(function(s) { return '✅ ' + escapeHtml(s); }).join('<br>') + '</div></div>';
+        }
+        if (a.weaknesses && a.weaknesses.length) {
+            html += '<div class="ai-feedback-section"><div class="ai-feedback-heading">Areas to Improve</div><div class="ai-feedback-text">' + a.weaknesses.map(function(w) { return '⚠️ ' + escapeHtml(w); }).join('<br>') + '</div></div>';
+        }
+        if (a.improvements && a.improvements.length) {
+            html += '<div class="ai-feedback-section"><div class="ai-feedback-heading">Suggestions</div><div class="ai-feedback-text">' + a.improvements.map(function(i) { return '💡 ' + escapeHtml(i); }).join('<br>') + '</div></div>';
+        }
+        if (p.wordsToPractice && p.wordsToPractice.length) {
+            html += '<div class="ai-feedback-section"><div class="ai-feedback-heading">Words to Practice</div><div class="ai-feedback-text">' + p.wordsToPractice.map(function(w) { return escapeHtml(w); }).join(', ') + '</div></div>';
+        }
+
+        panel.innerHTML = html;
+        panel.classList.add('visible');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Speech Recognition Setup
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const speechRecs = {};
+
+    function startSpeechRecognition(part) {
+        if (!SpeechRecognition) return;
+        const textarea = document.getElementById('ai-text-' + part);
+        if (!textarea) return;
+
+        const rec = new SpeechRecognition();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = 'en-US';
+
+        let finalTranscript = '';
+
+        rec.onresult = (e) => {
+            let interim = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                const t = e.results[i][0].transcript;
+                if (e.results[i].isFinal) finalTranscript += t + ' ';
+                else interim += t;
+            }
+            textarea.value = finalTranscript + interim;
+            textarea.classList.add('transcribing');
+        };
+
+        rec.onerror = (e) => {
+            console.warn('Speech error:', e.error);
+            textarea.placeholder = 'Mic blocked — type instead';
+        };
+
+        rec.onend = () => {
+            textarea.classList.remove('transcribing');
+            if (window.recState[part]) startSpeechRecognition(part);
+        };
+
+        speechRecs[part] = rec;
+        try { rec.start(); } catch(e) { console.warn('Speech start failed:', e); }
+    }
+
+    function stopSpeechRecognition(part) {
+        const rec = speechRecs[part];
+        if (rec) {
+            rec.stop();
+            rec.abort();
+            delete speechRecs[part];
+        }
+    }
+
+    // Store AI results for each question
+    const aiResults = {};
+
+    // Evaluate all answers with AI
+    async function evaluateAllAnswers(){
+        const resultsOverlay = document.getElementById('resultsOverlay');
+        const resultsBody = document.getElementById('resultsBody');
+        const overallScoreEl = document.getElementById('resultsOverallScore');
+
+        resultsOverlay.classList.add('visible');
+        resultsBody.innerHTML = '<div class="results-loading"><div class="results-loading-spinner"></div><p>Analyzing all your answers with AI...<br><small>Evaluating Question 1 of ' + window.P3_TOTAL + '</small></p></div>';
+        overallScoreEl.textContent = '—';
+
+        const token = getAuthToken();
+        if(!token){
+            resultsBody.innerHTML = '<p style="color:#e53935;text-align:center;">You need to be logged in to use AI evaluation.</p>';
+            return;
+        }
+
+        let totalBand = 0;
+        let bandCount = 0;
+        let resultsHtml = '';
+        let evaluatedCount = 0;
+        let answeredCount = 0;
+
+        // Count how many questions have answers
+        for(let i=1; i<=window.P3_TOTAL; i++){
+            if(window.p3Answers[i] && window.p3Answers[i].trim()) answeredCount++;
+        }
+
+        // Evaluate each question
+        for(let i=1; i<=window.P3_TOTAL; i++){
+            const answer = window.p3Answers[i] || '';
+            const questionText = window.getQuestionText(i);
+
+            if(!answer.trim()){
+                resultsHtml += '<div class="results-question-block">';
+                resultsHtml += '<div class="results-question-title">Question ' + i + '</div>';
+                resultsHtml += '<div class="results-empty" style="color:#999;font-style:italic;">No answer provided (skipped)</div>';
+                resultsHtml += '</div>';
+                // Update progress
+                resultsBody.innerHTML = resultsHtml + '<div class="results-loading" style="margin-top:20px;"><div class="results-loading-spinner"></div><p>Evaluating Question ' + (i+1) + ' of ' + window.P3_TOTAL + '<br><small>' + evaluatedCount + ' of ' + answeredCount + ' answers evaluated</small></p></div>';
+                continue;
+            }
+
+            try{
+                // Create an AbortController for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+                const res = await fetch('/api/ai/assess-speaking', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        speakingText: answer,
+                        partType: 'Part3',
+                        questionPrompt: questionText
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const data = await res.json();
+
+                if(data.success && data.assessment){
+                    const a = data.assessment;
+                    const band = roundToHalf(parseFloat(a.overallBandRounded || a.overallScore || 0));
+                    aiResults[i] = a;
+                    evaluatedCount++;
+
+                    if(!isNaN(band) && band > 0){
+                        totalBand += band;
+                        bandCount++;
+                    }
+
+                    resultsHtml += '<div class="results-question-block">';
+                    resultsHtml += '<div class="results-question-title">Question ' + i + '</div>';
+                    resultsHtml += '<div class="results-answer-text">' + escapeHtml(answer.substring(0, 100) + (answer.length > 100 ? '...' : '')) + '</div>';
+                    resultsHtml += '<div class="results-ai-band">Band: ' + band + '</div>';
+                    resultsHtml += '</div>';
+                } else {
+                    resultsHtml += '<div class="results-question-block">';
+                    resultsHtml += '<div class="results-question-title">Question ' + i + '</div>';
+                    resultsHtml += '<div class="results-answer-text">' + escapeHtml(answer.substring(0, 100)) + '...</div>';
+                    resultsHtml += '<div style="color:#e53935;">AI evaluation failed: ' + (data.error || 'Unknown error') + '</div>';
+                    resultsHtml += '</div>';
+                }
+            } catch(err){
+                console.error('AI evaluation error for Q' + i, err);
+                let errorMsg = err.message;
+                if(err.name === 'AbortError') errorMsg = 'Request timed out (30s)';
+                resultsHtml += '<div class="results-question-block">';
+                resultsHtml += '<div class="results-question-title">Question ' + i + '</div>';
+                resultsHtml += '<div class="results-answer-text">' + escapeHtml(answer.substring(0, 100)) + '...</div>';
+                resultsHtml += '<div style="color:#e53935;">Error: ' + escapeHtml(errorMsg) + '</div>';
+                resultsHtml += '</div>';
+            }
+
+            // Update body with current progress
+            const nextQ = i < window.P3_TOTAL ? i + 1 : 'Done';
+            const progressMsg = nextQ === 'Done' ? 'Complete!' : 'Evaluating Question ' + nextQ + ' of ' + window.P3_TOTAL;
+            resultsBody.innerHTML = resultsHtml + '<div class="results-loading" style="margin-top:20px;"><div class="results-loading-spinner"></div><p>' + progressMsg + '<br><small>' + evaluatedCount + ' of ' + answeredCount + ' answers evaluated</small></p></div>';
+        }
+
+        // Calculate overall band
+        let overallBand = '—';
+        if(bandCount > 0){
+            overallBand = roundToHalf(totalBand / bandCount).toFixed(1);
+            overallScoreEl.textContent = overallBand;
+
+            // Save the overall result
+            window.autoSaveSpeakingScore && window.autoSaveSpeakingScore(null, overallBand);
+        } else {
+            overallScoreEl.textContent = '—';
+        }
+
+        // Final results without loading spinner
+        let summaryText = '';
+        if(bandCount > 0){
+            summaryText = '<div style="text-align:center;margin:20px 0;padding:15px;background:#f0fdf4;border-radius:8px;"><strong style="color:#10B981;">' + evaluatedCount + ' answers evaluated</strong><br>Based on ' + bandCount + ' scored answers<br>Skipped: ' + (window.P3_TOTAL - answeredCount) + ' questions</div>';
+        } else {
+            summaryText = '<div style="text-align:center;margin:20px 0;padding:15px;background:#fef2f2;border-radius:8px;color:#e53935;">No answers could be evaluated.<br>Please provide at least one answer.</div>';
+        }
+        resultsBody.innerHTML = summaryText + resultsHtml;
+    }
+
+    window.closeResults = function(){
+        document.getElementById('resultsOverlay').classList.remove('visible');
+    };
+
+    window.finishTestWithAI = async function(){
+        const overallScoreEl = document.getElementById('resultsOverallScore');
+        const overallBand = overallScoreEl.textContent !== '—' ? overallScoreEl.textContent : null;
+
+        // Save all answers to localStorage for reference
+        localStorage.setItem('speaking_p3_set19_answers', JSON.stringify(window.p3Answers));
+        localStorage.setItem('speaking_p3_set19_ai_results', JSON.stringify(aiResults));
+
+        // Save score
+        if(overallBand && overallBand !== '—'){
+            window.saveSpeakingTestScore && window.saveSpeakingTestScore(null, overallBand, 'S_P3_19', 'Speaking Part 3 - Set 19');
+        }
+        
+        // Save test completion
+        try {
+            await saveTestCompletionLocal();
+        } catch(e) {
+            console.log('Test completion save attempted');
+        }
+        
+        // Redirect to dashboard immediately
+        window.location.href = '/dashboard.html';
+    };
+
     </script>
 
     <!-- Test Tracking -->
     <script src="../../js/testTracker.js"></script>
     <script>
-        async function saveTestCompletion() {
+    
+    window.getQuestionText = function(qNum){
+        const qBlock = document.getElementById('p3-q'+qNum);
+        if(qBlock){
+            const heading = qBlock.querySelector('.p3-topic-heading');
+            const question = qBlock.querySelector('.p3-question');
+            return (heading ? heading.textContent + ': ' : '') + (question ? question.textContent : '');
+        }
+        return '';
+    }
+    
+        async function saveTestCompletionLocal() {
             await window.saveTestCompletion({
                 testType: 'SPEAKING',
                 testId: 'Speaking-Part3-Set19',
@@ -274,5 +925,27 @@
             });
         }
     </script>
+
+    <!-- Results Modal -->
+    <div class="results-overlay" id="resultsOverlay">
+        <div class="results-modal">
+            <div class="results-header">
+                <h2>Speaking Test Results</h2>
+                <button class="results-close-btn" onclick="closeResults()">×</button>
+            </div>
+            <div class="results-overall-bar" id="resultsOverall">
+                <span class="results-overall-label">Overall Band</span>
+                <span class="results-overall-score" id="resultsOverallScore">—</span>
+            </div>
+            <div class="results-body" id="resultsBody">
+                <!-- Populated by JS -->
+            </div>
+            <div class="results-footer">
+                <button class="results-btn results-btn-secondary" onclick="closeResults()">Close</button>
+                <button class="results-btn results-btn-primary" onclick="finishTestWithAI()">Finish & Go to Dashboard</button>
+            </div>
+        </div>
+    </div>
+    <script src="../../js/speakingTestUtils.js?v=1"></script>
 </body>
 </html>

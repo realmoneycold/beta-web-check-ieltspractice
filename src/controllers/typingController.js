@@ -11,7 +11,7 @@ async function getLeaderboard(req, res) {
 
     // Sanitize limit
     limit = parseInt(limit) || 10;
-    if (limit > 100) limit = 100;
+    if (limit > 200) limit = 200;
     if (limit < 1) limit = 1;
 
     // Sanitize period
@@ -218,6 +218,61 @@ async function submitTypingResult(req, res) {
       create: { userId, date: today, isCompleted: true },
     });
 
+    // Update TypingRanking table - this stores and compares ALL users
+    try {
+      // Get all user's typing results to calculate best WPM and avg accuracy
+      const userResults = await prisma.typingResult.findMany({
+        where: { userId },
+        orderBy: { date: 'desc' }
+      });
+
+      const bestWpm = Math.max(...userResults.map(r => r.wpm));
+      const avgAccuracy = parseFloat((userResults.reduce((sum, r) => sum + r.accuracy, 0) / userResults.length).toFixed(1));
+      const score = Math.round((bestWpm * 0.7) + (avgAccuracy * 0.3));
+      const testsCount = userResults.length;
+
+      // Upsert TypingRanking entry
+      await prisma.typingRanking.upsert({
+        where: { userId },
+        update: {
+          bestWpm,
+          avgAccuracy,
+          testsCount,
+          score,
+          lastTestDate: new Date(),
+          rank: 0 // Will be recalculated below
+        },
+        create: {
+          userId,
+          bestWpm,
+          avgAccuracy,
+          testsCount,
+          score,
+          lastTestDate: new Date(),
+          rank: 0
+        }
+      });
+
+      // Recalculate ALL ranks across all users
+      const allRankings = await prisma.typingRanking.findMany({
+        orderBy: { score: 'desc' }
+      });
+
+      for (let i = 0; i < allRankings.length; i++) {
+        await prisma.typingRanking.update({
+          where: { id: allRankings[i].id },
+          data: { rank: i + 1 }
+        });
+      }
+
+      const userRank = allRankings.findIndex(r => r.userId === userId) + 1;
+      console.log(`✅ Updated TypingRanking for user ${userId}, score: ${score}, rank: ${userRank}/${allRankings.length}`);
+
+    } catch (rankingErr) {
+      console.error('⚠️ Error updating TypingRanking (non-critical):', rankingErr);
+      // Don't fail the request if ranking update fails
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Typing result saved',
@@ -333,10 +388,192 @@ async function getUserTypingHistory(req, res) {
   }
 }
 
+// ─── GENERATE PLACEHOLDER ENTRIES ─────────────────────────────────────────
+// POST /api/typing/generate-placeholders
+async function generatePlaceholders(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const { count = 5 } = req.body;
+    const minUsers = Math.min(count, 10);
+
+    // Get or create the TYPING_DOJO leaderboard
+    let typingLeaderboard = await prisma.leaderboard.findUnique({
+      where: { category: 'TYPING_DOJO' }
+    });
+    
+    if (!typingLeaderboard) {
+      typingLeaderboard = await prisma.leaderboard.create({
+        data: {
+          category: 'TYPING_DOJO',
+          title: 'Typing Dojo Masters',
+          description: 'Highest WPM in Typing Dojo'
+        }
+      });
+    }
+
+    // Count existing real entries (non-placeholder)
+    const realEntriesCount = await prisma.leaderboardEntry.count({
+      where: { 
+        leaderboardId: typingLeaderboard.id,
+        isPlaceholder: false
+      }
+    });
+
+    // Count existing placeholders
+    const existingPlaceholders = await prisma.leaderboardEntry.count({
+      where: { 
+        leaderboardId: typingLeaderboard.id,
+        isPlaceholder: true
+      }
+    });
+
+    // Only add placeholders if we have fewer than minUsers real entries
+    // and we haven't already added placeholders
+    if (realEntriesCount >= minUsers || existingPlaceholders > 0) {
+      return res.status(200).json({
+        success: true,
+        message: existingPlaceholders > 0 
+          ? 'Placeholders already exist' 
+          : 'Enough real users, no placeholders needed',
+        data: { added: 0, existingPlaceholders, realEntriesCount }
+      });
+    }
+
+    // Get current user's score as reference
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { full_name: true, username: true, country: true }
+    });
+
+    // Get user's best stats
+    const userStats = await prisma.typingResult.aggregate({
+      where: { userId },
+      _max: { wpm: true },
+      _avg: { accuracy: true }
+    });
+
+    const userBestWpm = userStats._max.wpm || 30;
+    const userAvgAccuracy = userStats._avg.accuracy || 80;
+    const userScore = Math.round((userBestWpm * 0.7) + (userAvgAccuracy * 0.3));
+
+    // Generate placeholder names and countries
+    const placeholderNames = [
+      'Alex M.', 'Sam K.', 'Jordan P.', 'Taylor R.', 'Morgan L.',
+      'Casey W.', 'Riley H.', 'Quinn B.', 'Avery N.', 'Skyler D.'
+    ];
+    const countries = ['USA', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'Japan', 'India', 'Brazil', 'Spain'];
+
+    // Create placeholder entries with scores below user's score
+    const placeholdersToAdd = minUsers - realEntriesCount;
+    const created = [];
+
+    for (let i = 0; i < placeholdersToAdd; i++) {
+      // Generate random score between 20% and 80% of user score
+      const scoreRatio = 0.2 + (Math.random() * 0.6);
+      const score = Math.round(userScore * scoreRatio);
+      const wpm = Math.round(userBestWpm * scoreRatio);
+      const accuracy = Math.round(userAvgAccuracy * (0.7 + Math.random() * 0.2));
+
+      // Create a placeholder user (using negative IDs to avoid conflicts)
+      const placeholderUserId = -(1000 + i);
+
+      const entry = await prisma.leaderboardEntry.upsert({
+        where: {
+          leaderboardId_userId: {
+            leaderboardId: typingLeaderboard.id,
+            userId: placeholderUserId
+          }
+        },
+        update: {
+          score,
+          rank: 0,
+          trend: 'stable',
+          trendAmount: 0,
+          userName: placeholderNames[i] || `User ${i + 1}`,
+          userCountry: countries[i % countries.length],
+          isPlaceholder: true,
+          updatedAt: new Date()
+        },
+        create: {
+          leaderboardId: typingLeaderboard.id,
+          userId: placeholderUserId,
+          score,
+          rank: 0,
+          trend: 'stable',
+          trendAmount: 0,
+          userName: placeholderNames[i] || `User ${i + 1}`,
+          userCountry: countries[i % countries.length],
+          isPlaceholder: true
+        }
+      });
+      created.push(entry);
+    }
+
+    // Recalculate all ranks
+    const allEntries = await prisma.leaderboardEntry.findMany({
+      where: { leaderboardId: typingLeaderboard.id },
+      orderBy: { score: 'desc' }
+    });
+
+    for (let i = 0; i < allEntries.length; i++) {
+      await prisma.leaderboardEntry.update({
+        where: { id: allEntries[i].id },
+        data: { rank: i + 1 }
+      });
+    }
+
+    console.log(`✅ Generated ${created.length} placeholder entries`);
+
+    return res.status(201).json({
+      success: true,
+      message: `Generated ${created.length} placeholder entries`,
+      data: { added: created.length, totalEntries: allEntries.length }
+    });
+
+  } catch (err) {
+    console.error('Generate placeholders error:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+}
+
+// ─── REMOVE BEATEN PLACEHOLDERS ───────────────────────────────────────────
+// Helper function to remove placeholders when real users beat them
+async function removeBeatenPlaceholders(leaderboardId, userScore) {
+  try {
+    // Find all placeholders with score less than or equal to userScore
+    const beatenPlaceholders = await prisma.leaderboardEntry.findMany({
+      where: {
+        leaderboardId: leaderboardId,
+        isPlaceholder: true,
+        score: { lte: userScore }
+      }
+    });
+
+    if (beatenPlaceholders.length === 0) return { removed: 0 };
+
+    // Delete the beaten placeholders
+    await prisma.leaderboardEntry.deleteMany({
+      where: {
+        id: { in: beatenPlaceholders.map(p => p.id) }
+      }
+    });
+
+    console.log(`🗑️ Removed ${beatenPlaceholders.length} beaten placeholder(s)`);
+    return { removed: beatenPlaceholders.length };
+  } catch (err) {
+    console.error('Error removing placeholders:', err);
+    return { removed: 0, error: err.message };
+  }
+}
+
 module.exports = {
   getLeaderboard,
   submitTypingResult,
   getPracticeTexts,
   getRandomTypingText,
   getUserTypingHistory,
+  generatePlaceholders,
+  removeBeatenPlaceholders
 };

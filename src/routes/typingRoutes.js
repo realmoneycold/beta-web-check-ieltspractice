@@ -1,5 +1,5 @@
 const express = require('express');
-const { getLeaderboard, submitTypingResult, getPracticeTexts, getRandomTypingText, getUserTypingHistory } = require('../controllers/typingController');
+const { getLeaderboard, submitTypingResult, getPracticeTexts, getRandomTypingText, getUserTypingHistory, generatePlaceholders } = require('../controllers/typingController');
 const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -19,5 +19,8 @@ router.get('/practice-text', getRandomTypingText);
 
 // GET /api/typing/practice-texts - Get list of practice texts
 router.get('/practice-texts', getPracticeTexts);
+
+// POST /api/typing/generate-placeholders - Generate placeholder entries
+router.post('/generate-placeholders', generatePlaceholders);
 
 module.exports = router;

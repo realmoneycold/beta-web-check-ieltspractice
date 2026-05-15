@@ -46,14 +46,38 @@ class SignalingServer {
     }
 
     /**
-     * Get list of all global rooms with current participant counts
+     * Build a public-facing snapshot of an active room's participants.
+     */
+    serializeActiveParticipants(activeRoom) {
+        if (!activeRoom) return [];
+        return Array.from(activeRoom.participants.values()).map(p => ({
+            id: p.userId,
+            socketId: p.socketId,
+            name: p.name,
+            avatar: p.avatar,
+            isHost: p.isHost,
+            isMuted: p.isMuted,
+            isVideoOn: p.isVideoOn,
+            isScreenSharing: p.isScreenSharing,
+            isSpeaking: p.isSpeaking
+        }));
+    }
+
+    /**
+     * Get list of all rooms (registered global rooms + any other live rooms,
+     * such as the dashboard's static featured/class/drill cards) with current
+     * participant counts. Clients use this to render live counts and avatars
+     * on every card that shares a known room id.
      */
     getGlobalRoomsList() {
-        return Array.from(this.globalRooms.values()).map(room => {
+        const seen = new Set();
+        const list = [];
+
+        // 1. Registered global rooms (user-created)
+        for (const room of this.globalRooms.values()) {
             const activeRoom = this.rooms.get(room.id);
             const activeParticipants = activeRoom ? activeRoom.participants.size : 0;
-
-            return {
+            list.push({
                 id: room.id,
                 name: room.name,
                 type: room.type,
@@ -62,22 +86,37 @@ class SignalingServer {
                 hostAvatar: room.hostAvatar,
                 maxUsers: room.maxUsers || 10,
                 participantsCount: activeParticipants,
-                participants: activeRoom ? Array.from(activeRoom.participants.values()).map(p => ({
-                    id: p.userId,
-                    socketId: p.socketId,
-                    name: p.name,
-                    avatar: p.avatar,
-                    isHost: p.isHost,
-                    isMuted: p.isMuted,
-                    isVideoOn: p.isVideoOn,
-                    isScreenSharing: p.isScreenSharing,
-                    isSpeaking: p.isSpeaking
-                })) : [],
+                participants: this.serializeActiveParticipants(activeRoom),
                 isLive: activeParticipants > 0,
                 createdAt: room.createdAt,
                 tags: room.tags || []
-            };
-        });
+            });
+            seen.add(room.id);
+        }
+
+        // 2. Any active room not in globalRooms (e.g. featured/class/drill
+        //    cards hard-coded on the dashboard) — expose their live counts
+        //    so the cards stop showing stale "2/5 users" forever.
+        for (const [roomId, activeRoom] of this.rooms.entries()) {
+            if (seen.has(roomId)) continue;
+            const activeParticipants = activeRoom.participants.size;
+            list.push({
+                id: roomId,
+                name: activeRoom.name || roomId,
+                type: activeRoom.type || 'class',
+                host: null,
+                hostId: null,
+                hostAvatar: null,
+                maxUsers: activeRoom.maxUsers || 10,
+                participantsCount: activeParticipants,
+                participants: this.serializeActiveParticipants(activeRoom),
+                isLive: activeParticipants > 0,
+                createdAt: activeRoom.createdAt || new Date(),
+                tags: []
+            });
+        }
+
+        return list;
     }
 
     setupSocketHandlers() {
@@ -267,9 +306,12 @@ class SignalingServer {
         }
     }
 
-    handleJoinRoom(socket, { roomId, roomType, userName, avatar, isHost }) {
+    handleJoinRoom(socket, { roomId, roomType, userName, avatar, isHost, maxUsers }) {
         console.log(`🚪 ${socket.userData.name} joining room ${roomId}`);
-        
+
+        // Resolve and clamp maxUsers (absolute server ceiling = 10)
+        const requestedMax = Number.isFinite(maxUsers) ? Math.max(2, Math.min(10, maxUsers)) : null;
+
         // Create room if doesn't exist
         if (!this.rooms.has(roomId)) {
             this.rooms.set(roomId, {
@@ -278,15 +320,22 @@ class SignalingServer {
                 participants: new Map(),
                 messages: [],
                 createdAt: new Date(),
-                screenSharer: null
+                screenSharer: null,
+                maxUsers: requestedMax || 10
             });
+        } else if (requestedMax) {
+            // First joiner who specifies a smaller cap "locks in" that cap
+            // for everyone else who joins this room id.
+            const existing = this.rooms.get(roomId);
+            if (!existing.maxUsers) existing.maxUsers = requestedMax;
         }
-        
+
         const room = this.rooms.get(roomId);
-        
-        // Check room capacity (max 10 participants)
-        if (room.participants.size >= 10) {
-            socket.emit('room-error', { message: 'Room is full (max 10 participants)' });
+        const cap = Math.min(room.maxUsers || 10, 10);
+
+        // Check room capacity
+        if (room.participants.size >= cap) {
+            socket.emit('room-error', { message: `Room is full (max ${cap} participants)` });
             return;
         }
         

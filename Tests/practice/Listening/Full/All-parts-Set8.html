@@ -2368,6 +2368,9 @@ And because of this, it was non-porous, and naturally, this was regarded as a gr
             <div class="modal-body">
                 <p id="score-summary"></p>
                 <div id="result-details"></div>
+                <div style="text-align:center;margin-top:20px;">
+                    <button onclick="window.finishListeningAndSave()" style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;">Finish & Go to Dashboard</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2671,7 +2674,6 @@ And because of this, it was non-porous, and naturally, this was regarded as a gr
                 span.className = 'highlight';
                 selectedRange.surroundContents(span);
             } catch(err){
-                console.warn('Complex selection – fallback highlight');
                 document.execCommand('backColor', false, 'yellow');
             }
             window.getSelection().removeAllRanges();
@@ -2693,7 +2695,6 @@ And because of this, it was non-porous, and naturally, this was regarded as a gr
                 span.appendChild(tooltip);
                 selectedRange.surroundContents(span);
             }catch(err){
-                console.warn('Complex selection – cannot comment');
             }
             window.getSelection().removeAllRanges();
             closeContextMenu();
@@ -2977,6 +2978,7 @@ And because of this, it was non-porous, and naturally, this was regarded as a gr
             const resultDetails = document.getElementById('result-details');
             
             scoreSummary.textContent = `You scored ${score} out of 40 (Band ${band}).`;
+            window.autoSaveListeningScore(score, band);
             
             let tableHTML = '<table><tr><th>Question</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th></tr>';
             resultsData.sort((a,b) => parseInt(a.question, 10) - parseInt(b.question, 10)).forEach(res => {
@@ -3498,5 +3500,6 @@ And because of this, it was non-porous, and naturally, this was regarded as a gr
             return result;
         };
     </script>
+    <script src="../../js/listeningTestUtils.js?v=1"></script>
 </body>
 </html>

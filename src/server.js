@@ -208,6 +208,9 @@ async function verifyDatabase() {
       methods: ['GET', 'POST'],
       credentials: true
     });
+
+    // Expose signalingServer instance to Express routes via app.locals
+    app.locals.signalingServer = signalingServer;
     
     // Start server
     server.listen(PORT, '0.0.0.0', () => {

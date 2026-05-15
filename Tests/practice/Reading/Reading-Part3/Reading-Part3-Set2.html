@@ -1150,6 +1150,93 @@
     }); // end DOMContentLoaded
     </script>
     <script src="../../js/testTracker.js"></script>
-    <script src="../../js/readingScoreSaver.js"></script>
+    <script>
+(function(){
+  const testName = document.title || 'Reading Test';
+  const testId = location.pathname.split('/').pop().replace('.html','');
+  const skill = 'Reading';
+  
+  function saveScore(score, band) {
+    const total = window.TOTAL_Q || 40;
+    const entry = {
+      testId: testId,
+      testName: testName,
+      skill: 'reading',
+      score: score,
+      maxScore: total,
+      band: band,
+      completedAt: new Date().toISOString()
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem('reading_test_scores') || '[]');
+      const filtered = existing.filter(e => e.testId !== testId);
+      filtered.push(entry);
+      localStorage.setItem('reading_test_scores', JSON.stringify(filtered));
+      console.log('[ReadingSaver] Saved to localStorage:', entry);
+    } catch(e) {
+      console.error('[ReadingSaver] localStorage failed:', e);
+    }
+    
+    try {
+      const tp = JSON.parse(localStorage.getItem('testProgress') || '{"listening":0,"reading":0,"writing":0,"speaking":0}');
+      tp.reading = (tp.reading || 0) + 1;
+      localStorage.setItem('testProgress', JSON.stringify(tp));
+    } catch(e) {}
+    
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('ielts_token');
+    if (token) {
+      fetch('/api/statistics/attempt', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token},
+        credentials: 'include',
+        keepalive: true,
+        body: JSON.stringify({
+          testType: 'READING', testId: testId, testName: testName,
+          skillArea: skill, score: score, maxScore: total,
+          status: 'COMPLETED', feedback: 'Band: ' + band
+        })
+      }).then(r => r.ok ? console.log('[ReadingSaver] DB saved') : console.warn('[ReadingSaver] DB failed:', r.status))
+      .catch(e => console.warn('[ReadingSaver] DB error:', e));
+    }
+  }
+  
+  function patch() {
+    if (typeof window.calculateBandScore === 'function' && !window.calculateBandScore._patched) {
+      const orig = window.calculateBandScore;
+      window.calculateBandScore = function(score) {
+        const band = orig(score);
+        saveScore(score, band);
+        return band;
+      };
+      window.calculateBandScore._patched = true;
+      console.log('[ReadingSaver] calculateBandScore patched');
+    }
+    if (typeof window.calculateBand === 'function' && !window.calculateBand._patched) {
+      const orig = window.calculateBand;
+      window.calculateBand = function(score) {
+        const band = orig(score);
+        saveScore(score, band);
+        return band;
+      };
+      window.calculateBand._patched = true;
+      console.log('[ReadingSaver] calculateBand patched');
+    }
+  }
+  
+  patch();
+  if (!window.calculateBandScore && !window.calculateBand) {
+    let attempts = 0;
+    const iv = setInterval(function(){
+      patch();
+      if ((window.calculateBandScore && window.calculateBandScore._patched) || 
+          (window.calculateBand && window.calculateBand._patched)) {
+        clearInterval(iv);
+      }
+      if (++attempts > 20) clearInterval(iv);
+    }, 500);
+  }
+})();
+</script>
+
 </body>
 </html>

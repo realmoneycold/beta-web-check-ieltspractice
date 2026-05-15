@@ -6,7 +6,14 @@
 
 class WebRTCManager {
     constructor() {
+        // Prevent petite-vue / @vue/reactivity from wrapping this instance in a
+        // reactive Proxy. WebRTCManager holds non-plain objects (Map, MediaStream,
+        // RTCPeerConnection, AudioContext) which break Vue's reactive collection
+        // handlers and throw "Cannot create proxy with a non-object as target"
+        // when methods like leaveRoom() are called through the proxy.
+        this.__v_skip = true;
         this.socket = null;
+        this.socketConnected = false;
         this.localStream = null;
         this.screenStream = null;
         this.peers = new Map(); // socketId -> RTCPeerConnection
@@ -25,63 +32,105 @@ class WebRTCManager {
         this.onScreenShare = null;
         this.audioAnalyser = null;
         this.voiceActivityInterval = null;
+        this.audioContext = null; // Audio context for diagnostics
+        this.audioElements = new Map(); // socketId -> audio element
         
         // STUN/TURN servers configuration
+        // Note: process.env is NOT available in browser - use client-side config only
         this.iceServers = [
-            // Public STUN servers
+            // Public STUN servers (free, always available)
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
-            // Coturn server (when configured)
-            {
-                urls: process.env.COTURN_URL || 'turn:your-server.com:3478',
-                username: process.env.COTURN_USER || 'user',
-                credential: process.env.COTURN_PASS || 'pass'
-            }
+            // Additional public STUN servers for better connectivity
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            // Coturn TURN server configuration (for production NAT traversal)
+            // Deploy a TURN server and uncomment these lines:
+            // {
+            //     urls: 'turn:your-server.com:3478',
+            //     username: 'ieltspractice',
+            //     credential: 'your-secure-password'
+            // },
+            // For testing with free TURN servers (not recommended for production):
+            // {
+            //     urls: 'turn:openrelay.metered.ca:80',
+            //     username: 'openrelayproject',
+            //     credential: 'openrelayproject'
+            // }
         ];
     }
 
     /**
      * Initialize Socket.io connection and set up event handlers
+     * Gracefully handles Socket.io connection failures
      */
     async initialize() {
-        const token = localStorage.getItem('token') || localStorage.getItem('ielts_token');
-        const serverUrl = window.location.origin;
-        
-        this.socket = io(serverUrl, {
-            auth: { token },
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
+        try {
+            // Check if io (Socket.io) is available
+            if (typeof io === 'undefined') {
+                console.warn('⚠️ Socket.io library not loaded. Voice chat will be limited.');
+                this.socketConnected = false;
+                return;
+            }
 
-        this.setupSocketHandlers();
-        
-        return new Promise((resolve, reject) => {
-            this.socket.on('connect', () => {
-                console.log('✅ Connected to signaling server');
-                resolve();
-            });
+            const token = localStorage.getItem('token') || localStorage.getItem('ielts_token');
+            const serverUrl = window.location.origin;
             
-            this.socket.on('connect_error', (err) => {
-                console.error('❌ Signaling server connection error:', err);
-                reject(err);
-            });
+            try {
+                this.socket = io(serverUrl, {
+                    auth: { token },
+                    transports: ['websocket', 'polling'],
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000
+                });
+            } catch (ioError) {
+                console.warn('⚠️ Socket.io initialization error:', ioError.message);
+                this.socketConnected = false;
+                return;
+            }
+
+            this.setupSocketHandlers();
             
-            // Timeout after 10 seconds
-            setTimeout(() => {
-                if (!this.socket.connected) {
-                    reject(new Error('Connection timeout'));
-                }
-            }, 10000);
-        });
+            return new Promise((resolve) => {
+                const connectionTimeout = setTimeout(() => {
+                    console.warn('⚠️ Socket.io connection timeout - proceeding with limited functionality');
+                    this.socketConnected = false;
+                    resolve(false); // Resolve with false to indicate partial failure
+                }, 5000);
+
+                this.socket.on('connect', () => {
+                    clearTimeout(connectionTimeout);
+                    console.log('✅ Connected to signaling server');
+                    this.socketConnected = true;
+                    resolve(true);
+                });
+                
+                this.socket.on('connect_error', (err) => {
+                    clearTimeout(connectionTimeout);
+                    console.warn('⚠️ Socket.io connection error:', err.message || err);
+                    this.socketConnected = false;
+                    resolve(false); // Don't reject - allow app to continue
+                });
+            });
+        } catch (err) {
+            console.error('❌ Unexpected error during WebRTC initialization:', err);
+            this.socketConnected = false;
+            // Don't throw - allow app to continue with degraded functionality
+        }
     }
 
     /**
      * Set up all Socket.io event handlers
+     * Safely handles missing socket
      */
     setupSocketHandlers() {
+        if (!this.socket) {
+            console.warn('⚠️ Socket not available - skipping socket handler setup');
+            return;
+        }
+
         // Room events
         this.socket.on('user-joined', (participant) => this.handleUserJoined(participant));
         this.socket.on('user-left', ({ socketId }) => this.handleUserLeft(socketId));
@@ -134,61 +183,80 @@ class WebRTCManager {
 
     /**
      * Join a voice/video room with enhanced permission handling
+     * Safely handles missing socket connection
      */
-    async joinRoom(roomId, roomType, userName, avatar, isHost = false, onPermissionError = null) {
+    async joinRoom(roomId, roomType, userName, avatar, isHost = false, onPermissionError = null, maxUsers = null) {
         this.roomId = roomId;
 
-        // Get user media before joining with error handling
+        // Get user media before joining. If the caller already acquired a stream
+        // (typical when invoked from initializeVoiceChat), reuse it to avoid
+        // re-prompting the browser and re-firing onLocalStream.
         let mediaError = null;
+        const hasUsableStream = this.localStream && this.localStream.active &&
+            (this.localStream.getAudioTracks().length > 0 || this.localStream.getVideoTracks().length > 0);
 
-        try {
-            // Try audio + video first
-            await this.getLocalStream(true, true, (error) => {
-                mediaError = error;
-                if (onPermissionError) onPermissionError(error);
-            });
-            console.log('✅ Got camera and microphone access');
-        } catch (err) {
-            console.warn('⚠️ Could not get camera/mic:', err.name, err.message);
-
-            if (!mediaError) {
-                mediaError = err;
-                if (onPermissionError) onPermissionError(err);
-            }
-
-            // Try audio only as fallback
+        if (hasUsableStream) {
+            console.log('✅ Reusing existing local stream for joinRoom');
+        } else {
             try {
-                await this.getLocalStream(true, false, (error) => {
-                    if (!mediaError) {
-                        mediaError = error;
-                        if (onPermissionError) onPermissionError(error);
-                    }
+                // Try audio + video first
+                await this.getLocalStream(true, true, (error) => {
+                    mediaError = error;
+                    if (onPermissionError) onPermissionError(error);
                 });
-                console.log('✅ Got microphone access (audio only)');
-            } catch (err2) {
-                console.error('❌ Could not get any media:', err2);
+                console.log('✅ Got camera and microphone access');
+            } catch (err) {
+                console.warn('⚠️ Could not get camera/mic:', err.name, err.message);
 
-                // Still join the room but notify about media issue
-                if (this.onMessage) {
-                    this.onMessage({
-                        id: Date.now(),
-                        userName: 'System',
-                        avatar: null,
-                        text: '⚠️ Unable to access camera or microphone. You can still participate via chat.',
-                        type: 'system',
-                        timestamp: new Date().toISOString()
+                if (!mediaError) {
+                    mediaError = err;
+                    if (onPermissionError) onPermissionError(err);
+                }
+
+                // Try audio only as fallback
+                try {
+                    await this.getLocalStream(true, false, (error) => {
+                        if (!mediaError) {
+                            mediaError = error;
+                            if (onPermissionError) onPermissionError(error);
+                        }
                     });
+                    console.log('✅ Got microphone access (audio only)');
+                } catch (err2) {
+                    console.error('❌ Could not get any media:', err2);
+
+                    // Still join the room but notify about media issue
+                    if (this.onMessage) {
+                        this.onMessage({
+                            id: Date.now(),
+                            userName: 'System',
+                            avatar: null,
+                            text: '⚠️ Unable to access camera or microphone. You can still participate via chat.',
+                            type: 'system',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
                 }
             }
         }
 
-        this.socket.emit('join-room', {
-            roomId,
-            roomType,
-            userName,
-            avatar,
-            isHost
-        });
+        // Only emit if socket is connected
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('join-room', {
+                roomId,
+                roomType,
+                userName,
+                avatar,
+                isHost,
+                maxUsers
+            });
+        } else {
+            console.warn('⚠️ Socket not available - cannot emit join-room. Room will be local only.');
+            // Still trigger local stream callback
+            if (this.onLocalStream && this.localStream) {
+                this.onLocalStream(this.localStream);
+            }
+        }
 
         // Start voice activity detection if we have audio
         if (this.localStream && this.localStream.getAudioTracks().length > 0) {
@@ -209,6 +277,12 @@ class WebRTCManager {
         this.peers.clear();
         this.remoteStreams.clear();
         
+        // Clean up all audio elements
+        this.audioElements.forEach((audioElement, socketId) => {
+            this.removeAudioElement(socketId);
+        });
+        this.audioElements.clear();
+        
         // Stop local stream
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());
@@ -221,10 +295,125 @@ class WebRTCManager {
             this.screenStream = null;
         }
         
-        if (this.roomId) {
+        if (this.roomId && this.socket && this.socket.connected) {
             this.socket.emit('leave-room', { roomId: this.roomId });
             this.roomId = null;
         }
+    }
+
+    /**
+     * Diagnose audio system and return detailed diagnostic info
+     * @returns {Promise<Object>} Audio diagnostics report
+     */
+    async diagnosAudio() {
+        const report = {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            mediaDevices: !!navigator.mediaDevices,
+            audioContext: this.audioContext ? this.audioContext.state : 'not-initialized',
+            localStream: {
+                exists: !!this.localStream,
+                audioTracks: this.localStream ? this.localStream.getAudioTracks().length : 0,
+                videoTracks: this.localStream ? this.localStream.getVideoTracks().length : 0,
+                audioEnabled: this.localStream ? this.localStream.getAudioTracks().some(t => t.enabled) : false
+            },
+            remoteStreams: this.remoteStreams.size,
+            peers: this.peers.size,
+            issues: []
+        };
+
+        // Check for browser support
+        if (!navigator.mediaDevices) {
+            report.issues.push('Browser does not support MediaDevices API');
+        }
+
+        // Check local audio
+        if (this.localStream) {
+            const audioTracks = this.localStream.getAudioTracks();
+            if (audioTracks.length === 0) {
+                report.issues.push('No audio tracks in local stream');
+            } else {
+                audioTracks.forEach((track, idx) => {
+                    if (!track.enabled) {
+                        report.issues.push(`Audio track ${idx} is disabled`);
+                    }
+                    if (track.readyState !== 'live') {
+                        report.issues.push(`Audio track ${idx} is not live: ${track.readyState}`);
+                    }
+                });
+            }
+        } else {
+            report.issues.push('No local stream available');
+        }
+
+        // Check remote audio
+        if (this.remoteStreams.size === 0) {
+            report.issues.push('No remote streams received yet');
+        } else {
+            this.remoteStreams.forEach((stream, socketId) => {
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length === 0) {
+                    report.issues.push(`Remote peer ${socketId} has no audio tracks`);
+                }
+            });
+        }
+
+        // Log report
+        console.log('🔊 Audio Diagnostics:', report);
+        return report;
+    }
+
+    /**
+     * Enable all audio tracks in a stream
+     * @param {MediaStream} stream - The stream to enable audio for
+     */
+    enableAudioTracks(stream) {
+        if (!stream) return;
+        stream.getAudioTracks().forEach(track => {
+            track.enabled = true;
+            console.log('🔊 Audio track enabled:', track.label);
+        });
+    }
+
+    /**
+     * Initialize AudioContext for better audio handling
+     */
+    initAudioContext() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!this.audioContext) {
+                this.audioContext = new AudioContext();
+                console.log('🔊 AudioContext initialized:', this.audioContext.state);
+            }
+            return this.audioContext;
+        } catch (err) {
+            console.error('Failed to initialize AudioContext:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Resume audio context (must be called on user interaction)
+     * Browsers block audio autoplay until user interaction
+     */
+    async resumeAudioContext() {
+        if (!this.audioContext) {
+            this.initAudioContext();
+        }
+        
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            try {
+                await this.audioContext.resume();
+                console.log('🔊 AudioContext resumed successfully');
+                return true;
+            } catch (err) {
+                console.error('❌ Failed to resume AudioContext:', err);
+                return false;
+            }
+        }
+        
+        console.log('🔊 AudioContext already running or not available');
+        return true;
     }
 
     /**
@@ -280,6 +469,7 @@ class WebRTCManager {
 
             // Set up track ended handlers (e.g., user disables camera in OS)
             audioTracks.forEach(track => {
+                track.enabled = true; // Explicitly enable audio tracks
                 track.onended = () => {
                     console.log('🎤 Audio track ended (user may have disabled mic)');
                     this.isMuted = true;
@@ -293,12 +483,25 @@ class WebRTCManager {
                 };
             });
 
+            // Initialize AudioContext for better audio playback handling
+            if (audio && audioTracks.length > 0) {
+                this.initAudioContext();
+                console.log('🔊 Audio stream ready with', audioTracks.length, 'track(s)');
+            }
+
             if (this.onLocalStream) {
                 this.onLocalStream(this.localStream);
             }
 
             this.isMuted = !audio || audioTracks.length === 0;
             this.isVideoOn = video && videoTracks.length > 0;
+
+            console.log('✅ Local stream acquired:', {
+                audio: audioTracks.length,
+                video: videoTracks.length,
+                audioEnabled: this.isMuted ? false : true,
+                videoEnabled: this.isVideoOn
+            });
 
             return this.localStream;
 
@@ -455,7 +658,7 @@ class WebRTCManager {
             };
             
             this.isScreenSharing = true;
-            this.socket.emit('screen-share-start', { isScreenSharing: true });
+            this._safeEmit('screen-share-start', { isScreenSharing: true });
             
             return this.screenStream;
         } catch (err) {
@@ -490,7 +693,7 @@ class WebRTCManager {
         
         this.screenStream = null;
         this.isScreenSharing = false;
-        this.socket.emit('screen-share-stop', {});
+        this._safeEmit('screen-share-stop', {});
     }
 
     /**
@@ -522,6 +725,9 @@ class WebRTCManager {
         
         // Remove remote stream
         this.remoteStreams.delete(socketId);
+        
+        // Remove audio element for this participant
+        this.removeAudioElement(socketId);
         
         if (this.onParticipantLeft) {
             this.onParticipantLeft(socketId);
@@ -567,7 +773,7 @@ class WebRTCManager {
         // Handle ICE candidates
         peer.onicecandidate = (event) => {
             if (event.candidate) {
-                this.socket.emit('ice-candidate', {
+                this._safeEmit('ice-candidate', {
                     targetId: socketId,
                     candidate: event.candidate
                 });
@@ -577,16 +783,46 @@ class WebRTCManager {
         // Handle remote stream
         peer.ontrack = (event) => {
             console.log('📺 Received remote stream from:', socketId);
-            this.remoteStreams.set(socketId, event.streams[0]);
+            const remoteStream = event.streams[0];
+            this.remoteStreams.set(socketId, remoteStream);
+            
+            // Create audio element for remote stream playback
+            this.createAudioElement(socketId, remoteStream);
             
             if (this.onRemoteStream) {
-                this.onRemoteStream(socketId, event.streams[0]);
+                this.onRemoteStream(socketId, remoteStream);
             }
         };
         
         // Handle connection state changes
         peer.onconnectionstatechange = () => {
-            console.log(`Connection state with ${socketId}:`, peer.connectionState);
+            const state = peer.connectionState;
+            console.log(`🔗 Connection state with ${socketId}:`, state);
+            
+            // Log detailed connection information
+            if (state === 'connected') {
+                console.log(`✅ Successfully connected to ${socketId}`);
+            } else if (state === 'disconnected') {
+                console.log(`❌ Disconnected from ${socketId}`);
+            } else if (state === 'failed') {
+                console.error(`💥 Connection failed with ${socketId}`);
+            } else if (state === 'closed') {
+                console.log(`🔒 Connection closed with ${socketId}`);
+            }
+        };
+
+        // Handle ICE connection state changes
+        peer.oniceconnectionstatechange = () => {
+            const state = peer.iceConnectionState;
+            console.log(`🧊 ICE connection state with ${socketId}:`, state);
+            
+            if (state === 'connected' || state === 'completed') {
+                console.log(`✅ ICE connection established with ${socketId}`);
+            } else if (state === 'failed') {
+                console.error(`💥 ICE connection failed with ${socketId} - likely NAT traversal issue`);
+            } else if (state === 'disconnected') {
+                console.warn(`⚠️ ICE connection disconnected from ${socketId}`);
+            }
         };
         
         // If initiator, create and send offer
@@ -594,8 +830,8 @@ class WebRTCManager {
             try {
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
-                
-                this.socket.emit('offer', {
+
+                this._safeEmit('offer', {
                     targetId: socketId,
                     offer: offer
                 });
@@ -622,8 +858,8 @@ class WebRTCManager {
             await peer.setRemoteDescription(new RTCSessionDescription(offer));
             const answer = await peer.createAnswer();
             await peer.setLocalDescription(answer);
-            
-            this.socket.emit('answer', {
+
+            this._safeEmit('answer', {
                 targetId: senderId,
                 answer: answer
             });
@@ -671,15 +907,33 @@ class WebRTCManager {
             if (audioTrack) {
                 audioTrack.enabled = !audioTrack.enabled;
                 this.isMuted = !audioTrack.enabled;
-                
-                this.socket.emit('media-state-change', {
+
+                this._safeEmit('media-state-change', {
                     isMuted: this.isMuted
                 });
-                
+
                 return this.isMuted;
             }
         }
         return false;
+    }
+
+    /**
+     * Emit a Socket.io event only when the connection is alive.
+     * Prevents "Cannot read properties of null" crashes when signaling drops.
+     */
+    _safeEmit(event, payload) {
+        try {
+            if (this.socket && this.socket.connected) {
+                this.socket.emit(event, payload);
+                return true;
+            }
+            console.warn(`⚠️ Skipping emit "${event}" — socket not connected`);
+            return false;
+        } catch (err) {
+            console.warn(`⚠️ Failed to emit "${event}":`, err.message);
+            return false;
+        }
     }
 
     /**
@@ -688,15 +942,13 @@ class WebRTCManager {
     toggleDeafen() {
         this.isDeafened = !this.isDeafened;
         
-        // Mute/unmute all remote audio elements
-        this.remoteStreams.forEach((stream, socketId) => {
-            const audioTracks = stream.getAudioTracks();
-            audioTracks.forEach(track => {
-                track.enabled = !this.isDeafened;
-            });
+        // Mute/unmute all remote audio elements (correct approach)
+        this.audioElements.forEach((audioElement, socketId) => {
+            audioElement.muted = this.isDeafened;
+            console.log(`🔊 Audio element for ${socketId} ${this.isDeafened ? 'muted' : 'unmuted'}`);
         });
-        
-        this.socket.emit('media-state-change', {
+
+        this._safeEmit('media-state-change', {
             isDeafened: this.isDeafened
         });
         
@@ -712,8 +964,8 @@ class WebRTCManager {
             if (videoTrack) {
                 videoTrack.enabled = !videoTrack.enabled;
                 this.isVideoOn = videoTrack.enabled;
-                
-                this.socket.emit('media-state-change', {
+
+                this._safeEmit('media-state-change', {
                     isVideoOn: this.isVideoOn
                 });
                 
@@ -729,6 +981,52 @@ class WebRTCManager {
     handleRemoteMediaStateChange({ socketId, isMuted, isVideoOn, isDeafened }) {
         console.log(`🎤 Remote media state - ${socketId}:`, { isMuted, isVideoOn, isDeafened });
         // UI updates handled by callback
+    }
+
+    /**
+     * Create audio element for remote stream playback
+     */
+    createAudioElement(socketId, stream) {
+        // Remove existing audio element if present
+        this.removeAudioElement(socketId);
+        
+        // Create new audio element
+        const audioElement = new Audio();
+        audioElement.autoplay = true;
+        audioElement.muted = this.isDeafened;
+        audioElement.srcObject = stream;
+        
+        // Store audio element reference
+        this.audioElements.set(socketId, audioElement);
+        
+        console.log(`🔊 Created audio element for ${socketId}, deafened: ${this.isDeafened}`);
+        
+        // Handle audio element errors
+        audioElement.onerror = (error) => {
+            console.error(`❌ Audio element error for ${socketId}:`, error);
+        };
+        
+        // Ensure audio context is resumed for playback
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().then(() => {
+                console.log('🔊 AudioContext resumed for remote audio playback');
+            }).catch(err => {
+                console.warn('⚠️ Failed to resume AudioContext:', err);
+            });
+        }
+    }
+
+    /**
+     * Remove audio element for a participant
+     */
+    removeAudioElement(socketId) {
+        const audioElement = this.audioElements.get(socketId);
+        if (audioElement) {
+            audioElement.pause();
+            audioElement.srcObject = null;
+            this.audioElements.delete(socketId);
+            console.log(`🔊 Removed audio element for ${socketId}`);
+        }
     }
 
     /**
@@ -764,10 +1062,11 @@ class WebRTCManager {
             
             if (isSpeaking !== lastSpeakingState) {
                 lastSpeakingState = isSpeaking;
-                this.socket.emit('voice-activity', { isSpeaking });
-                
+                this._safeEmit('voice-activity', { isSpeaking });
+
                 if (this.onVoiceActivity) {
-                    this.onVoiceActivity(this.socket.id, isSpeaking);
+                    const selfId = (this.socket && this.socket.id) || 'local';
+                    this.onVoiceActivity(selfId, isSpeaking);
                 }
             }
         }, 100); // Check every 100ms
@@ -803,14 +1102,14 @@ class WebRTCManager {
      * Send chat message
      */
     sendMessage(text) {
-        this.socket.emit('send-message', { text, type: 'text' });
+        this._safeEmit('send-message', { text, type: 'text' });
     }
 
     /**
      * Send typing indicator
      */
     sendTyping(isTyping) {
-        this.socket.emit('typing', { isTyping });
+        this._safeEmit('typing', { isTyping });
     }
 
     /**
