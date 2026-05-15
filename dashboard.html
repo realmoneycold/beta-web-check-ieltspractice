@@ -13,7 +13,7 @@
     <script>
     // Cache bust: unregister old service workers and clear caches so the latest dashboard HTML is served
     (function() {
-        var needsReload = !sessionStorage.getItem('sw_cleared_v3');
+        var needsReload = !sessionStorage.getItem('sw_cleared_v25');
         if (needsReload && navigator.serviceWorker) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
                 return Promise.all(regs.map(function(r) { return r.unregister(); }));
@@ -24,12 +24,12 @@
                     });
                 }
             }).then(function() {
-                sessionStorage.setItem('sw_cleared_v3', '1');
+                sessionStorage.setItem('sw_cleared_v25', '1');
                 // Force reload to get fresh dashboard.html without service worker cache
                 location.reload(true);
             }).catch(function(err) {
                 console.warn('SW cache bust failed:', err);
-                sessionStorage.setItem('sw_cleared_v3', '1');
+                sessionStorage.setItem('sw_cleared_v25', '1');
             });
         }
     })();
@@ -83,7 +83,7 @@
             console.error('   4. No JavaScript syntax errors in Console');
         }
     </script>
-    <script src="./js/webrtcManager.js"></script>
+    <script src="./js/webrtcManager.js?v=20260513e"></script>
     <script>
         // PetiteVue App Initialization
         function initPetiteVueApp() {
@@ -115,6 +115,7 @@
                     isChatOpen: false,
                     isChatClosing: false,
                     isNotificationsOpen: false,
+                    mobileNavOpen: false,
 
                     // Notifications Data
                     notifications: JSON.parse(localStorage.getItem('userNotifications')) || [
@@ -197,6 +198,7 @@
                     rankingFilter: 'global',
                     rankingCategory: 'typing_dojo',
                     rankingCountry: '',
+                    rankingSearch: '',
                     rankingMessage: '',
                     showRankingMessage: false,
                     visibleRankingsCount: 5,
@@ -307,6 +309,110 @@
                                 this.refreshStatistics();
                             }
                         });
+                    },
+
+                    getOverallScore() {
+                        const l = parseFloat(this.listeningScore) || 0;
+                        const r = parseFloat(this.readingScore) || 0;
+                        const w = parseFloat(this.writingScore) || 0;
+                        const s = parseFloat(this.speakingScore) || 0;
+                        return ((l + r + w + s) / 4).toFixed(1);
+                    },
+
+                    getScoreGrowth() {
+                        const overall = parseFloat(this.getOverallScore()) || 0;
+                        const growth = overall - 5.0;
+                        return (growth >= 0 ? '+' : '') + growth.toFixed(1);
+                    },
+
+                    getSkillProgress(skill) {
+                        const scoreMap = {
+                            listening: parseFloat(this.listeningScore) || 0,
+                            reading: parseFloat(this.readingScore) || 0,
+                            writing: parseFloat(this.writingScore) || 0,
+                            speaking: parseFloat(this.speakingScore) || 0
+                        };
+                        const target = parseFloat(this.targetBand) || 9.0;
+                        const score = scoreMap[skill] || 0;
+                        return Math.min(Math.round((score / target) * 100), 100);
+                    },
+
+                    getSkillLabel(skill) {
+                        const score = parseFloat(this[skill + 'Score']) || 0;
+                        const target = parseFloat(this.targetBand) || 9.0;
+                        if (score >= target - 0.5) return 'Strongest module';
+                        if (score >= target - 1.5) return 'Good progress';
+                        return 'Needs attention';
+                    },
+
+                    buildChartData() {
+                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        const skillMap = { LISTENING: 0, READING: 1, WRITING: 2, SPEAKING: 3 };
+                        const skillNames = ['Listening','Reading','Writing','Speaking'];
+                        const skillKeys = ['listeningScore','readingScore','writingScore','speakingScore'];
+
+                        // Group activities by year-month key (e.g. "2026-05")
+                        const monthly = {};
+                        this.recentActivity.forEach(act => {
+                            if (!act.completedAt) return;
+                            const d = new Date(act.completedAt);
+                            const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                            const skill = (act.testType || '').toUpperCase();
+                            const sIdx = skillMap[skill];
+                            if (sIdx === undefined) return;
+                            const score = parseFloat(act.score) || 0;
+                            if (!score) return;
+                            if (!monthly[ym]) monthly[ym] = [[],[],[],[]];
+                            monthly[ym][sIdx].push(score);
+                        });
+
+                        // Find the earliest month with data, or current month if no data
+                        const now = new Date();
+                        let earliestDate = now;
+                        Object.keys(monthly).forEach(ym => {
+                            const [y, m] = ym.split('-').map(Number);
+                            const d = new Date(y, m - 1, 1);
+                            if (d < earliestDate) earliestDate = d;
+                        });
+
+                        // Generate all months from earliest to now (max 12)
+                        const resultMonths = [];
+                        const resultSeries = skillNames.map(() => []);
+                        const endYear = now.getFullYear();
+                        const endMonth = now.getMonth();
+                        let currYear = earliestDate.getFullYear();
+                        let currMonth = earliestDate.getMonth();
+                        let count = 0;
+
+                        while (count < 12) {
+                            const ym = `${currYear}-${String(currMonth+1).padStart(2,'0')}`;
+                            resultMonths.push(monthNames[currMonth] + (currYear !== endYear ? " '" + String(currYear).slice(2) : ''));
+                            const data = monthly[ym];
+                            if (data) {
+                                for (let s = 0; s < 4; s++) {
+                                    const scores = data[s];
+                                    if (scores && scores.length) {
+                                        const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+                                        resultSeries[s].push(parseFloat(avg.toFixed(1)));
+                                    } else {
+                                        const prev = resultSeries[s].length ? resultSeries[s][resultSeries[s].length - 1] : parseFloat(this[skillKeys[s]]) || 5.0;
+                                        resultSeries[s].push(prev);
+                                    }
+                                }
+                            } else {
+                                for (let s = 0; s < 4; s++) {
+                                    const score = parseFloat(this[skillKeys[s]]) || 5.0;
+                                    resultSeries[s].push(score);
+                                }
+                            }
+                            // Advance month
+                            currMonth++;
+                            if (currMonth > 11) { currMonth = 0; currYear++; }
+                            count++;
+                            if (currYear > endYear || (currYear === endYear && currMonth > endMonth)) break;
+                        }
+
+                        return { months: resultMonths, series: resultSeries };
                     },
 
                     async fetchUserStatistics() {
@@ -853,7 +959,33 @@
                         
                         // Load rooms from storage (handles active room protection internally)
                         this.loadRoomsFromStorage();
-                        
+
+                        // Seed permanent Chilling lounge rooms (#1–#20) if missing
+                        const chillingColors = ['bg-blue-500','bg-indigo-500','bg-violet-500','bg-purple-500','bg-pink-500','bg-rose-500','bg-orange-500','bg-amber-500','bg-yellow-500','bg-lime-500','bg-green-500','bg-emerald-500','bg-teal-500','bg-cyan-500','bg-sky-500','bg-blue-600','bg-indigo-600','bg-violet-600','bg-purple-600','bg-pink-600'];
+                        for (let i = 1; i <= 20; i++) {
+                            const cid = `chilling-${i}`;
+                            if (!this.publicRooms.find(r => r.id === cid)) {
+                                this.publicRooms.push({
+                                    id: cid,
+                                    name: `Chilling #${i}`,
+                                    type: 'chilling',
+                                    icon: 'ph:coffee-bold',
+                                    color: chillingColors[i - 1] || 'bg-blue-500',
+                                    tag: 'Lounge',
+                                    isPrivate: false,
+                                    isPermanent: true,
+                                    participants: [],
+                                    participantsCount: 0,
+                                    maxUsers: 5,
+                                    host: null,
+                                    hostId: 'system',
+                                    isLive: false,
+                                    createdAt: new Date().toISOString()
+                                });
+                            }
+                        }
+                        this.saveRoomsToStorage();
+
                         // Then restore the active room reference and re-join user
                         this.restoreActiveRoom();
 
@@ -1477,6 +1609,11 @@
                         ]
                     },
 
+                    // Featured Room Real Participant Tracking
+                    featuredRoomParticipants: (function() {
+                        try { return JSON.parse(localStorage.getItem('featured_room_participants') || '{}'); } catch(e) { return {}; }
+                    })(),
+
                     // Live Hub Room State
                     showCreateRoomModal: false,
                     selectedRoomType: '',
@@ -1491,23 +1628,7 @@
                     // CRITICAL: DO NOT USE `this.publicRooms = []` or `this.publicRooms = newArray`
                     // This breaks persistence! Always use .push(), .splice(), or merge operations.
                     // Rooms are loaded from localStorage at the END of mounted() to ensure they win over API data.
-                    publicRooms: [
-                        // Default private room - always visible (starts with 1 user "sdsd dsd")
-                        {
-                            id: 'default-private',
-                            name: 'Chilling',
-                            type: 'chilling',
-                            icon: 'ph:coffee-bold',
-                            color: 'bg-blue-500',
-                            tag: 'Private',
-                            isLive: true,
-                            participants: [{ name: 'sdsd dsd', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sdsd' }],
-                            maxUsers: 10,
-                            host: 'sdsd dsd',
-                            hostId: 'default-host',
-                            isPrivate: true
-                        }
-                    ],  // Stores all created private rooms visible to everyone
+                    publicRooms: [],  // Stores all created rooms visible to everyone (seeded in mounted)
                     roomDeletionTimers: {},  // Track auto-deletion timers for empty rooms
                     
                     // Global Socket Connection for Room Management
@@ -1531,6 +1652,7 @@
                     showChatPanel: true, // Toggle chat sidebar (default on)
                     isRecording: false, // Recording state
                     isWhiteboardOpen: false, // Whiteboard modal
+                    classroomToast: null, // { message, type } for in-room toast notifications
                     isBreakoutMode: false, // Breakout rooms active
                     breakoutRooms: [], // List of breakout rooms
                     pinnedMessage: '', // Pinned message in classroom
@@ -2162,6 +2284,16 @@
                             }
                         });
 
+                        // Zero out any local room absent from the server broadcast — it is truly empty.
+                        // User-created rooms always appear in the broadcast (even empty), so this is safe.
+                        const serverRoomIds = new Set(serverRooms.map(r => r.id.toString()));
+                        this.publicRooms.forEach(localRoom => {
+                            if (!serverRoomIds.has(localRoom.id.toString())) {
+                                localRoom.participants = [];
+                                localRoom.participantsCount = 0;
+                            }
+                        });
+
                         // If we added or updated rooms, persist to localStorage
                         if (addedCount > 0 || updatedCount > 0) {
                             this.saveRoomsToStorage();
@@ -2187,6 +2319,27 @@
                             return room.participants.length;
                         }
                         return 0;
+                    },
+
+                    getTotalOnlineCount() {
+                        return this.publicRooms.reduce((sum, r) => {
+                            const n = (r.participantsCount !== undefined && r.participantsCount !== null)
+                                ? r.participantsCount
+                                : (Array.isArray(r.participants) ? r.participants.length : 0);
+                            return sum + n;
+                        }, 0);
+                    },
+
+                    getFeaturedRoomCount(roomId) {
+                        const room = this.publicRooms.find(r => r.id === roomId);
+                        if (!room) return 0;
+                        if (room.participantsCount !== undefined && room.participantsCount !== null) return room.participantsCount;
+                        return Array.isArray(room.participants) ? room.participants.length : 0;
+                    },
+
+                    getFeaturedRoomParticipants(roomId) {
+                        const room = this.publicRooms.find(r => r.id === roomId);
+                        return (room && Array.isArray(room.participants)) ? room.participants : [];
                     },
 
                     /**
@@ -2316,8 +2469,21 @@
                                 return;
                             }
                             
-                            const savedRooms = JSON.parse(saved);
+                            let savedRooms = JSON.parse(saved);
                             const activeRoomId = localStorage.getItem('ielts_active_room_id');
+
+                            // Strip out legacy/stale rooms that should never appear:
+                            // - default-private (old fake room with hard-coded participant)
+                            // - featured-session-* (classroom IDs, not public rooms)
+                            // - isPermanent rooms (Chilling lounges are always re-seeded fresh)
+                            savedRooms = savedRooms.filter(r => {
+                                const id = r.id.toString();
+                                if (id === 'default-private') return false;
+                                if (id.startsWith('featured-session-')) return false;
+                                if (r.isPermanent) return false;
+                                return true;
+                            });
+
                             console.log('📦 Loading', savedRooms.length, 'rooms, active:', activeRoomId);
                             
                             // Create a Map of current rooms to avoid duplicates (use String IDs for safety)
@@ -2347,10 +2513,10 @@
                                 // Check participants
                                 const hasParticipants = savedRoom.participants && savedRoom.participants.length > 0;
                                 
-                                // Check if empty but within 10-min grace period
+                                // Check if empty but within 2-min grace period
                                 const lastEmptyTime = savedRoom.lastEmptyTime;
                                 const isWithinGracePeriod = lastEmptyTime && 
-                                    (Date.now() - new Date(lastEmptyTime).getTime()) < 600000;
+                                    (Date.now() - new Date(lastEmptyTime).getTime()) < 120000;
                                 
                                 // DECISION: Keep room if ANY of these are true
                                 const shouldKeep = isActiveRoom || hasParticipants || isRecentlyCreated || isWithinGracePeriod;
@@ -2443,18 +2609,21 @@
                         if (this.roomDeletionTimers[roomId]) {
                             clearTimeout(this.roomDeletionTimers[roomId]);
                         }
+
+                        // Permanent rooms (Chilling lounges etc.) are never auto-deleted
+                        const room = this.publicRooms.find(r => r.id === roomId);
+                        if (room && room.isPermanent) return;
                         
-                        // Set new 10-minute timer
+                        // Set new 2-minute timer for user-created rooms
                         this.roomDeletionTimers[roomId] = setTimeout(() => {
-                            const room = this.publicRooms.find(r => r.id === roomId);
-                            if (room && room.participants.length === 0) {
-                                // Delete the room
+                            const r = this.publicRooms.find(r => r.id === roomId);
+                            if (r && !r.isPermanent && r.participants.length === 0) {
                                 this.publicRooms = this.publicRooms.filter(r => r.id !== roomId);
                                 this.saveRoomsToStorage();
-                                console.log(`Room ${roomId} deleted after being empty for 10 minutes`);
+                                console.log(`Room ${roomId} deleted after being empty for 2 minutes`);
                             }
                             delete this.roomDeletionTimers[roomId];
-                        }, 600000); // 10 minutes in milliseconds
+                        }, 120000); // 2 minutes in milliseconds
                     },
 
                     clearEmptyRoomTimer(roomId) {
@@ -2513,21 +2682,32 @@
                                     console.log('📹 onLocalStream called with stream:', stream);
                                     console.log('   Video tracks:', stream.getVideoTracks().length);
                                     console.log('   Audio tracks:', stream.getAudioTracks().length);
-                                    // Use Object.assign to ensure Vue detects the change
                                     this.localVideoStream = stream;
                                     this.isVideoOn = stream.getVideoTracks().length > 0;
                                     console.log('✅ localVideoStream set:', this.localVideoStream);
-                                    // Force Vue to update by triggering a re-render
-                                    this.$nextTick(() => {
-                                        console.log('🔄 Vue updated, video element should exist');
-                                        const videoEl = document.getElementById('local-video-element');
-                                        if (videoEl) {
-                                            console.log('🎥 Found video element, attaching stream');
-                                            videoEl.srcObject = stream;
+                                    // Robust attach: PetiteVue has no :srcObject.prop support, so we
+                                    // imperatively set srcObject. Retry for up to 3s because the Live
+                                    // Hub view may not be mounted yet when this callback fires.
+                                    const attachLocalVideo = (attempts = 0) => {
+                                        const videoEls = document.querySelectorAll('#local-video-element');
+                                        if (videoEls.length > 0) {
+                                            videoEls.forEach(el => {
+                                                if (el.srcObject !== stream) {
+                                                    el.srcObject = stream;
+                                                    const p = el.play && el.play();
+                                                    if (p && p.catch) p.catch(err => console.warn('local video.play() blocked:', err && err.message));
+                                                }
+                                            });
+                                            console.log('🎥 Local video srcObject attached to ' + videoEls.length + ' element(s) (attempt ' + attempts + ')');
+                                            // Keep polling briefly to cover late-mounted layouts (gallery vs voice-view swaps)
+                                            if (attempts < 20) setTimeout(() => attachLocalVideo(attempts + 1), 250);
+                                        } else if (attempts < 30) {
+                                            setTimeout(() => attachLocalVideo(attempts + 1), 100);
                                         } else {
-                                            console.warn('⚠️ Video element not found in DOM');
+                                            console.warn('⚠️ local-video-element never appeared in DOM after 3s');
                                         }
-                                    });
+                                    };
+                                    attachLocalVideo();
                                 };
                                 
                                 this.webrtc.onRemoteStream = (socketId, stream) => {
@@ -2621,15 +2801,31 @@
                             };
                             this.remoteParticipants.push(newParticipant);
                             console.log('✅ Remote participant added:', newParticipant);
-                            // Force update video element after Vue renders
-                            this.$nextTick(() => {
-                                const videoEl = document.getElementById('remote-video-' + socketId);
-                                if (videoEl) {
-                                    videoEl.srcObject = stream;
-                                    console.log('🎥 Remote video element updated for:', socketId);
-                                }
-                            });
+                        } else {
+                            // Re-negotiation: the underlying MediaStream may have been replaced.
+                            existing.stream = stream;
+                            existing.isVideoOn = stream.getVideoTracks().length > 0;
                         }
+                        // Robust attach with retry for up to 3s (independent of Vue directives).
+                        const attachRemoteVideo = (attempts = 0) => {
+                            const videoEls = document.querySelectorAll('[id="remote-video-' + socketId + '"]');
+                            if (videoEls.length > 0) {
+                                videoEls.forEach(el => {
+                                    if (el.srcObject !== stream) {
+                                        el.srcObject = stream;
+                                        const p = el.play && el.play();
+                                        if (p && p.catch) p.catch(err => console.warn('remote video.play() blocked:', err && err.message));
+                                    }
+                                });
+                                console.log('🎥 Remote video srcObject attached to ' + videoEls.length + ' element(s) for ' + socketId + ' (attempt ' + attempts + ')');
+                                if (attempts < 20) setTimeout(() => attachRemoteVideo(attempts + 1), 250);
+                            } else if (attempts < 30) {
+                                setTimeout(() => attachRemoteVideo(attempts + 1), 100);
+                            } else {
+                                console.warn('⚠️ remote-video-' + socketId + ' never appeared in DOM after 3s');
+                            }
+                        };
+                        attachRemoteVideo();
                     },
 
                     /**
@@ -2683,7 +2879,7 @@
                                 if (room.participants.length === 0) {
                                     room.lastEmptyTime = new Date().toISOString();
                                     this.saveRoomsToStorage();
-                                    // Start 10-minute deletion timer
+                                    // Start 2-minute deletion timer (permanent rooms are skipped inside)
                                     this.startEmptyRoomTimer(roomId);
                                 } else {
                                     this.clearEmptyRoomTimer(roomId);
@@ -2870,6 +3066,25 @@
                             });
                         }
                         
+                        // Track featured room participants (real data, no fakes)
+                        const FEATURED_IDS = ['speaking-room-1', 'writing-class-1', 'listening-drill-1'];
+                        if (FEATURED_IDS.includes(classroom.id)) {
+                            if (!this.featuredRoomParticipants[classroom.id]) {
+                                this.featuredRoomParticipants[classroom.id] = [];
+                            }
+                            const alreadyTracked = this.featuredRoomParticipants[classroom.id].find(
+                                p => p.id === (this.userId || '') || p.name === (this.userFullName || 'You')
+                            );
+                            if (!alreadyTracked) {
+                                this.featuredRoomParticipants[classroom.id].push({
+                                    id: this.userId || ('user-' + Date.now()),
+                                    name: this.userFullName || 'You',
+                                    avatar: this.userAvatarUrl
+                                });
+                            }
+                            try { localStorage.setItem('featured_room_participants', JSON.stringify(this.featuredRoomParticipants)); } catch(e) {}
+                        }
+
                         // Set active classroom and switch to classroom mode
                         this.activeClassroom = classroom;
                         this.isClassroomMode = true;
@@ -2911,6 +3126,18 @@
                             this.webrtc = null;
                         }
                         
+                        // Remove from featured room participant tracking
+                        const FEATURED_IDS = ['speaking-room-1', 'writing-class-1', 'listening-drill-1'];
+                        if (this.activeClassroom && FEATURED_IDS.includes(this.activeClassroom.id)) {
+                            const roomId = this.activeClassroom.id;
+                            if (this.featuredRoomParticipants[roomId]) {
+                                this.featuredRoomParticipants[roomId] = this.featuredRoomParticipants[roomId].filter(
+                                    p => p.id !== (this.userId || '') && p.name !== (this.userFullName || 'You')
+                                );
+                                try { localStorage.setItem('featured_room_participants', JSON.stringify(this.featuredRoomParticipants)); } catch(e) {}
+                            }
+                        }
+
                         // Clear classroom state
                         this.activeClassroom = null;
                         this.isClassroomMode = false;
@@ -3167,6 +3394,24 @@
                      */
                     setClassroomLayout(layout) {
                         this.classroomLayout = layout;
+                        // v-if destroys/recreates video elements on layout switch — re-attach srcObject
+                        setTimeout(() => this.reattachLocalVideo(), 50);
+                    },
+
+                    reattachLocalVideo() {
+                        if (!this.localVideoStream) return;
+                        document.querySelectorAll('#local-video-element').forEach(el => {
+                            if (el.srcObject !== this.localVideoStream) {
+                                el.srcObject = this.localVideoStream;
+                                const p = el.play && el.play();
+                                if (p && p.catch) p.catch(() => {});
+                            }
+                        });
+                    },
+
+                    showNotification(message, type = 'info', duration = 3000) {
+                        this.classroomToast = { message, type };
+                        setTimeout(() => { this.classroomToast = null; }, duration);
                     },
                     
                     /**
@@ -3227,7 +3472,7 @@
                      * Toggle whiteboard
                      */
                     toggleWhiteboard() {
-                        this.isWhiteboardOpen = !this.isWhiteboardOpen;
+                        this.showNotification('Drawing board is coming soon! 🎨', 'info', 3000);
                     },
 
                     async loadRandomDojoText() {
@@ -3266,10 +3511,10 @@
                                 fetch('/api/public/centres'),
                                 fetch('/api/public/centres/locations')
                             ]);
-                            
+
                             const centresResult = await centresRes.json();
                             const locationsResult = await locationsRes.json();
-                            
+
                             // Build a map of id -> coordinates from locations endpoint
                             const locationMap = {};
                             if (locationsResult.success && locationsResult.data) {
@@ -3280,8 +3525,8 @@
                                     };
                                 });
                             }
-                            
-                            if (centresResult.success && centresResult.data) {
+
+                            if (centresResult.success && centresResult.data && centresResult.data.length) {
                                 this.allCentres = centresResult.data.map(c => {
                                     const coords = locationMap[c.id] || {};
                                     return {
@@ -3303,6 +3548,37 @@
                                     };
                                 });
                                 console.log('✅ Loaded centres with coordinates:', this.allCentres.map(c => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng })));
+                            }
+
+                            // Fallback: populate from static data if API is empty
+                            if (!this.allCentres.length) {
+                                const DEFAULT_CENTRES = [
+                                    { id: 1, name: "British Council Tashkent", type: "Official", city: "Tashkent", district: "Yunusabad", rating: 4.9, reviews: 312, students: "2,400+", price: 450000, open: true, icon: "🏛️", bg: "#F5F1FF", lat: 41.3111, lng: 69.2797 },
+                                    { id: 2, name: "IDP Education Tashkent", type: "Official", city: "Tashkent", district: "Mirzo Ulugbek", rating: 4.8, reviews: 278, students: "1,900+", price: 420000, open: true, icon: "🎓", bg: "#F5F1FF", lat: 41.3205, lng: 69.3120 },
+                                    { id: 3, name: "IELTSPRACTICE Hub", type: "Partner", city: "Tashkent", district: "Chilonzor", rating: 4.7, reviews: 189, students: "950+", price: 280000, open: true, icon: "📚", bg: "#FFF8F5", lat: 41.2880, lng: 69.2060 },
+                                    { id: 4, name: "Global Education Samarkand", type: "Partner", city: "Samarkand", district: "Centre", rating: 4.6, reviews: 145, students: "620+", price: 320000, open: false, icon: "🕌", bg: "#FFF8F5", lat: 39.6542, lng: 66.9758 },
+                                    { id: 5, name: "Fergana Language Academy", type: "Partner", city: "Fergana", district: "Mustaqillik", rating: 4.5, reviews: 98, students: "410+", price: 150000, open: true, icon: "✏️", bg: "#FFF8F5", lat: 40.3864, lng: 71.7864 },
+                                    { id: 6, name: "Bukhara IELTS Centre", type: "Partner", city: "Bukhara", district: "Old City", rating: 4.4, reviews: 76, students: "300+", price: 200000, open: true, icon: "🏰", bg: "#FFF8F5", lat: 39.7747, lng: 64.4286 },
+                                    { id: 7, name: "Online IELTS Pro", type: "Online", city: "Nationwide", district: "Remote", rating: 4.7, reviews: 423, students: "5,000+", price: 180000, open: true, icon: "💻", bg: "#EFF6FF", lat: 41.2600, lng: 69.2200 },
+                                    { id: 8, name: "Namangan Study Centre", type: "Partner", city: "Namangan", district: "Central", rating: 4.3, reviews: 54, students: "220+", price: 130000, open: false, icon: "🏫", bg: "#FFF8F5", lat: 40.9983, lng: 71.6726 },
+                                    { id: 9, name: "Winners Academy (Main)", type: "Academy", city: "Termez", district: "At-Termizi St", rating: 5.0, reviews: 128, students: "850+", price: 220000, open: true, icon: "🏆", bg: "#FEF3C7", lat: 37.2214, lng: 67.2780 },
+                                    { id: 10, name: "Imperial Academy", type: "Academy", city: "Termez", district: "Barkamol Avlod", rating: 5.0, reviews: 96, students: "720+", price: 240000, open: true, icon: "👑", bg: "#FEF3C7", lat: 37.2230, lng: 67.2810 },
+                                    { id: 11, name: "London Academy", type: "Academy", city: "Termez", district: "Islam Karimov", rating: 5.0, reviews: 142, students: "1,100+", price: 260000, open: true, icon: "🇬🇧", bg: "#FEF3C7", lat: 37.2195, lng: 67.2850 },
+                                    { id: 12, name: "Oxbridge", type: "Academy", city: "Termez", district: "Ibn Sino", rating: 5.0, reviews: 88, students: "680+", price: 250000, open: true, icon: "🎓", bg: "#FEF3C7", lat: 37.2180, lng: 67.2750 },
+                                    { id: 13, name: "Level Up", type: "Academy", city: "Termez", district: "At-Termiziy St", rating: 5.0, reviews: 115, students: "900+", price: 200000, open: true, icon: "⬆️", bg: "#FEF3C7", lat: 37.2240, lng: 67.2790 },
+                                    { id: 14, name: "Ziyo Termiz", type: "Academy", city: "Termez", district: "Alisher Navoi", rating: 4.0, reviews: 67, students: "540+", price: 180000, open: true, icon: "💡", bg: "#FEF3C7", lat: 37.2200, lng: 67.2820 },
+                                    { id: 15, name: "WebForte Academy", type: "Academy", city: "Termez", district: "Islam Karimov", rating: 4.0, reviews: 74, students: "420+", price: 280000, open: true, icon: "💻", bg: "#FEF3C7", lat: 37.2170, lng: 67.2860 },
+                                    { id: 16, name: "Seul School", type: "Academy", city: "Termez", district: "Alisher Navoi", rating: 5.0, reviews: 52, students: "380+", price: 230000, open: true, icon: "🇰🇷", bg: "#FEF3C7", lat: 37.2225, lng: 67.2840 },
+                                    { id: 17, name: "Harvard Private School", type: "Academy", city: "Termez", district: "Islam Karimov", rating: 4.0, reviews: 43, students: "290+", price: 300000, open: true, icon: "🎓", bg: "#FEF3C7", lat: 37.2185, lng: 67.2800 },
+                                    { id: 18, name: "Bilimdon Study", type: "Academy", city: "Termez", district: "5th Micro-district", rating: 4.0, reviews: 38, students: "250+", price: 160000, open: true, icon: "📖", bg: "#FEF3C7", lat: 37.2250, lng: 67.2760 }
+                                ];
+                                this.allCentres = DEFAULT_CENTRES.map(c => ({
+                                    id: c.id, name: c.name, city: c.city, type: c.type,
+                                    rating: c.rating, reviews: c.reviews, students: c.students,
+                                    price: c.price, bg: c.bg, icon: c.icon, open: c.open,
+                                    latitude: c.lat, longitude: c.lng, lat: c.lat, lng: c.lng
+                                }));
+                                console.log('✅ Loaded fallback centres:', this.allCentres.length);
                             }
                         } catch (err) {
                             console.error('Failed to load education centres:', err);
@@ -3622,7 +3898,8 @@
                     },
                     
                     async setView(view, filter = 'all') { 
-                        this.currentView = view; 
+                        this.currentView = view;
+                        this.mobileNavOpen = false;
                         if (view === 'practice') {
                             this.practiceFilter = filter;
                             // Auto-select skill if coming from dashboard with filter
@@ -3649,8 +3926,14 @@
                                     }
                                 }, 250); // Increased delay for v-if render
                             });
+                        } else if (view === 'rankings') {
+                            if (!this.typingLeaderboard.length) {
+                                this.visibleRankingsCount = 200;
+                                await this.fetchTypingLeaderboard();
+                            }
                         } else if (view === 'statistics') {
-                            setTimeout(() => { if (typeof window.setupStatsChart === 'function') window.setupStatsChart(); }, 100);
+                            this.refreshStatistics();
+                            setTimeout(() => { if (typeof window.setupStatsChart === 'function') window.setupStatsChart(); }, 300);
                         } else if (view === 'dojo') {
                             if (this.dojoText === 'Loading practice text...') await this.loadRandomDojoText();
                         } else if (view === 'education') {
@@ -3701,10 +3984,10 @@
 
                         // Fetch real data based on category
                         if (category === 'typing_dojo') {
-                            this.visibleRankingsCount = 100; // Show top 100 for typing dojo
+                            this.visibleRankingsCount = 200; // Show top 200 for typing dojo
                             await this.fetchTypingLeaderboard();
                         } else if (category === 'highest_scorer') {
-                            this.visibleRankingsCount = 100; // Show top 100 for highest scorer
+                            this.visibleRankingsCount = 200; // Show top 200 for highest scorer
                             await this.fetchIELTSLeaderboard();
                         } else {
                             this.visibleRankingsCount = 5; // Reset to default for other categories
@@ -3771,7 +4054,7 @@
                             
                             // Fetch both leaderboard and user's personal history
                             const [leaderboardRes, historyRes] = await Promise.all([
-                                fetch('/api/typing/leaderboard?limit=100&period=all', {
+                                fetch('/api/typing/leaderboard?limit=200&period=all', {
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 }),
                                 fetch('/api/typing/my-history?limit=1', {
@@ -3841,7 +4124,7 @@
                         }
                     },
                     loadMoreRankings() {
-                        this.visibleRankingsCount += 5;
+                        this.visibleRankingsCount += 20;
                     },
                     get filteredRankings() {
                         // Determine which leaderboard to use based on category
@@ -3859,9 +4142,17 @@
                             filtered = filtered.filter(r => r.country.toLowerCase() === this.rankingCountry.toLowerCase());
                         }
 
-                        // Return the filtered list excluding top 3 for the table
+                        // Apply name search filter
+                        if (this.rankingSearch && this.rankingSearch.trim()) {
+                            const q = this.rankingSearch.trim().toLowerCase();
+                            filtered = filtered.filter(r =>
+                                (r.name && r.name.toLowerCase().includes(q)) ||
+                                (r.username && r.username.toLowerCase().includes(q))
+                            );
+                        }
+
+                        // Return the full filtered list for the table
                         return filtered
-                            .filter(r => r.rank > 3)
                             .slice(0, this.visibleRankingsCount);
                     },
                     get topRankings() {
@@ -4302,6 +4593,7 @@
         .purple-badge { background-color: #F5F1FF; color: #8B5CF6; }
         .orange-badge { background-color: #FFF8F5; color: #FF6B35; }
         .blue-badge { background-color: #EFF6FF; color: #3B82F6; }
+        .academy-badge { background-color: #FEF3C7; color: #D97706; }
         .green-badge { background-color: #F0FDF4; color: #22C55E; }
 
         .custom-scrollbar::-webkit-scrollbar {
@@ -4479,8 +4771,8 @@
 
         <div class="flex min-h-screen">
 
-            <!-- Sidebar Navigation -->
-            <aside class="w-72 bg-white border-r border-purple-50 flex flex-col fixed h-full z-[60]">
+            <!-- Sidebar Navigation (desktop only) -->
+            <aside class="w-72 bg-white border-r border-purple-50 flex-col fixed h-full z-[60] hidden md:flex">
                 <div class="px-8 py-10">
                     <div class="text-2xl font-heading font-black flex items-center uppercase tracking-tighter">
                         <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
@@ -4549,14 +4841,67 @@
                 </div>
             </aside>
 
+            <!-- Mobile Nav Overlay -->
+            <div v-if="mobileNavOpen" class="fixed inset-0 z-[70] md:hidden flex">
+                <div class="w-72 max-w-[85vw] bg-white h-full flex flex-col shadow-2xl overflow-y-auto">
+                    <div class="px-6 py-6 flex items-center justify-between border-b border-purple-50">
+                        <div class="text-xl font-heading font-black flex items-center uppercase tracking-tighter">
+                            <span class="text-black border-r-4 border-[#FF6B35] pr-3 mr-3">IELTS</span>
+                            <span class="text-black/60 text-sm tracking-[0.2em] font-bold">PRACTICE</span>
+                        </div>
+                        <button @click="mobileNavOpen = false" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 text-gray-500">
+                            <iconify-icon icon="ph:x-bold" class="text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                    <nav class="flex-1 px-4 py-4 space-y-1">
+                        <button @click="setView('home')" :class="currentView === 'home' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:grid-four-fill" class="text-xl"></iconify-icon><span>Dashboard</span>
+                        </button>
+                        <button @click="setView('practice')" :class="currentView === 'practice' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:book-open-text-bold" class="text-xl"></iconify-icon><span>My Practice</span>
+                        </button>
+                        <button @click="setView('statistics')" :class="currentView === 'statistics' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:chart-bar-bold" class="text-xl"></iconify-icon><span>Statistics</span>
+                        </button>
+                        <button @click="setView('rankings')" :class="currentView === 'rankings' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:chart-line-up-bold" class="text-xl"></iconify-icon><span>Rankings</span>
+                        </button>
+                        <button @click="setView('dates')" :class="currentView === 'dates' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:calendar-blank-bold" class="text-xl"></iconify-icon><span>Exam Dates</span>
+                        </button>
+                        <button @click="setView('centres')" :class="currentView === 'centres' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:buildings-bold" class="text-xl"></iconify-icon><span>Centres</span>
+                        </button>
+                        <button @click="setView('dojo')" :class="currentView === 'dojo' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:keyboard-bold" class="text-xl"></iconify-icon><span>Typing Dojo</span>
+                        </button>
+                        <button @click="setView('hub')" :class="currentView === 'hub' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:broadcast-bold" class="text-xl"></iconify-icon><span>Live Hub</span>
+                        </button>
+                        <button @click="setView('profile')" :class="currentView === 'profile' ? 'bg-purple-50 text-[#8B5CF6]' : 'text-gray-500'" class="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all">
+                            <iconify-icon icon="ph:user-circle-bold" class="text-xl"></iconify-icon><span>Profile</span>
+                        </button>
+                    </nav>
+                    <div class="p-4">
+                        <button @click="setView('profile')" class="w-full bg-[#8B5CF6] text-white py-3 rounded-2xl font-bold shadow-lg shadow-purple-200">View Profile</button>
+                    </div>
+                </div>
+                <div class="flex-1 bg-black/40" @click="mobileNavOpen = false"></div>
+            </div>
+
             <!-- Main Content Area -->
-            <main class="flex-1 ml-72 pb-24 relative">
+            <main class="flex-1 ml-0 md:ml-72 pb-20 md:pb-24 relative">
 
                 <!-- Top Header -->
                 <header
-                    class="flex items-center justify-between px-12 py-8 sticky top-0 bg-[#F9F5FF]/90 backdrop-blur-md z-40 border-b border-purple-50/50">
-                    <div>
-                        <h1 class="text-3xl font-heading font-black">
+                    class="flex items-center justify-between px-4 md:px-12 py-4 md:py-6 sticky top-0 bg-[#F9F5FF]/90 backdrop-blur-md z-40 border-b border-purple-50/50">
+                    <div class="flex items-center gap-3">
+                        <!-- Hamburger (mobile only) -->
+                        <button @click="mobileNavOpen = true" class="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-purple-50 shadow-sm text-gray-500">
+                            <iconify-icon icon="ph:list-bold" class="text-xl"></iconify-icon>
+                        </button>
+                        <div>
+                        <h1 class="text-lg md:text-3xl font-heading font-black">
                             <span v-if="currentView === 'home'">Dashboard</span>
                             <span v-else-if="currentView === 'practice'">My Practice Area</span>
                             <span v-else-if="currentView === 'statistics'">Growth Analytics</span>
@@ -4568,33 +4913,26 @@
                             <span v-else-if="currentView === 'hub'">Live Session Hub</span>
                             <span v-else>Dashboard</span>
                         </h1>
-                        <p class="text-gray-400 font-medium">
+                        <p class="text-gray-400 font-medium text-xs md:text-sm hidden sm:block">
                             <span v-if="currentView === 'home'">Track your growth & master the IELTS</span>
-                            <span v-else-if="currentView === 'practice'">Continue your journey to Band {{ targetBand
-                                }}</span>
+                            <span v-else-if="currentView === 'practice'">Continue your journey to Band {{ targetBand }}</span>
                             <span v-else-if="currentView === 'statistics'">Monitor your progress over time</span>
                             <span v-else-if="currentView === 'rankings'">See where you stand globally</span>
-                            <span v-else-if="currentView === 'profile'">Manage your personal information and
-                                preferences</span>
-                            <span v-else-if="currentView === 'dates'">Find and book your next official test or
-                                mock</span>
-                            <span v-else-if="currentView === 'centres'">Locate official and partner testing
-                                facilities</span>
-                            <span v-else-if="currentView === 'dojo'">Master the computer-delivered test speed and
-                                accuracy</span>
-                            <span v-else-if="currentView === 'hub'">Join live classes and speaking rooms with the
-                                community</span>
+                            <span v-else-if="currentView === 'profile'">Manage your personal information</span>
+                            <span v-else-if="currentView === 'dates'">Find and book your next official test</span>
+                            <span v-else-if="currentView === 'centres'">Locate official and partner facilities</span>
+                            <span v-else-if="currentView === 'dojo'">Master speed and accuracy</span>
+                            <span v-else-if="currentView === 'hub'">Join live classes and speaking rooms</span>
                             <span v-else>Track your growth & master the IELTS</span>
                         </p>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-8">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="bg-white px-4 py-2.5 rounded-2xl border border-purple-50 flex items-center gap-3 shadow-sm">
+                    <div class="flex items-center gap-2 md:gap-8">
+                        <div class="flex items-center gap-2 md:gap-3">
+                            <div class="hidden sm:flex bg-white px-4 py-2.5 rounded-2xl border border-purple-50 items-center gap-3 shadow-sm">
                                 <div class="w-2.5 h-2.5 rounded-full bg-[#FF6B35]"></div>
-                                <span class="text-sm font-bold">Target Band <span class="text-[#FF6B35]">{{ targetBand
-                                        }}</span></span>
+                                <span class="text-sm font-bold">Target Band <span class="text-[#FF6B35]">{{ targetBand }}</span></span>
                             </div>
                             <div class="relative">
                                 <button @click="isNotificationsOpen = !isNotificationsOpen"
@@ -4607,7 +4945,7 @@
 
                                 <!-- Notifications Dropdown -->
                                 <div v-show="isNotificationsOpen" 
-                                    class="absolute right-0 mt-4 w-96 bg-white rounded-[32px] shadow-[0_20px_50px_-12px_rgba(139,92,246,0.3)] border border-purple-50 overflow-hidden z-50 animate-[fadeUp_0.2s_ease-out]">
+                                    class="absolute right-0 mt-4 w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-[32px] shadow-[0_20px_50px_-12px_rgba(139,92,246,0.3)] border border-purple-50 overflow-hidden z-50 animate-[fadeUp_0.2s_ease-out]">
                                     <div class="p-6 border-b border-purple-50 flex items-center justify-between">
                                         <h3 class="font-black text-lg">Notifications</h3>
                                         <button @click="markAllNotesRead()" class="text-xs font-bold text-[#8B5CF6] hover:underline">Mark all as read</button>
@@ -4638,22 +4976,21 @@
                         </div>
 
                         <button @click="setView('profile')"
-                            class="flex items-center gap-4 bg-white p-2 pr-6 rounded-3xl border border-purple-50 shadow-sm hover:shadow-md transition-shadow text-left">
-                            <img :src="userAvatarUrl" class="w-12 h-12 rounded-2xl bg-purple-100 p-1" alt="User Avatar">
-                            <div>
+                            class="flex items-center gap-2 md:gap-4 bg-white p-2 md:pr-6 rounded-3xl border border-purple-50 shadow-sm hover:shadow-md transition-shadow text-left">
+                            <img :src="userAvatarUrl" class="w-9 h-9 md:w-12 md:h-12 rounded-2xl bg-purple-100 p-0.5 md:p-1" alt="User Avatar">
+                            <div class="hidden md:block">
                                 <p class="font-black text-sm">{{ fullName }}</p>
-                                <p class="text-[10px] font-black uppercase tracking-widest text-[#8B5CF6]">{{
-                                    membershipType }}</p>
+                                <p class="text-[10px] font-black uppercase tracking-widest text-[#8B5CF6]">{{ membershipType }}</p>
                             </div>
                         </button>
                     </div>
                 </header>
 
                 <!-- VIEW 1: HOME DASHBOARD -->
-                <div v-if="currentView === 'home'" class="px-12 py-8 space-y-10 view-enter-active" :key="'home-view'">
+                <div v-if="currentView === 'home'" class="px-4 md:px-12 py-6 md:py-8 space-y-10 view-enter-active" :key="'home-view'">
                     <!-- Welcome Hero Section -->
                     <section
-                        class="relative h-72 rounded-[48px] overflow-hidden bg-gradient-to-r from-[#8B5CF6] via-[#a78bfa] to-[#FF6B35] p-12 flex items-center group">
+                        class="relative rounded-[32px] md:rounded-[48px] overflow-hidden bg-gradient-to-r from-[#8B5CF6] via-[#a78bfa] to-[#FF6B35] p-6 md:p-12 flex flex-col md:flex-row items-start md:items-center gap-4 group">
                         <div class="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                             <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                                 <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white"></path>
@@ -4661,24 +4998,23 @@
                         </div>
                         <div class="relative z-10 flex-1">
                             <span
-                                class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-black uppercase tracking-widest mb-6">Welcome
+                                class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-black uppercase tracking-widest mb-3 md:mb-6">Welcome
                                 Back, {{ username }}!</span>
-                            <h2 class="text-5xl font-heading font-black text-white leading-tight mb-4">
+                            <h2 class="text-2xl md:text-5xl font-heading font-black text-white leading-tight mb-2 md:mb-4">
                                 Your dream score is <br><span class="text-white/80" v-if="examDateRemaining">{{ examDateRemaining }} away.</span>
                                 <span class="text-white/80" v-else>waiting for you.</span>
                             </h2>
-                            <p class="text-white/70 text-lg font-medium max-w-md">Maintain your {{ studyStreakDays }}-day streak to stay
+                            <p class="text-white/70 text-sm md:text-lg font-medium max-w-md">Maintain your {{ studyStreakDays }}-day streak to stay
                                 ahead of 85% of applicants.</p>
                         </div>
 
                         <div
-                            class="relative z-10 bg-white/10 backdrop-blur-xl p-8 rounded-[40px] border border-white/20 float-animation flex items-center gap-10">
+                            class="relative z-10 bg-white/10 backdrop-blur-xl p-4 md:p-8 rounded-[28px] md:rounded-[40px] border border-white/20 flex items-center gap-5 md:gap-10 w-full md:w-auto">
                             <div class="text-center">
-                                <p class="text-white/60 font-black text-xs uppercase tracking-tighter mb-1">Current Band
-                                </p>
-                                <p class="text-6xl font-heading font-black text-white">5.0</p>
+                                <p class="text-white/60 font-black text-xs uppercase tracking-tighter mb-1">Current Band</p>
+                                <p class="text-4xl md:text-6xl font-heading font-black text-white">5.0</p>
                             </div>
-                            <div class="w-px h-16 bg-white/20"></div>
+                            <div class="w-px h-12 md:h-16 bg-white/20"></div>
                             <div class="text-center">
                                 <p class="text-white/60 font-black text-xs uppercase tracking-tighter mb-1">Exam In</p>
                                 <div v-if="examDate">
@@ -4694,14 +5030,14 @@
                     </section>
 
                     <!-- Skill Cards Section -->
-                    <section class="grid grid-cols-4 gap-6">
+                    <section class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                         <!-- Listening -->
-                        <div data-skill="listening" class="bg-white p-8 rounded-[40px] border-2 border-transparent hover:border-emerald-100 transition-playful card-lift shadow-sm cursor-pointer"
+                        <div data-skill="listening" class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border-2 border-transparent hover:border-emerald-100 transition-playful card-lift shadow-sm cursor-pointer"
                             @click="setView('practice', 'listening')">
-                            <div class="flex justify-between items-start mb-10">
+                            <div class="flex justify-between items-start mb-5 md:mb-10">
                                 <div
-                                    class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                    <iconify-icon icon="ph:headphones-bold" class="text-3xl"></iconify-icon>
+                                    class="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                    <iconify-icon icon="ph:headphones-bold" class="text-xl md:text-3xl"></iconify-icon>
                                 </div>
                                 <span id="listening-change-badge"
                                     class="flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black">
@@ -4724,12 +5060,12 @@
                         </div>
 
                         <!-- Reading -->
-                        <div data-skill="reading" class="bg-white p-8 rounded-[40px] border-2 border-transparent hover:border-blue-100 transition-playful card-lift shadow-sm cursor-pointer"
+                        <div data-skill="reading" class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border-2 border-transparent hover:border-blue-100 transition-playful card-lift shadow-sm cursor-pointer"
                             @click="setView('practice', 'reading')">
-                            <div class="flex justify-between items-start mb-10">
+                            <div class="flex justify-between items-start mb-5 md:mb-10">
                                 <div
-                                    class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                                    <iconify-icon icon="ph:book-open-bold" class="text-3xl"></iconify-icon>
+                                    class="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                    <iconify-icon icon="ph:book-open-bold" class="text-xl md:text-3xl"></iconify-icon>
                                 </div>
                                 <span id="reading-change-badge"
                                     class="flex items-center gap-1 px-3 py-1 bg-gray-50 text-gray-400 rounded-full text-xs font-black">
@@ -4752,12 +5088,12 @@
                         </div>
 
                         <!-- Writing -->
-                        <div data-skill="writing" class="bg-white p-8 rounded-[40px] border-2 border-transparent hover:border-orange-100 transition-playful card-lift shadow-sm cursor-pointer"
+                        <div data-skill="writing" class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border-2 border-transparent hover:border-orange-100 transition-playful card-lift shadow-sm cursor-pointer"
                             @click="setView('practice', 'writing')">
-                            <div class="flex justify-between items-start mb-10">
+                            <div class="flex justify-between items-start mb-5 md:mb-10">
                                 <div
-                                    class="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
-                                    <iconify-icon icon="ph:pencil-circle-bold" class="text-3xl"></iconify-icon>
+                                    class="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+                                    <iconify-icon icon="ph:pencil-circle-bold" class="text-xl md:text-3xl"></iconify-icon>
                                 </div>
                                 <span id="writing-change-badge"
                                     class="flex items-center gap-1 px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-black">
@@ -4780,12 +5116,12 @@
                         </div>
 
                         <!-- Speaking -->
-                        <div data-skill="speaking" class="bg-white p-8 rounded-[40px] border-2 border-transparent hover:border-purple-100 transition-playful card-lift shadow-sm cursor-pointer"
+                        <div data-skill="speaking" class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border-2 border-transparent hover:border-purple-100 transition-playful card-lift shadow-sm cursor-pointer"
                             @click="setView('practice', 'speaking')">
-                            <div class="flex justify-between items-start mb-10">
+                            <div class="flex justify-between items-start mb-5 md:mb-10">
                                 <div
-                                    class="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
-                                    <iconify-icon icon="ph:microphone-stage-bold" class="text-3xl"></iconify-icon>
+                                    class="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
+                                    <iconify-icon icon="ph:microphone-stage-bold" class="text-xl md:text-3xl"></iconify-icon>
                                 </div>
                                 <span id="speaking-change-badge"
                                     class="flex items-center gap-1 px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-xs font-black">
@@ -4810,22 +5146,22 @@
 
                     <!-- Weekly Exam Banner -->
                     <section
-                        class="bg-white rounded-[48px] p-12 shadow-2xl shadow-purple-100/50 border border-purple-50 overflow-hidden relative">
+                        class="bg-white rounded-[28px] md:rounded-[48px] p-6 md:p-12 shadow-2xl shadow-purple-100/50 border border-purple-50 overflow-hidden relative">
                         <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-orange-50 rounded-full blur-[100px]">
                         </div>
                         <div class="absolute -top-20 -right-20 w-64 h-64 bg-purple-50 rounded-full blur-[100px]"></div>
 
-                        <div class="flex items-center gap-16 relative z-10">
+                        <div class="flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-16 relative z-10">
                             <div class="flex-1">
                                 <div
-                                    class="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-600 rounded-2xl text-xs font-black uppercase mb-6">
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-600 rounded-2xl text-xs font-black uppercase mb-4 md:mb-6">
                                     <iconify-icon icon="ph:fire-bold" class="text-lg"></iconify-icon>
                                     Seasonal Competition
                                 </div>
-                                <h3 class="text-5xl font-heading font-black mb-6">Week's Real <span
+                                <h3 class="text-2xl md:text-5xl font-heading font-black mb-4 md:mb-6">Week's Real <span
                                         class="text-[#FF6B35]">Exam Test</span></h3>
 
-                                <div class="grid grid-cols-3 gap-8 mb-10">
+                                <div class="grid grid-cols-3 gap-4 md:gap-8 mb-6 md:mb-10">
                                     <div>
                                         <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">
                                             Participants</p>
@@ -4843,20 +5179,20 @@
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-6">
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
                                     <button
-                                        class="bg-[#FF6B35] text-white px-10 py-5 rounded-2xl font-bold text-xl transition-playful hover:scale-105 shadow-xl shadow-orange-200">
+                                        class="bg-[#FF6B35] text-white px-6 md:px-10 py-3 md:py-5 rounded-2xl font-bold text-base md:text-xl transition-playful hover:scale-105 shadow-xl shadow-orange-200">
                                         Start Weekly Exam
                                     </button>
-                                    <span class="text-gray-400 font-bold flex items-center gap-2">
+                                    <span class="text-gray-400 font-bold flex items-center gap-2 text-sm">
                                         <iconify-icon icon="ph:lock-bold"></iconify-icon>
                                         Absolutely free
                                     </span>
                                 </div>
                             </div>
 
-                            <div class="relative flex items-center justify-center">
-                                <svg class="w-56 h-56 progress-circle" viewBox="0 0 100 100">
+                            <div class="relative flex items-center justify-center hidden md:flex">
+                                <svg class="w-40 lg:w-56 h-40 lg:h-56 progress-circle" viewBox="0 0 100 100">
                                     <circle cx="50" cy="50" r="45" fill="transparent" stroke="#F5F1FF"
                                         stroke-width="8" />
                                     <circle cx="50" cy="50" r="45" fill="transparent" stroke="#FF6B35" stroke-width="8"
@@ -4871,22 +5207,22 @@
                     </section>
 
                     <!-- Split Sections -->
-                    <div class="grid grid-cols-12 gap-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
                         <!-- Practice Tests Grid -->
-                        <div class="col-span-8 space-y-8">
+                        <div class="col-span-12 lg:col-span-8 space-y-6 md:space-y-8">
                             <div class="flex items-center justify-between">
-                                <h3 class="text-3xl font-heading font-black">Practice Tests</h3>
+                                <h3 class="text-2xl md:text-3xl font-heading font-black">Practice Tests</h3>
                                 <button @click="setView('practice')"
                                     class="text-[#8B5CF6] font-bold flex items-center gap-2 hover:translate-x-1 transition-transform group">
                                     View All <iconify-icon icon="ph:arrow-right-bold"></iconify-icon>
                                 </button>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <!-- Dynamic Featured Tests -->
                                 <div v-for="test in featuredTests" :key="test.id"
                                     @click="startFeaturedTest(test)"
-                                    class="bg-white p-8 rounded-[40px] border border-purple-50 group hover:shadow-xl hover:shadow-purple-100/50 transition-all cursor-pointer">
+                                    class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border border-purple-50 group hover:shadow-xl hover:shadow-purple-100/50 transition-all cursor-pointer">
                                     <div class="flex justify-between items-start mb-6">
                                         <div>
                                             <p class="text-xs font-black text-[#8B5CF6] uppercase mb-1">{{ test.setName }}</p>
@@ -4931,8 +5267,8 @@
                         </div>
 
                         <!-- Sidebar Stats & Calendar -->
-                        <div class="col-span-4 space-y-8">
-                            <h3 class="text-3xl font-heading font-black">Live Activity</h3>
+                        <div class="col-span-12 lg:col-span-4 space-y-6 md:space-y-8">
+                            <h3 class="text-2xl md:text-3xl font-heading font-black">Live Activity</h3>
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-white p-6 rounded-[32px] border border-purple-50">
@@ -5034,9 +5370,9 @@
                     </div>
 
                     <!-- Recent Activity Table -->
-                    <section class="bg-white rounded-[48px] overflow-hidden shadow-sm border border-purple-50">
-                        <div class="px-10 py-8 border-b border-purple-50 flex justify-between items-center">
-                            <h3 class="text-2xl font-heading font-black">Recent Activity</h3>
+                    <section class="bg-white rounded-[28px] md:rounded-[48px] overflow-hidden shadow-sm border border-purple-50">
+                        <div class="px-5 md:px-10 py-4 md:py-8 border-b border-purple-50 flex justify-between items-center">
+                            <h3 class="text-xl md:text-2xl font-heading font-black">Recent Activity</h3>
                             <button class="text-sm font-bold text-gray-500 hover:text-[#8B5CF6]">View All</button>
                         </div>
                         <div class="overflow-x-auto">
@@ -5044,12 +5380,12 @@
                                 <thead>
                                     <tr
                                         class="bg-gray-50 text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                                        <th class="px-10 py-4">Test Name</th>
-                                        <th class="px-10 py-4">Category</th>
-                                        <th class="px-10 py-4">Date</th>
-                                        <th class="px-10 py-4 text-center">Score</th>
-                                        <th class="px-10 py-4">Status</th>
-                                        <th class="px-10 py-4"></th>
+                                        <th class="px-5 md:px-10 py-4">Test Name</th>
+                                        <th class="px-5 md:px-10 py-4">Category</th>
+                                        <th class="px-5 md:px-10 py-4">Date</th>
+                                        <th class="px-5 md:px-10 py-4 text-center">Score</th>
+                                        <th class="px-5 md:px-10 py-4">Status</th>
+                                        <th class="px-5 md:px-10 py-4"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="text-sm font-bold">
@@ -5108,10 +5444,10 @@
                 </div>
 
                 <!-- VIEW 2: MY PRACTICE -->
-                <div v-if="currentView === 'practice'" class="px-12 py-8 view-enter-active space-y-10" :key="'practice-view'">
+                <div v-if="currentView === 'practice'" class="px-4 md:px-12 py-6 md:py-8 view-enter-active space-y-10" :key="'practice-view'">
                     <!-- AI Recommendation Banner -->
                     <div
-                        class="bg-gradient-to-r from-gray-900 to-[#111827] rounded-[48px] p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden shadow-2xl">
+                        class="bg-gradient-to-r from-gray-900 to-[#111827] rounded-[32px] md:rounded-[48px] p-6 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 relative overflow-hidden shadow-2xl">
                         <div class="absolute top-0 right-0 w-64 h-64 bg-[#8B5CF6]/20 blur-[80px] rounded-full"></div>
                         <div class="absolute bottom-0 left-20 w-48 h-48 bg-[#FF6B35]/20 blur-[60px] rounded-full"></div>
 
@@ -5164,16 +5500,15 @@
                                             class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:headphones-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">{{ listeningScore }}</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1">Listening</h4>
-                                    <p class="text-sm text-gray-400 font-bold mb-6">42 drills completed</p>
+                                    <p class="text-sm font-bold mb-6" :class="parseFloat(listeningScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">{{ parseFloat(listeningScore) >= parseFloat(targetBand) ? 'Target met! 🎉' : 'Keep practising' }}</p>
                                     <div class="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden">
-                                        <div class="bg-blue-500 h-2 rounded-full" style="width: 85%"></div>
+                                        <div class="bg-blue-500 h-2 rounded-full" :style="'width:' + getSkillProgress('listening') + '%'"></div>
                                     </div>
-                                    <p
-                                        class="text-[10px] font-black text-gray-400 text-right uppercase tracking-widest">
-                                        Target {{ targetBand }}</p>
+                                    <p class="text-[10px] font-black text-right uppercase tracking-widest" :class="parseFloat(listeningScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">
+                                        {{ parseFloat(listeningScore) >= parseFloat(targetBand) ? 'Target Met' : 'Target ' + targetBand }}</p>
                                 </div>
 
                                 <!-- Reading -->
@@ -5184,16 +5519,15 @@
                                             class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:book-open-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">{{ readingScore }}</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1">Reading</h4>
-                                    <p class="text-sm text-gray-400 font-bold mb-6">56 drills completed</p>
+                                    <p class="text-sm font-bold mb-6" :class="parseFloat(readingScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">{{ parseFloat(readingScore) >= parseFloat(targetBand) ? 'Target met! 🎉' : 'Keep practising' }}</p>
                                     <div class="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden">
-                                        <div class="bg-emerald-500 h-2 rounded-full" style="width: 100%"></div>
+                                        <div class="bg-emerald-500 h-2 rounded-full" :style="'width:' + getSkillProgress('reading') + '%'"></div>
                                     </div>
-                                    <p
-                                        class="text-[10px] font-black text-emerald-500 text-right uppercase tracking-widest">
-                                        Target Met</p>
+                                    <p class="text-[10px] font-black text-right uppercase tracking-widest" :class="parseFloat(readingScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">
+                                        {{ parseFloat(readingScore) >= parseFloat(targetBand) ? 'Target Met' : 'Target ' + targetBand }}</p>
                                 </div>
 
                                 <!-- Writing -->
@@ -5206,19 +5540,18 @@
                                             class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:pencil-simple-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">{{ writingScore }}</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1 relative z-10">Writing</h4>
-                                    <p
-                                        class="text-sm text-orange-500 font-bold mb-6 relative z-10 flex items-center gap-1.5">
-                                        <iconify-icon icon="ph:warning-circle-fill"></iconify-icon> Needs attention
+                                    <p class="text-sm font-bold mb-6 relative z-10 flex items-center gap-1.5" :class="parseFloat(writingScore) >= parseFloat(targetBand) ? 'text-emerald-500' : parseFloat(writingScore) < parseFloat(targetBand) - 1 ? 'text-orange-500' : 'text-gray-400'">
+                                        <iconify-icon v-if="parseFloat(writingScore) < parseFloat(targetBand) - 1" icon="ph:warning-circle-fill"></iconify-icon>
+                                        {{ parseFloat(writingScore) >= parseFloat(targetBand) ? 'Target met! 🎉' : parseFloat(writingScore) < parseFloat(targetBand) - 1 ? 'Needs attention' : 'Keep practising' }}
                                     </p>
                                     <div class="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden relative z-10">
-                                        <div class="bg-orange-500 h-2 rounded-full" style="width: 65%"></div>
+                                        <div class="bg-orange-500 h-2 rounded-full" :style="'width:' + getSkillProgress('writing') + '%'"></div>
                                     </div>
-                                    <p
-                                        class="text-[10px] font-black text-gray-400 text-right uppercase tracking-widest relative z-10">
-                                        Target {{ targetBand }}</p>
+                                    <p class="text-[10px] font-black text-right uppercase tracking-widest relative z-10" :class="parseFloat(writingScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">
+                                        {{ parseFloat(writingScore) >= parseFloat(targetBand) ? 'Target Met' : 'Target ' + targetBand }}</p>
                                 </div>
 
                                 <!-- Speaking -->
@@ -5229,16 +5562,15 @@
                                             class="w-14 h-14 rounded-2xl bg-purple-50 text-[#8B5CF6] flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
                                             <iconify-icon icon="ph:microphone-stage-bold"></iconify-icon>
                                         </div>
-                                        <span class="text-3xl font-heading font-black text-dark">5.0</span>
+                                        <span class="text-3xl font-heading font-black text-dark">{{ speakingScore }}</span>
                                     </div>
                                     <h4 class="text-xl font-heading font-black mb-1">Speaking</h4>
-                                    <p class="text-sm text-gray-400 font-bold mb-6">28 drills completed</p>
+                                    <p class="text-sm font-bold mb-6" :class="parseFloat(speakingScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">{{ parseFloat(speakingScore) >= parseFloat(targetBand) ? 'Target met! 🎉' : 'Keep practising' }}</p>
                                     <div class="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden">
-                                        <div class="bg-[#8B5CF6] h-2 rounded-full" style="width: 75%"></div>
+                                        <div class="bg-[#8B5CF6] h-2 rounded-full" :style="'width:' + getSkillProgress('speaking') + '%'"></div>
                                     </div>
-                                    <p
-                                        class="text-[10px] font-black text-gray-400 text-right uppercase tracking-widest">
-                                        Target {{ targetBand }}</p>
+                                    <p class="text-[10px] font-black text-right uppercase tracking-widest" :class="parseFloat(speakingScore) >= parseFloat(targetBand) ? 'text-emerald-500' : 'text-gray-400'">
+                                        {{ parseFloat(speakingScore) >= parseFloat(targetBand) ? 'Target Met' : 'Target ' + targetBand }}</p>
                                 </div>
                             </div>
 
@@ -5495,10 +5827,10 @@
                 </div>
 
                 <!-- VIEW 3: GLOBAL RANKINGS -->
-                <div v-if="currentView === 'rankings'" class="px-12 pb-8 pt-24 view-enter-active" :key="'rankings-view'">
+                <div v-if="currentView === 'rankings'" class="px-4 md:px-12 pb-8 pt-10 md:pt-24 view-enter-active" :key="'rankings-view'">
                     <!-- Podium Area -->
                     <div
-                        class="bg-gradient-to-b from-[#8B5CF6]/5 to-transparent rounded-[48px] p-10 pt-16 mb-12 border border-purple-100 relative mt-12">
+                        class="bg-gradient-to-b from-[#8B5CF6]/5 to-transparent rounded-[32px] md:rounded-[48px] p-4 md:p-10 pt-12 md:pt-16 mb-8 md:mb-12 border border-purple-100 relative mt-4 md:mt-12">
                         <div class="absolute top-6 left-1/2 -translate-x-1/2">
                             <p
                                 class="text-xs font-black uppercase text-[#8B5CF6] tracking-widest bg-purple-100 px-5 py-2 rounded-full">
@@ -5506,9 +5838,9 @@
                             </p>
                         </div>
 
-                        <div class="flex justify-center items-end h-72 gap-4 md:gap-8">
+                        <div class="flex justify-center items-end h-56 md:h-72 gap-2 md:gap-8">
                             <!-- Rank 2 -->
-                            <div v-if="topRankings[1]" class="podium-rank-2 flex flex-col items-center w-32 md:w-40">
+                            <div v-if="topRankings[1]" class="podium-rank-2 flex flex-col items-center w-24 md:w-40">
                                 <div class="relative mb-4">
                                     <img :src="topRankings[1].avatar"
                                         class="w-24 h-24 rounded-[24px] border-4 border-white shadow-xl bg-blue-50"
@@ -5532,9 +5864,9 @@
                             </div>
 
                             <!-- Rank 1 -->
-                            <div v-if="topRankings[0]" class="podium-rank-1 flex flex-col items-center w-40 md:w-48">
+                            <div v-if="topRankings[0]" class="podium-rank-1 flex flex-col items-center w-28 md:w-48">
                                 <iconify-icon icon="ph:crown-fill"
-                                    class="text-5xl text-amber-400 mb-3 float-animation"></iconify-icon>
+                                    class="text-3xl md:text-5xl text-amber-400 mb-3 float-animation"></iconify-icon>
                                 <div class="relative mb-4">
                                     <img :src="topRankings[0].avatar"
                                         class="w-32 h-32 rounded-[32px] border-4 border-amber-400 shadow-2xl shadow-amber-200 bg-orange-50"
@@ -5558,7 +5890,7 @@
                             </div>
 
                             <!-- Rank 3 -->
-                            <div v-if="topRankings[2]" class="podium-rank-3 flex flex-col items-center w-32 md:w-40">
+                            <div v-if="topRankings[2]" class="podium-rank-3 flex flex-col items-center w-24 md:w-40">
                                 <div class="relative mb-4">
                                     <img :src="topRankings[2].avatar"
                                         class="w-24 h-24 rounded-[24px] border-4 border-white shadow-xl bg-emerald-50"
@@ -5622,12 +5954,22 @@
                                 <div class="relative">
                                     <iconify-icon icon="ph:magnifying-glass-bold"
                                         class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></iconify-icon>
-                                    <input type="text" placeholder="Search student..."
-                                        class="bg-white border border-gray-200 rounded-2xl py-2.5 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-[#8B5CF6] w-full sm:w-64">
+                                    <input type="text" v-model="rankingSearch" placeholder="Search student..."
+                                        class="bg-white border border-gray-200 rounded-2xl py-2.5 pl-12 pr-8 text-sm font-bold focus:outline-none focus:border-[#8B5CF6] w-full sm:w-64">
+                                    <button v-if="rankingSearch" @click="rankingSearch = ''"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                        <iconify-icon icon="ph:x-bold" class="text-sm"></iconify-icon>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
+                        <!-- Loading State -->
+                        <div v-if="isLoadingTypingLeaderboard" class="py-16 flex flex-col items-center justify-center gap-4">
+                            <div class="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div>
+                            <p class="text-sm font-bold text-gray-400">Loading top 200 rankings...</p>
+                        </div>
+
+                        <div v-if="!isLoadingTypingLeaderboard" class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr
@@ -5733,10 +6075,10 @@
                 </div>
 
                 <!-- VIEW 4: EXAM DATES -->
-                <div v-if="currentView === 'dates'" class="px-12 py-8 view-enter-active" :key="'dates-view'">
+                <div v-if="currentView === 'dates'" class="px-4 md:px-12 py-6 md:py-8 view-enter-active" :key="'dates-view'">
                     <!-- Hero Header -->
                     <section
-                        class="relative h-64 rounded-[48px] overflow-hidden bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#FF6B35] p-12 flex flex-col justify-center">
+                        class="relative rounded-[32px] md:rounded-[48px] overflow-hidden bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#FF6B35] p-6 md:p-12 flex flex-col justify-center min-h-[140px] md:h-64">
                         <div class="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                             <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                                 <path d="M0 0 L 100 0 L 100 100 L 0 50 Z" fill="white"></path>
@@ -5746,11 +6088,11 @@
                             <span
                                 class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-black uppercase tracking-widest mb-4">Booking
                                 Center</span>
-                            <h2 class="text-5xl font-heading font-black text-white leading-tight mb-2">
+                            <h2 class="text-2xl md:text-5xl font-heading font-black text-white leading-tight mb-2">
                                 Exam & Mock <span
                                     class="text-white/80 underline decoration-[#FF6B35] decoration-4 underline-offset-8">Dates</span>
                             </h2>
-                            <p class="text-white/70 text-lg font-medium">Secure your official test slot or join upcoming
+                            <p class="text-white/70 text-sm md:text-lg font-medium">Secure your official test slot or join upcoming
                                 mock challenges.</p>
                         </div>
                     </section>
@@ -6102,17 +6444,17 @@
                 </div>
 
                 <!-- VIEW 5: TYPING DOJO -->
-                <div v-if="currentView === 'dojo'" class="px-12 py-6 space-y-10 view-enter-active" :key="'dojo-view'">
+                <div v-if="currentView === 'dojo'" class="px-4 md:px-12 py-6 space-y-10 view-enter-active" :key="'dojo-view'">
                     <div class="flex flex-col md:flex-row items-end justify-between gap-6">
                         <div>
-                            <h2 class="text-4xl font-heading font-black">Typing <span class="text-[#FF6B35]">Dojo</span>
+                            <h2 class="text-2xl md:text-4xl font-heading font-black">Typing <span class="text-[#FF6B35]">Dojo</span>
                             </h2>
-                            <p class="text-gray-400 font-medium text-lg mt-2">Master the computer-delivered test speed
+                            <p class="text-gray-400 font-medium text-sm md:text-lg mt-1 md:mt-2">Master the computer-delivered test speed
                                 and accuracy.</p>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-2 md:gap-3 mt-3 md:mt-0">
                             <span
-                                class="px-4 py-2 bg-purple-100 text-[#8B5CF6] rounded-2xl text-xs font-black uppercase tracking-widest">Intermediate
+                                class="px-3 md:px-4 py-2 bg-purple-100 text-[#8B5CF6] rounded-2xl text-xs font-black uppercase tracking-widest">Intermediate
                                 Mode</span>
                             <span
                                 class="px-4 py-2 bg-orange-100 text-[#FF6B35] rounded-2xl text-xs font-black uppercase tracking-widest">Weekly
@@ -6121,10 +6463,10 @@
                     </div>
 
                     <!-- Dojo Main Interface -->
-                    <div class="grid grid-cols-12 gap-8">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8">
                         <!-- Settings Panel (Col 3) -->
-                        <div class="col-span-3 space-y-6">
-                            <div class="bg-white p-8 rounded-[40px] border border-purple-50 shadow-sm">
+                        <div class="col-span-12 md:col-span-3 space-y-6">
+                            <div class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border border-purple-50 shadow-sm">
                                 <h4 class="text-xl font-heading font-black mb-6">Dojo Settings</h4>
 
                                 <div class="space-y-8">
@@ -6182,9 +6524,9 @@
                         </div>
 
                         <!-- Main Dojo Area (Col 6) -->
-                        <div class="col-span-6 space-y-8">
+                        <div class="col-span-12 md:col-span-6 space-y-8">
                             <!-- Typing Box Content -->
-                            <div class="bg-white rounded-[48px] p-12 border border-purple-50 shadow-sm relative">
+                            <div class="bg-white rounded-[28px] md:rounded-[48px] p-6 md:p-12 border border-purple-50 shadow-sm relative">
                                 <div class="flex items-center justify-between mb-8">
                                     <div class="flex items-center gap-4">
                                         <div
@@ -6281,8 +6623,8 @@
                         </div>
 
                         <!-- Live Stats Sidebar (Col 3) -->
-                        <div class="col-span-3 space-y-6">
-                            <div class="bg-white p-8 rounded-[40px] border border-purple-50 shadow-sm float-animation">
+                        <div class="col-span-12 md:col-span-3 space-y-6">
+                            <div class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border border-purple-50 shadow-sm float-animation">
                                 <div class="space-y-8">
                                     <div class="text-center">
                                         <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2">
@@ -6413,18 +6755,18 @@
                 </div>
 
                 <!-- VIEW 6: LIVE HUB -->
-                <div v-if="currentView === 'hub'" class="px-12 space-y-10 mt-4 view-enter-active" :key="'hub-view'">
+                <div v-if="currentView === 'hub'" class="px-4 md:px-12 space-y-6 md:space-y-10 mt-4 view-enter-active" :key="'hub-view'">
                     <!-- Page Title Area -->
-                    <div class="flex items-end justify-between">
+                    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                         <div>
-                            <h2 class="text-5xl font-heading font-black mb-2">Live Hub</h2>
-                            <p class="text-gray-400 font-medium text-lg">Join live sessions with the community</p>
+                            <h2 class="text-3xl md:text-5xl font-heading font-black mb-1 md:mb-2">Live Hub</h2>
+                            <p class="text-gray-400 font-medium text-sm md:text-lg">Join live sessions with the community</p>
                         </div>
-                        <div class="flex items-center gap-4 bg-white p-2 rounded-2xl border border-purple-50 shadow-sm">
+                        <div class="flex items-center gap-4 bg-white p-2 rounded-2xl border border-purple-50 shadow-sm w-fit">
                             <div
-                                class="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm">
+                                class="flex items-center gap-2 px-3 md:px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm">
                                 <div class="live-pulse"></div>
-                                <span>1,429 Online Now</span>
+                                <span>{{ getTotalOnlineCount() }} Online Now</span>
                             </div>
                         </div>
                     </div>
@@ -6536,9 +6878,9 @@
                                     maxUsers: 100,
                                     isLive: true
                                 }, 'featured')"
-                                    class="bg-white text-[#8B5CF6] px-10 py-5 rounded-2xl font-black text-xl transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10 flex items-center gap-3">
+                                    class="bg-white text-[#8B5CF6] px-6 md:px-10 py-3 md:py-5 rounded-2xl font-black text-base md:text-xl transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10 flex items-center gap-3">
                                     Join Now <iconify-icon icon="ph:fire-bold"
-                                        class="text-2xl text-orange-500"></iconify-icon>
+                                        class="text-xl md:text-2xl text-orange-500"></iconify-icon>
                                 </button>
                             </div>
 
@@ -6559,10 +6901,10 @@
                         </section>
 
                         <!-- Rooms Grid -->
-                        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                             <!-- Start Private Room Card (First) - v-if ensures Vue processes this element -->
                             <div v-if="true" @click="openCreateRoomModal"
-                                class="bg-purple-50 p-8 rounded-[40px] border-2 border-dashed border-purple-200 flex flex-col items-center justify-center text-center space-y-4 hover:bg-white transition-all cursor-pointer group">
+                                class="bg-purple-50 p-5 md:p-8 rounded-[28px] md:rounded-[40px] border-2 border-dashed border-purple-200 flex flex-col items-center justify-center text-center space-y-4 hover:bg-white transition-all cursor-pointer group min-h-[200px] md:min-h-0">
                                 <div
                                     class="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-purple-100 group-hover:scale-110 transition-transform">
                                     <iconify-icon icon="ph:plus-bold" class="text-2xl text-[#8B5CF6]"></iconify-icon>
@@ -6575,7 +6917,7 @@
 
                             <!-- Card 1 (Speaking) -->
                             <div
-                                class="bg-white p-8 rounded-[40px] border border-purple-50 shadow-sm transition-playful card-lift relative group overflow-hidden">
+                                class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border border-purple-50 shadow-sm transition-playful card-lift relative group overflow-hidden">
                                 <div
                                     class="absolute -top-12 -right-12 w-32 h-32 bg-purple-50 rounded-full group-hover:scale-150 transition-transform duration-700">
                                 </div>
@@ -6594,16 +6936,13 @@
                                         Free Flow Speaking Group: Task 2 Prep</h4>
                                     <div class="flex items-center justify-between pt-2">
                                         <div class="flex -space-x-3">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha"
-                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" alt="Host">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Nala"
-                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" alt="User">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" alt="User">
+                                            <span v-if="!getFeaturedRoomCount('speaking-room-1')" class="text-xs text-gray-400 font-bold italic">No one yet</span>
+                                            <img v-for="p in getFeaturedRoomParticipants('speaking-room-1').slice(0, 3)" :key="p.id || p.socketId"
+                                                :src="p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name"
+                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" :alt="p.name">
                                         </div>
-                                        <span
-                                            class="text-xs font-black text-gray-400 tracking-tight bg-gray-50 px-2.5 py-1 rounded-lg">3/5
-                                            users</span>
+                                        <span class="text-xs font-black text-gray-400 tracking-tight bg-gray-50 px-2.5 py-1 rounded-lg">
+                                            {{ getFeaturedRoomCount('speaking-room-1') }}/10 users</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2">
                                         <span
@@ -6617,11 +6956,7 @@
                                         teacher: 'Aisha',
                                         hostId: 'host-aisha',
                                         type: 'speaking',
-                                        participants: [
-                                            { id: 'host-aisha', name: 'Aisha', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha', isHost: true },
-                                            { id: 'user-1', name: 'Nala', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nala' },
-                                            { id: 'user-2', name: 'Felix', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }
-                                        ],
+                                        participants: [],
                                         maxUsers: 10
                                     }, 'room')"
                                         class="w-full py-4 bg-purple-50 text-[#8B5CF6] rounded-2xl font-black text-sm group-hover:bg-[#8B5CF6] group-hover:text-white transition-all">
@@ -6632,7 +6967,7 @@
 
                             <!-- Card 2 (Writing) -->
                             <div
-                                class="bg-white p-8 rounded-[40px] border border-purple-50 shadow-sm transition-playful card-lift relative group overflow-hidden">
+                                class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border border-purple-50 shadow-sm transition-playful card-lift relative group overflow-hidden">
                                 <div
                                     class="absolute -top-12 -right-12 w-32 h-32 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-700">
                                 </div>
@@ -6651,14 +6986,13 @@
                                         Band 7+ Vocabulary: Environmental Topics</h4>
                                     <div class="flex items-center justify-between pt-2">
                                         <div class="flex -space-x-3">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sterling"
-                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" alt="Host">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Linh"
-                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" alt="User">
+                                            <span v-if="!getFeaturedRoomCount('writing-class-1')" class="text-xs text-gray-400 font-bold italic">No one yet</span>
+                                            <img v-for="p in getFeaturedRoomParticipants('writing-class-1').slice(0, 3)" :key="p.id || p.socketId"
+                                                :src="p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name"
+                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" :alt="p.name">
                                         </div>
-                                        <span
-                                            class="text-xs font-black text-gray-400 tracking-tight bg-gray-50 px-2.5 py-1 rounded-lg">2/5
-                                            users</span>
+                                        <span class="text-xs font-black text-gray-400 tracking-tight bg-gray-50 px-2.5 py-1 rounded-lg">
+                                            {{ getFeaturedRoomCount('writing-class-1') }}/20 users</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2">
                                         <span
@@ -6671,10 +7005,7 @@
                                         teacher: 'Aisha Khan',
                                         hostId: 'host-aisha-khan',
                                         type: 'writing',
-                                        participants: [
-                                            { id: 'host-aisha', name: 'Aisha Khan', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sterling', isHost: true },
-                                            { id: 'user-1', name: 'Linh', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Linh' }
-                                        ],
+                                        participants: [],
                                         maxUsers: 20
                                     }, 'class')"
                                         class="w-full py-4 bg-orange-50 text-orange-600 rounded-2xl font-black text-sm group-hover:bg-orange-500 group-hover:text-white transition-all">
@@ -6685,7 +7016,7 @@
 
                             <!-- Card 3 (Listening) -->
                             <div
-                                class="bg-white p-8 rounded-[40px] border border-purple-50 shadow-sm transition-playful card-lift relative group overflow-hidden">
+                                class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border border-purple-50 shadow-sm transition-playful card-lift relative group overflow-hidden">
                                 <div
                                     class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-700">
                                 </div>
@@ -6704,12 +7035,13 @@
                                         Intensive Audio Drills: Section 4 Practice</h4>
                                     <div class="flex items-center justify-between pt-2">
                                         <div class="flex -space-x-3">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jack"
-                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" alt="Host">
+                                            <span v-if="!getFeaturedRoomCount('listening-drill-1')" class="text-xs text-gray-400 font-bold italic">No one yet</span>
+                                            <img v-for="p in getFeaturedRoomParticipants('listening-drill-1').slice(0, 3)" :key="p.id || p.socketId"
+                                                :src="p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name"
+                                                class="w-9 h-9 rounded-full border-2 border-white shadow-sm" :alt="p.name">
                                         </div>
-                                        <span
-                                            class="text-xs font-black text-gray-400 tracking-tight bg-gray-50 px-2.5 py-1 rounded-lg">1/5
-                                            users</span>
+                                        <span class="text-xs font-black text-gray-400 tracking-tight bg-gray-50 px-2.5 py-1 rounded-lg">
+                                            {{ getFeaturedRoomCount('listening-drill-1') }}/15 users</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2">
                                         <span
@@ -6722,9 +7054,7 @@
                                         teacher: 'Jack',
                                         hostId: 'host-jack',
                                         type: 'listening',
-                                        participants: [
-                                            { id: 'host-jack', name: 'Jack', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack', isHost: true }
-                                        ],
+                                        participants: [],
                                         maxUsers: 15
                                     }, 'drill')"
                                         class="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-sm group-hover:bg-emerald-500 group-hover:text-white transition-all">
@@ -6742,7 +7072,7 @@
 
                             <!-- Private Room Cards (Created by users) -->
                             <div v-for="room in publicRooms" :key="room.id"
-                                class="bg-white p-8 rounded-[40px] border-2 border-[#8B5CF6]/30 shadow-sm transition-playful card-lift relative group overflow-hidden">
+                                class="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[40px] border-2 border-[#8B5CF6]/30 shadow-sm transition-playful card-lift relative group overflow-hidden">
                                 <div
                                     class="absolute -top-12 -right-12 w-32 h-32 bg-[#8B5CF6]/10 rounded-full group-hover:scale-150 transition-transform duration-700">
                                 </div>
@@ -7040,7 +7370,6 @@
                                     <video
                                         v-show="localVideoStream"
                                         id="local-video-element"
-                                        :srcObject.prop="localVideoStream"
                                         autoplay
                                         muted
                                         playsinline
@@ -7081,7 +7410,6 @@
                                     <video
                                         v-show="participant.stream"
                                         :id="'remote-video-' + participant.socketId"
-                                        :srcObject.prop="participant.stream"
                                         autoplay
                                         playsinline
                                         class="w-full h-full object-cover">
@@ -7230,13 +7558,6 @@
                                 <iconify-icon :icon="isVideoOn ? 'ph:video-camera-bold' : 'ph:video-camera-slash-bold'"></iconify-icon>
                                 <span v-if="!roomMinimized">{{ isVideoOn ? 'Stop Video' : 'Video' }}</span>
                             </button>
-                            <button @click="toggleScreenShare" 
-                                :class="['px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all', 
-                                    isScreenSharing ? 'bg-purple-500/20 text-purple-400' : 'bg-[#0f0f1a] text-gray-300 hover:bg-[#1e1e2e]']"
-                                :disabled="!isVoiceConnected">
-                                <iconify-icon :icon="isScreenSharing ? 'ph:monitor-bold' : 'ph:share-screen-bold'"></iconify-icon>
-                                <span v-if="!roomMinimized">{{ isScreenSharing ? 'Stop Share' : 'Share' }}</span>
-                            </button>
                         </div>
 
                         <!-- User Profile Bar (Bottom) -->
@@ -7309,10 +7630,6 @@
                                 :class="['px-3 py-1.5 rounded-lg text-xs font-bold transition-all', classroomLayout === 'speaker' ? 'bg-[#8B5CF6] text-white' : 'text-gray-400 hover:text-white']">
                                 <iconify-icon icon="ph:users-bold" class="text-lg"></iconify-icon>
                             </button>
-                            <button @click="setClassroomLayout('screen')" 
-                                :class="['px-3 py-1.5 rounded-lg text-xs font-bold transition-all', classroomLayout === 'screen' ? 'bg-[#8B5CF6] text-white' : 'text-gray-400 hover:text-white']">
-                                <iconify-icon icon="ph:monitor-bold" class="text-lg"></iconify-icon>
-                            </button>
                         </div>
                         
                         <div class="flex items-center gap-2">
@@ -7362,7 +7679,7 @@
                                 <div class="relative aspect-video bg-[#1e1e2e] rounded-2xl overflow-hidden border-2 transition-all"
                                     :class="[isVoiceConnected ? 'border-emerald-500/30' : 'border-[#2d2d3d]', isMuted ? 'border-red-500/50' : '', 
                                         activeSpeaker === 'local' ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#0a0a12]' : '']">
-                                    <video v-if="localVideoStream" :srcObject="localVideoStream" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                                    <video v-if="localVideoStream" id="local-video-element" autoplay muted playsinline class="w-full h-full object-cover"></video>
                                     <div v-else class="w-full h-full flex items-center justify-center">
                                         <img :src="userAvatarUrl" class="w-24 h-24 rounded-full opacity-60">
                                     </div>
@@ -7391,7 +7708,7 @@
                                     :class="[participant.isSpeaking ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#0a0a12]' : 'border-[#2d2d3d]', 
                                         participant.isMuted ? 'border-red-500/50' : '',
                                         spotlightUser === participant.socketId ? 'border-[#8B5CF6]' : '']">
-                                    <video v-if="participant.stream" :srcObject="participant.stream" autoplay playsinline class="w-full h-full object-cover"></video>
+                                    <video v-if="participant.stream" :id="'remote-video-' + participant.socketId" autoplay playsinline class="w-full h-full object-cover"></video>
                                     <div v-else class="w-full h-full flex items-center justify-center">
                                         <iconify-icon icon="ph:user-bold" class="text-6xl text-gray-600"></iconify-icon>
                                     </div>
@@ -7449,16 +7766,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Screen Share View -->
-                            <div v-else-if="classroomLayout === 'screen'" class="h-full p-4">
-                                <div class="h-full bg-[#1e1e2e] rounded-2xl flex items-center justify-center">
-                                    <div class="text-center text-gray-500">
-                                        <iconify-icon icon="ph:monitor-bold" class="text-6xl mb-4"></iconify-icon>
-                                        <p class="text-lg font-bold">Screen sharing will appear here</p>
-                                        <p class="text-sm">Click "Share" to start presenting</p>
-                                    </div>
-                                </div>
-                            </div>
                             
                             <!-- Reactions Overlay -->
                             <div class="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2 pointer-events-none">
@@ -7610,11 +7917,6 @@
                                         isVideoOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#0f0f1a] text-gray-300 hover:bg-[#1e1e2e]']">
                                     <iconify-icon :icon="isVideoOn ? 'ph:video-camera-bold' : 'ph:video-camera-slash-bold'" class="text-xl"></iconify-icon>
                                 </button>
-                                <button @click="toggleScreenShare" 
-                                    :class="['w-12 h-12 rounded-2xl flex items-center justify-center transition-all', 
-                                        isScreenSharing ? 'bg-purple-500/20 text-purple-400' : 'bg-[#0f0f1a] text-gray-300 hover:bg-[#1e1e2e]']">
-                                    <iconify-icon :icon="isScreenSharing ? 'ph:monitor-bold' : 'ph:share-screen-bold'" class="text-xl"></iconify-icon>
-                                </button>
                             </div>
                             
                             <!-- Center: Interactive Controls -->
@@ -7708,26 +8010,18 @@
                         </div>
                     </div>
                     
-                    <!-- Whiteboard Modal -->
-                    <div v-if="isWhiteboardOpen" class="absolute inset-0 bg-black/90 z-50 flex flex-col">
-                        <div class="h-14 bg-[#16213e] border-b border-[#0f3460] flex items-center justify-between px-4">
-                            <h3 class="font-bold text-white flex items-center gap-2">
-                                <iconify-icon icon="ph:paint-brush-bold"></iconify-icon>
-                                Whiteboard
-                            </h3>
-                            <button @click="toggleWhiteboard" class="text-gray-400 hover:text-white">
-                                <iconify-icon icon="ph:x-bold" class="text-xl"></iconify-icon>
-                            </button>
-                        </div>
-                        <div class="flex-1 bg-white m-4 rounded-2xl flex items-center justify-center">
-                            <p class="text-gray-400 font-bold">Interactive whiteboard area</p>
-                        </div>
+                    <!-- Classroom Toast Notification -->
+                    <div v-if="classroomToast"
+                        class="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-bold text-white shadow-xl flex items-center gap-2 pointer-events-none transition-all"
+                        :class="classroomToast.type === 'warning' ? 'bg-yellow-600' : classroomToast.type === 'error' ? 'bg-red-600' : 'bg-[#8B5CF6]'">
+                        <iconify-icon :icon="classroomToast.type === 'warning' ? 'ph:warning-bold' : classroomToast.type === 'error' ? 'ph:x-circle-bold' : 'ph:info-bold'" class="text-lg"></iconify-icon>
+                        {{ classroomToast.message }}
                     </div>
                 </div>
 
                 <!-- VIEW 7: PROFILE SETTINGS -->
                 <div v-if="currentView === 'profile'"
-                    class="px-12 py-8 view-enter-active flex flex-col lg:flex-row gap-10 items-start" :key="'profile-view'">
+                    class="px-4 md:px-12 py-6 md:py-8 view-enter-active flex flex-col lg:flex-row gap-6 md:gap-10 items-start" :key="'profile-view'">
                     <!-- Settings Sidebar Menu -->
                     <div
                         class="w-full lg:w-[280px] shrink-0 bg-white rounded-[40px] border border-purple-50 shadow-sm p-6 sticky top-32">
@@ -8152,10 +8446,10 @@
 
                 <!-- VIEW 8: CENTRES SECTION -->
                 <div v-if="currentView === 'centres'"
-                    class="animate-[fadeUp_0.4s_ease-out] w-full p-8 min-h-[calc(100vh-100px)] flex flex-col lg:flex-row gap-6 relative z-0" :key="'centres-view'">
+                    class="animate-[fadeUp_0.4s_ease-out] w-full p-4 md:p-8 min-h-[calc(100vh-100px)] flex flex-col lg:flex-row gap-4 md:gap-6 relative z-0" :key="'centres-view'">
                     <!-- Left Panel: List & Filters -->
                     <div
-                        class="w-full lg:w-[480px] xl:w-[540px] bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-2 border-purple-50 flex flex-col overflow-hidden shrink-0 z-10 h-[calc(100vh-140px)]">
+                        class="w-full lg:w-[480px] xl:w-[540px] bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-2 border-purple-50 flex flex-col overflow-hidden shrink-0 z-10 h-[calc(100vh-100px)] lg:h-[calc(100vh-140px)]">
                         <!-- Filter Header -->
                         <div class="p-6 border-b border-gray-100 space-y-5 bg-white">
                             <div class="flex justify-between items-center">
@@ -8182,6 +8476,10 @@
                                 <button @click="setCentreFilter('Partner')"
                                     :class="centresFilter === 'Partner' ? 'filter-pill active' : 'filter-pill inactive'">
                                     <iconify-icon icon="ph:handshake-fill" class="text-orange-500"></iconify-icon> Partner
+                                </button>
+                                <button @click="setCentreFilter('Academy')"
+                                    :class="centresFilter === 'Academy' ? 'filter-pill active' : 'filter-pill inactive'">
+                                    <iconify-icon icon="ph:student-fill" class="text-amber-500"></iconify-icon> Academy
                                 </button>
                             </div>
                         </div>
@@ -8214,7 +8512,7 @@
                                 <div class="flex-1 min-w-0 pr-8">
                                     <div class="flex flex-wrap gap-1.5 mb-2">
                                         <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg"
-                                            :class="{'purple-badge': c.type === 'Official', 'orange-badge': c.type === 'Partner', 'blue-badge': c.type === 'Online'}">
+                                            :class="{'purple-badge': c.type === 'Official', 'orange-badge': c.type === 'Partner', 'blue-badge': c.type === 'Online', 'academy-badge': c.type === 'Academy'}">
                                             {{ c.type }}
                                         </span>
                                         <span v-if="c.open"
@@ -8281,7 +8579,7 @@
                 </div>
 
                 <!-- VIEW 9: STATISTICS SECTION -->
-                <div v-if="currentView === 'statistics'" class="px-12 py-8 animate-[fadeUp_0.4s_ease-out] space-y-8" :key="'statistics-view'">
+                <div v-if="currentView === 'statistics'" class="px-4 md:px-12 py-6 md:py-8 animate-[fadeUp_0.4s_ease-out] space-y-8" :key="'statistics-view'">
                     <div
                         class="bg-gradient-to-br from-gray-900 to-[#1e1b4b] rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-xl">
                         <div
@@ -8303,8 +8601,8 @@
                                 <div class="text-center">
                                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">
                                         Current</p>
-                                    <p class="text-3xl font-black font-heading text-emerald-400">5.0<span
-                                            class="text-sm text-emerald-400/50 block -mt-1">+0.0</span></p>
+                                    <p class="text-3xl font-black font-heading text-emerald-400">{{ getOverallScore() }}<span
+                                            class="text-sm text-emerald-400/50 block -mt-1">{{ getScoreGrowth() }}</span></p>
                                 </div>
                                 <div class="w-px bg-white/10"></div>
                                 <div class="text-center">
@@ -8338,26 +8636,47 @@
                                     <iconify-icon icon="ph:headphones-fill"></iconify-icon>
                                 </div>
                                 <h4 class="font-black text-lg mb-1">Listening</h4>
-                                <p class="text-gray-400 text-sm font-bold mb-4">Strongest module (+1.5 growth)
-                                </p>
+                                <p class="text-gray-400 text-sm font-bold mb-4">{{ getSkillLabel('listening') }} (Band {{ listeningScore }})</p>
                                 <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
-                                    <div class="bg-[#8B5CF6] h-2 rounded-full" style="width: 88%"></div>
+                                    <div class="bg-[#8B5CF6] h-2 rounded-full transition-all duration-500" :style="{ width: getSkillProgress('listening') + '%' }"></div>
                                 </div>
-                                <p class="text-right text-xs font-black text-dark">Band 8.0</p>
+                                <p class="text-right text-xs font-black text-dark">Band {{ listeningScore }}</p>
                             </div>
 
-                            <div
-                                class="bg-white rounded-[32px] border border-purple-50 shadow-sm p-6 sm:p-8 hover:border-purple-200 transition-colors">
-                                <div
-                                    class="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-[#FF6B35] text-2xl mb-4">
+                            <div class="bg-white rounded-[32px] border border-purple-50 shadow-sm p-6 sm:p-8 hover:border-emerald-200 transition-colors">
+                                <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 text-2xl mb-4">
+                                    <iconify-icon icon="ph:book-open-text-fill"></iconify-icon>
+                                </div>
+                                <h4 class="font-black text-lg mb-1">Reading</h4>
+                                <p class="text-gray-400 text-sm font-bold mb-4">{{ getSkillLabel('reading') }} (Band {{ readingScore }})</p>
+                                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-500" :style="{ width: getSkillProgress('reading') + '%' }"></div>
+                                </div>
+                                <p class="text-right text-xs font-black text-dark">Band {{ readingScore }}</p>
+                            </div>
+
+                            <div class="bg-white rounded-[32px] border border-purple-50 shadow-sm p-6 sm:p-8 hover:border-orange-200 transition-colors">
+                                <div class="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-[#FF6B35] text-2xl mb-4">
                                     <iconify-icon icon="ph:pen-nib-fill"></iconify-icon>
                                 </div>
                                 <h4 class="font-black text-lg mb-1">Writing</h4>
-                                <p class="text-gray-400 text-sm font-bold mb-4">Needs attention (Target: <span class="text-[#FF6B35]">{{ targetBand }}</span>)</p>
+                                <p class="text-gray-400 text-sm font-bold mb-4">{{ getSkillLabel('writing') }} (Target: <span class="text-[#FF6B35]">{{ targetBand }}</span>)</p>
                                 <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
-                                    <div class="bg-[#FF6B35] h-2 rounded-full" style="width: 70%"></div>
+                                    <div class="bg-[#FF6B35] h-2 rounded-full transition-all duration-500" :style="{ width: getSkillProgress('writing') + '%' }"></div>
                                 </div>
-                                <p class="text-right text-xs font-black text-dark">Band 5.0</p>
+                                <p class="text-right text-xs font-black text-dark">Band {{ writingScore }}</p>
+                            </div>
+
+                            <div class="bg-white rounded-[32px] border border-purple-50 shadow-sm p-6 sm:p-8 hover:border-blue-200 transition-colors">
+                                <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 text-2xl mb-4">
+                                    <iconify-icon icon="ph:microphone-fill"></iconify-icon>
+                                </div>
+                                <h4 class="font-black text-lg mb-1">Speaking</h4>
+                                <p class="text-gray-400 text-sm font-bold mb-4">{{ getSkillLabel('speaking') }} (Band {{ speakingScore }})</p>
+                                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-500" :style="{ width: getSkillProgress('speaking') + '%' }"></div>
+                                </div>
+                                <p class="text-right text-xs font-black text-dark">Band {{ speakingScore }}</p>
                             </div>
                         </div>
                     </div>
@@ -8367,8 +8686,6 @@
                 <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end">
                     <!-- Chat Window Modal -->
                     <div v-show="isChatOpen"
-                        style="display: none;"
-                        :style="{ display: isChatOpen ? 'block' : 'none' }"
                         class="ai-chat-window mb-4 w-80 sm:w-96 bg-white rounded-3xl shadow-[0_20px_50px_-12px_rgba(139,92,246,0.3)] border border-purple-100 overflow-hidden transition-all origin-bottom-right animate-[fadeUp_0.3s_ease-out]">
                         <!-- Header -->
                         <div class="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] p-5 flex items-center justify-between">
@@ -8385,8 +8702,7 @@
                                     </p>
                                 </div>
                             </div>
-                            <button @click="isChatOpen = false"
-                                onclick="if(window.DashboardAppInstance){window.DashboardAppInstance.isChatOpen=false;}document.querySelector('.ai-chat-window').style.display='none';"
+                            <button @click="closeChat()"
                                 class="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/20 ai-chat-close-btn"
                                 type="button">
                                 <iconify-icon icon="ph:x-bold" class="text-xl"></iconify-icon>
@@ -8460,8 +8776,7 @@
                     </div>
 
                     <!-- Toggle Button -->
-                    <button @click="isChatOpen = !isChatOpen"
-                        onclick="window.toggleAIChat && window.toggleAIChat()"
+                    <button @click="toggleChat()"
                         id="ai-chat-toggle-btn"
                         class="w-16 h-16 bg-[#8B5CF6] rounded-full flex items-center justify-center text-white shadow-[0_10px_25px_rgba(139,92,246,0.4)] hover:scale-110 active:scale-95 transition-all relative group border-4 border-white"
                         type="button">
@@ -8470,6 +8785,30 @@
                             class="absolute top-0 right-0 w-4 h-4 bg-[#FF6B35] border-2 border-white rounded-full"></span>
                     </button>
                 </div>
+
+                <!-- Mobile Bottom Navigation Bar -->
+                <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-purple-50 z-[50] flex justify-around items-center px-2 py-2 safe-area-pb">
+                    <button @click="setView('home')" :class="currentView === 'home' ? 'text-[#8B5CF6]' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all">
+                        <iconify-icon icon="ph:grid-four-fill" class="text-xl"></iconify-icon>
+                        <span class="text-[10px] font-bold">Home</span>
+                    </button>
+                    <button @click="setView('practice')" :class="currentView === 'practice' ? 'text-[#8B5CF6]' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all">
+                        <iconify-icon icon="ph:book-open-text-bold" class="text-xl"></iconify-icon>
+                        <span class="text-[10px] font-bold">Practice</span>
+                    </button>
+                    <button @click="setView('hub')" :class="currentView === 'hub' ? 'text-[#8B5CF6]' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all">
+                        <iconify-icon icon="ph:broadcast-bold" class="text-xl"></iconify-icon>
+                        <span class="text-[10px] font-bold">Live</span>
+                    </button>
+                    <button @click="setView('rankings')" :class="currentView === 'rankings' ? 'text-[#8B5CF6]' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all">
+                        <iconify-icon icon="ph:chart-line-up-bold" class="text-xl"></iconify-icon>
+                        <span class="text-[10px] font-bold">Rank</span>
+                    </button>
+                    <button @click="setView('profile')" :class="currentView === 'profile' ? 'text-[#8B5CF6]' : 'text-gray-400'" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all">
+                        <iconify-icon icon="ph:user-circle-bold" class="text-xl"></iconify-icon>
+                        <span class="text-[10px] font-bold">Profile</span>
+                    </button>
+                </nav>
 
             </main>
         </div>
@@ -8693,16 +9032,24 @@
             }
 
             if (window.mapInstance) {
-                // Multiple invalidateSize calls at different timings for reliability
-                [50, 200, 500, 1000].forEach(delay => {
-                    setTimeout(() => {
-                        if (window.mapInstance) {
-                            window.mapInstance.invalidateSize({ pan: true });
-                            console.log('🗺️ Map invalidateSize at', delay, 'ms');
-                        }
-                    }, delay);
-                });
-                return;
+                // If v-if destroyed the DOM, leaflet-container class is gone — kill old instance
+                if (!mapEl.querySelector('.leaflet-container')) {
+                    try { window.mapInstance.remove(); } catch(e) {}
+                    window.mapInstance = null;
+                    window.mapMarkers = {};
+                    console.log('🗺️ Map DOM destroyed by v-if, re-initializing...');
+                } else {
+                    // Multiple invalidateSize calls at different timings for reliability
+                    [50, 200, 500, 1000].forEach(delay => {
+                        setTimeout(() => {
+                            if (window.mapInstance) {
+                                window.mapInstance.invalidateSize({ pan: true });
+                                console.log('🗺️ Map invalidateSize at', delay, 'ms');
+                            }
+                        }, delay);
+                    });
+                    return;
+                }
             }
 
             console.log('🗺️ Initializing Leaflet map with container size:', containerRect.width, 'x', containerRect.height);
@@ -8750,118 +9097,144 @@
             }
 
             try {
+                const app = window.DashboardAppInstance;
+                let points = [];
+
+                // Try API first
                 const response = await fetch('/api/public/centres/locations');
                 const result = await response.json();
-                
-                if (result.success && result.data) {
-                    const points = result.data;
-                    
+                if (result.success && result.data && result.data.length) {
+                    points = result.data;
+                }
+
+                // Fallback to allCentres from Vue app when API is empty
+                if (!points.length && app && app.allCentres && app.allCentres.length) {
+                    points = app.allCentres.map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        city: c.city,
+                        type: c.type,
+                        rating: c.rating,
+                        reviews: c.reviews,
+                        price: c.price,
+                        icon: c.icon,
+                        bg: c.bg,
+                        district: c.district || c.city,
+                        latitude: c.latitude || c.lat,
+                        longitude: c.longitude || c.lng
+                    }));
+                    console.log('🗺️ Using fallback centres from allCentres:', points.length);
+                }
+
+                if (points.length) {
+                    const badgeClass = (type) => {
+                        if (type === 'Official') return 'background:#F5F1FF;color:#8B5CF6';
+                        if (type === 'Partner') return 'background:#FFF8F5;color:#FF6B35';
+                        if (type === 'Online') return 'background:#EFF6FF;color:#3B82F6';
+                        return 'background:#FEF3C7;color:#D97706';
+                    };
+                    const starsHtml = (rating) => {
+                        const full = Math.floor(rating || 0);
+                        const half = (rating || 0) - full >= 0.5 ? 1 : 0;
+                        let html = '';
+                        for (let i = 0; i < full; i++) html += '<iconify-icon icon="ph:star-fill" class="text-orange-400"></iconify-icon>';
+                        if (half) html += '<iconify-icon icon="ph:star-half-fill" class="text-orange-400"></iconify-icon>';
+                        return html;
+                    };
+
                     points.forEach(p => {
+                        const lat = parseFloat(p.latitude);
+                        const lng = parseFloat(p.longitude);
+                        if (isNaN(lat) || isNaN(lng)) return;
+
                         const icon = L.divIcon({
                             className: 'map-marker',
-                            html: `<div>${p.name.split(' ')[0]}</div>`,
+                            html: `<div>${(p.name || '').split(' ')[0]}</div>`,
                             iconSize: [null, null],
                             iconAnchor: [20, 40],
                             popupAnchor: [0, -40]
                         });
 
-                        const lat = parseFloat(p.latitude);
-                        const lng = parseFloat(p.longitude);
                         const marker = L.marker([lat, lng], { icon }).addTo(mapInstance);
-                        
-                        // Register marker in global store using string ID for consistency
                         window.mapMarkers[String(p.id)] = marker;
-                        console.log('✅ Registered marker:', String(p.id), p.name);
-                        
+
                         // Link marker click back to list
                         marker.on('click', () => {
                             if (window.DashboardAppInstance) {
                                 window.DashboardAppInstance.activeMapId = p.id;
-                                // Scroll the card into view
                                 const card = document.getElementById('card-' + p.id);
                                 if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                             }
                         });
-                        marker.bindPopup(`<div class="p-4 min-w-[200px]">
-                            <h3 class="font-black text-sm mb-1 text-[#1F2937]">${p.name}</h3>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2">${p.city}</p>
-                            <div class="space-y-2">
-                                <p class="text-xs text-gray-600 flex items-center gap-2">
-                                    <iconify-icon icon="lucide:map-pin" class="text-[#8B5CF6]"></iconify-icon>
-                                    ${p.address || 'Address not available'}
-                                </p>
-                                ${p.phone ? `
-                                <p class="text-xs text-gray-600 flex items-center gap-2">
-                                    <iconify-icon icon="lucide:phone" class="text-[#8B5CF6]"></iconify-icon>
-                                    ${p.phone}
-                                </p>` : ''}
-                                ${p.website ? `
-                                <a href="${p.website}" target="_blank" class="text-xs text-[#8B5CF6] font-bold flex items-center gap-2 hover:underline">
-                                    <iconify-icon icon="lucide:external-link"></iconify-icon>
-                                    Visit Website
-                                </a>` : ''}
-                            </div>
-                            <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-                                <div class="flex items-center gap-1">
-                                    <iconify-icon icon="lucide:star" class="text-yellow-400"></iconify-icon>
-                                    <span class="text-xs font-black">${p.rating || 'N/A'}</span>
-                                </div>
-                                <button class="text-[10px] font-black uppercase text-[#8B5CF6] hover:bg-purple-50 px-2 py-1 rounded">View Details</button>
-                            </div>
-                        </div>`);
 
-                        window.mapMarkers = window.mapMarkers || {};
-                        window.mapMarkers[p.id] = marker;
+                        // Rich popup card matching education-centres.html style
+                        const popupHtml = `
+                            <div class="font-['Satoshi'] w-[280px] rounded-xl overflow-hidden shadow-lg" style="font-family:Satoshi,sans-serif">
+                                <div class="h-[120px] flex items-center justify-center text-5xl relative" style="background:${p.bg || '#F5F1FF'}">
+                                    <div class="absolute top-3 left-3">
+                                        <span class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg" style="${badgeClass(p.type)}">${p.type || 'Partner'}</span>
+                                    </div>
+                                    ${p.icon || '🏛️'}
+                                </div>
+                                <div class="p-5 bg-white">
+                                    <h3 class="font-black text-gray-900 text-base mb-1 truncate">${p.name}</h3>
+                                    <div class="flex items-center gap-1 text-sm mb-3">
+                                        ${starsHtml(p.rating)}
+                                        <span class="font-black text-gray-900 text-xs">${p.rating || '4.5'}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500 font-bold mb-4">
+                                        <iconify-icon icon="ph:map-pin-fill" class="text-orange-500 text-sm"></iconify-icon>
+                                        ${p.city}${p.district && p.district !== p.city ? ', ' + p.district : ''}
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Starting from</div>
+                                            <div class="text-lg font-black text-purple-600 leading-none mt-0.5">${Math.round((p.price || 200000) / 1000)}k <span class="text-[9px] text-gray-400">UZS</span></div>
+                                        </div>
+                                        <button class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-600 transition-colors" onclick="if(window.DashboardAppInstance){window.DashboardAppInstance.activeMapId=${p.id};const c=document.getElementById('card-${p.id}');if(c)c.scrollIntoView({behavior:'smooth',block:'nearest'});}">
+                                            Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>`;
+                        marker.bindPopup(popupHtml);
                     });
+
+                    // Fit bounds to show all markers
+                    const bounds = L.latLngBounds(points.filter(p => p.latitude && p.longitude).map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]));
+                    if (bounds.isValid && bounds.isValid()) {
+                        mapInstance.fitBounds(bounds, { padding: [50, 50] });
+                    }
                 }
             } catch (err) {
                 console.error('Failed to load education centres for map:', err);
-                // Fallback points if API fails
-                const points = [
-                    { id: 1, lat: 41.3111, lng: 69.2406, name: 'British Council Tashkent' },
-                    { id: 2, lat: 41.2995, lng: 69.2401, name: 'IDP Education Center A' }
-                ];
-                points.forEach(p => {
-                    const icon = L.divIcon({
-                        className: 'map-marker',
-                        html: `<div>${p.name.split(' ')[0]}</div>`,
-                        iconSize: ['auto', 32],
-                        iconAnchor: [16, 32],
-                        popupAnchor: [0, -36]
-                    });
-                    const marker = L.marker([p.lat, p.lng], { icon }).addTo(mapInstance);
-                    marker.bindPopup(`<div class="p-4"><h3 class="font-black text-sm mb-1">${p.name}</h3></div>`);
-                    window.mapMarkers[String(p.id)] = marker;
-                });
-                
-                // Force map refresh
-                setTimeout(() => {
-                    mapInstance.invalidateSize();
-                }, 100);
             }
         };
 
         let statsChartInstance = null;
         window.setupStatsChart = function () {
-            if (statsChartInstance) return;
-
             const chartEl = document.querySelector("#statisticsChart");
             if (!chartEl) return;
 
+            // If chart instance exists but DOM was destroyed by v-if, kill it
+            if (statsChartInstance && !chartEl.querySelector('.apexcharts-canvas')) {
+                try { statsChartInstance.destroy(); } catch(e) {}
+                statsChartInstance = null;
+            }
+
+            const app = window.DashboardAppInstance;
+            let chartData = { months: ['Jan','Feb','Mar','Apr','May','Jun'], series: [[5,5,5,5,5,5],[5,5,5,5,5,5],[5,5,5,5,5,5],[5,5,5,5,5,5]] };
+            if (app && typeof app.buildChartData === 'function') {
+                try { chartData = app.buildChartData(); } catch(e) { console.warn('Chart data build failed:', e); }
+            }
+
             const options = {
-                series: [{
-                    name: 'Listening',
-                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
-                }, {
-                    name: 'Reading',
-                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
-                }, {
-                    name: 'Writing',
-                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
-                }, {
-                    name: 'Speaking',
-                    data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
-                }],
+                series: [
+                    { name: 'Listening', data: chartData.series[0] },
+                    { name: 'Reading', data: chartData.series[1] },
+                    { name: 'Writing', data: chartData.series[2] },
+                    { name: 'Speaking', data: chartData.series[3] }
+                ],
                 chart: {
                     type: 'area',
                     height: 400,
@@ -8881,7 +9254,7 @@
                 dataLabels: { enabled: false },
                 stroke: { curve: 'smooth', width: 3 },
                 xaxis: {
-                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    categories: chartData.months,
                     axisBorder: { show: false },
                     axisTicks: { show: false },
                     labels: { style: { colors: '#9CA3AF', fontWeight: 700 } }
@@ -8905,8 +9278,18 @@
                 }
             };
 
-            statsChartInstance = new ApexCharts(chartEl, options);
-            statsChartInstance.render();
+            if (statsChartInstance) {
+                statsChartInstance.updateOptions({ xaxis: { categories: chartData.months } });
+                statsChartInstance.updateSeries([
+                    { name: 'Listening', data: chartData.series[0] },
+                    { name: 'Reading', data: chartData.series[1] },
+                    { name: 'Writing', data: chartData.series[2] },
+                    { name: 'Speaking', data: chartData.series[3] }
+                ]);
+            } else {
+                statsChartInstance = new ApexCharts(chartEl, options);
+                statsChartInstance.render();
+            }
         };
     } catch (error) {
         console.error('Dashboard initialization error:', error);
@@ -9031,40 +9414,26 @@
                 console.log('🧪 Manual test function available: window.manualSendTestMessage("your text")');
 
                 // Global AI Chat toggle/close functions for fallback
+                // These only update Vue state; PetiteVue v-show handles the DOM.
                 window.toggleAIChat = function() {
-                    const chatWindow = document.querySelector('.ai-chat-window');
-                    if (chatWindow) {
-                        const isHidden = chatWindow.style.display === 'none' || !chatWindow.style.display;
-                        chatWindow.style.display = isHidden ? 'block' : 'none';
-                        console.log('🤖 Chat toggled via global function, display:', chatWindow.style.display);
-                    }
-                    // Also update Vue state if available
                     if (window.DashboardAppInstance) {
-                        window.DashboardAppInstance.isChatOpen = !window.DashboardAppInstance.isChatOpen;
+                        const inst = window.DashboardAppInstance;
+                        inst.isChatOpen = !inst.isChatOpen;
+                        console.log('🤖 Chat toggled via global function, isChatOpen:', inst.isChatOpen);
                     }
                 };
 
                 window.closeAIChat = function() {
-                    const chatWindow = document.querySelector('.ai-chat-window');
-                    if (chatWindow) {
-                        chatWindow.style.display = 'none';
-                        console.log('❌ Chat closed via global function');
-                    }
-                    // Also update Vue state if available
                     if (window.DashboardAppInstance) {
                         window.DashboardAppInstance.isChatOpen = false;
+                        console.log('❌ Chat closed via global function');
                     }
                 };
 
                 window.openAIChat = function() {
-                    const chatWindow = document.querySelector('.ai-chat-window');
-                    if (chatWindow) {
-                        chatWindow.style.display = 'block';
-                        console.log('✅ Chat opened via global function');
-                    }
-                    // Also update Vue state if available
                     if (window.DashboardAppInstance) {
                         window.DashboardAppInstance.isChatOpen = true;
+                        console.log('✅ Chat opened via global function');
                     }
                 };
 
